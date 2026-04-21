@@ -54,7 +54,7 @@ from GNN.Utils.model_config import (
     add_appnp_args,
 )
 from GNN.Utils.result_logger import build_result_row, update_best_result_csv, append_result_csv
-from GNN.Baselines.Early_GNN import Early_GNN as mag_base
+from GNN.Baselines.Early_GNN import _make_observe_graph_inductive
 
 
 # ==============================================================================
@@ -422,7 +422,7 @@ def _load_mag_context(args, device: th.device):
         graph.add_edges(dsts, srcs)
     observe_graph = copy.deepcopy(graph)
     if args.inductive:
-        observe_graph = mag_base._make_observe_graph_inductive(graph, val_idx, test_idx)
+        observe_graph = _make_observe_graph_inductive(graph, val_idx, test_idx)
     if args.selfloop:
         graph = graph.remove_self_loop().add_self_loop()
         observe_graph = observe_graph.remove_self_loop().add_self_loop()

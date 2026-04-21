@@ -310,27 +310,68 @@ case "${MODEL}" in
           for L in "${gcn_n_layers[@]}"; do
             label="GCN-lr${lr}-wd${wd}-h${h}-L${L}-do${gcn_dropout}"
             run_model "${label}" \
-              python GNN/Library/GCN.py \
+              python -c "
+import sys; sys.path.insert(0, 'GNN/Library')
+from GNN.Baselines.Early_GNN import Early_GNN as mag_base
+import torch as th
+from GNN.GraphData import load_data
+from GNN.Utils.NodeClassification import classification
+import argparse, numpy as np
+
+parser = argparse.ArgumentParser('GCN Config')
+from GNN.Utils.model_config import add_common_args; add_common_args(parser)
+args = parser.parse_args()
+
+device = th.device('cuda:%d' % args.gpu if th.cuda.is_available() else 'cpu')
+graph, labels, train_idx, val_idx, test_idx = load_data(args.graph_path, train_ratio=args.train_ratio, val_ratio=args.val_ratio, name=args.data_name)
+
+text_feat = th.from_numpy(np.load(args.text_feature).astype(np.float32)).to(device)
+vis_feat = th.from_numpy(np.load(args.visual_feature).astype(np.float32)).to(device)
+
+if args.undirected:
+    srcs, dsts = graph.all_edges()
+    graph.add_edges(dsts, srcs)
+if args.selfloop:
+    graph = graph.remove_self_loop().add_self_loop()
+
+graph.create_formats_()
+train_idx, val_idx, test_idx = train_idx.to(device), val_idx.to(device), test_idx.to(device)
+labels = labels.to(device)
+graph = graph.to(device)
+
+n_classes = int((labels.max() + 1).item())
+feat = th.cat([text_feat, vis_feat], dim=1)
+
+model = mag_base(text_in_dim=feat.shape[1], vis_in_dim=0, n_classes=n_classes,
+                 n_layers=${L}, n_hidden=${h}, dropout=${gcn_dropout},
+                 lr=${lr}, wd=${wd}, jknet_aggr=None,
+                 gcnii_lamda=None, gcnii_alpha=None, gcnii_variant=False,
+                 backend='gnn', model_name='GCN', early_fuse='concat',
+                 aggregator=None, n_heads=1, attn_drop=0.0, edge_drop=0.0,
+                 use_symmetric_norm=False).to(device)
+
+classification(args, graph, graph, model, feat, labels, train_idx, val_idx, test_idx, 1)
+" \
                 --data_name "${DATA_NAME}" \
                 --graph_path "${GRAPH_PATH}" \
-                  --text_feature "${TEXT_FEAT}" \
-                  --visual_feature "${VIS_FEAT}" \
-                  --gpu "${GPU_ID}" \
-                  --n-runs "${N_RUNS}" \
-                  --n-epochs "${N_EPOCHS}" \
-                  --warmup_epochs "${WARMUP_EPOCHS}" \
-                  --eval_steps "${EVAL_STEPS}" \
-                  --early_stop_patience "${gcn_early_stop_patience}" \
-                  --lr "${lr}" --wd "${wd}" \
-                  --n-layers "${L}" --n-hidden "${h}" --dropout "${gcn_dropout}" \
-                  --label-smoothing "${gcn_label_smoothing}" \
-                  --metric "${METRIC}" --average "${AVERAGE}" \
-                  --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                  --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
-                  --inductive "${INDUCTIVE}" \
-                  --disable_wandb \
-                  --result_csv "${RESULT_CSV}" \
-                  --result_csv_all "${RESULT_CSV_ALL}"
+                --text_feature "${TEXT_FEAT}" \
+                --visual_feature "${VIS_FEAT}" \
+                --gpu "${GPU_ID}" \
+                --n-runs "${N_RUNS}" \
+                --n-epochs "${N_EPOCHS}" \
+                --warmup_epochs "${WARMUP_EPOCHS}" \
+                --eval_steps "${EVAL_STEPS}" \
+                --early_stop_patience "${gcn_early_stop_patience}" \
+                --lr "${lr}" --wd "${wd}" \
+                --n-layers "${L}" --n-hidden "${h}" --dropout "${gcn_dropout}" \
+                --label-smoothing "${gcn_label_smoothing}" \
+                --metric "${METRIC}" --average "${AVERAGE}" \
+                --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
+                --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
+                --inductive "${INDUCTIVE}" \
+                --disable_wandb \
+                --result_csv "${RESULT_CSV}" \
+                --result_csv_all "${RESULT_CSV_ALL}"
           done
         done
       done
@@ -345,7 +386,48 @@ case "${MODEL}" in
           for L in "${sage_n_layers[@]}"; do
             label="SAGE-lr${lr}-wd${wd}-h${h}-L${L}-do${sage_dropout}"
             run_model "${label}" \
-              python GNN/Library/GraphSAGE.py \
+              python -c "
+import sys; sys.path.insert(0, 'GNN/Library')
+from GNN.Baselines.Early_GNN import Early_GNN as mag_base
+import torch as th
+from GNN.GraphData import load_data
+from GNN.Utils.NodeClassification import classification
+import argparse, numpy as np
+
+parser = argparse.ArgumentParser('SAGE Config')
+from GNN.Utils.model_config import add_common_args; add_common_args(parser)
+args = parser.parse_args()
+
+device = th.device('cuda:%d' % args.gpu if th.cuda.is_available() else 'cpu')
+graph, labels, train_idx, val_idx, test_idx = load_data(args.graph_path, train_ratio=args.train_ratio, val_ratio=args.val_ratio, name=args.data_name)
+
+text_feat = th.from_numpy(np.load(args.text_feature).astype(np.float32)).to(device)
+vis_feat = th.from_numpy(np.load(args.visual_feature).astype(np.float32)).to(device)
+
+if args.undirected:
+    srcs, dsts = graph.all_edges()
+    graph.add_edges(dsts, srcs)
+if args.selfloop:
+    graph = graph.remove_self_loop().add_self_loop()
+
+graph.create_formats_()
+train_idx, val_idx, test_idx = train_idx.to(device), val_idx.to(device), test_idx.to(device)
+labels = labels.to(device)
+graph = graph.to(device)
+
+n_classes = int((labels.max() + 1).item())
+feat = th.cat([text_feat, vis_feat], dim=1)
+
+model = mag_base(text_in_dim=feat.shape[1], vis_in_dim=0, n_classes=n_classes,
+                 n_layers=${L}, n_hidden=${h}, dropout=${sage_dropout},
+                 lr=${lr}, wd=${wd}, jknet_aggr=None,
+                 gcnii_lamda=None, gcnii_alpha=None, gcnii_variant=False,
+                 backend='gnn', model_name='SAGE', early_fuse='concat',
+                 aggregator='${sage_aggregator}', n_heads=1, attn_drop=0.0, edge_drop=0.0,
+                 use_symmetric_norm=False).to(device)
+
+classification(args, graph, graph, model, feat, labels, train_idx, val_idx, test_idx, 1)
+" \
                 --data_name "${DATA_NAME}" \
                 --graph_path "${GRAPH_PATH}" \
                 --text_feature "${TEXT_FEAT}" \
@@ -361,9 +443,8 @@ case "${MODEL}" in
                 --label-smoothing "${sage_label_smoothing}" \
                 --metric "${METRIC}" --average "${AVERAGE}" \
                 --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                --undirected "${UNDIRECTED}" \
+                --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
                 --inductive "${INDUCTIVE}" \
-                --aggregator "${sage_aggregator}" \
                 --disable_wandb \
                 --result_csv "${RESULT_CSV}" \
                 --result_csv_all "${RESULT_CSV_ALL}"
@@ -381,31 +462,68 @@ case "${MODEL}" in
           for L in "${gat_n_layers[@]}"; do
             label="GAT-lr${lr}-wd${wd}-h${h}-L${L}-do${gat_dropout}"
             run_model "${label}" \
-              python GNN/Library/GAT.py \
+              python -c "
+import sys; sys.path.insert(0, 'GNN/Library')
+from GNN.Baselines.Early_GNN import Early_GNN as mag_base
+import torch as th
+from GNN.GraphData import load_data
+from GNN.Utils.NodeClassification import classification
+import argparse, numpy as np
+
+parser = argparse.ArgumentParser('GAT Config')
+from GNN.Utils.model_config import add_common_args; add_common_args(parser)
+args = parser.parse_args()
+
+device = th.device('cuda:%d' % args.gpu if th.cuda.is_available() else 'cpu')
+graph, labels, train_idx, val_idx, test_idx = load_data(args.graph_path, train_ratio=args.train_ratio, val_ratio=args.val_ratio, name=args.data_name)
+
+text_feat = th.from_numpy(np.load(args.text_feature).astype(np.float32)).to(device)
+vis_feat = th.from_numpy(np.load(args.visual_feature).astype(np.float32)).to(device)
+
+if args.undirected:
+    srcs, dsts = graph.all_edges()
+    graph.add_edges(dsts, srcs)
+if args.selfloop:
+    graph = graph.remove_self_loop().add_self_loop()
+
+graph.create_formats_()
+train_idx, val_idx, test_idx = train_idx.to(device), val_idx.to(device), test_idx.to(device)
+labels = labels.to(device)
+graph = graph.to(device)
+
+n_classes = int((labels.max() + 1).item())
+feat = th.cat([text_feat, vis_feat], dim=1)
+
+model = mag_base(text_in_dim=feat.shape[1], vis_in_dim=0, n_classes=n_classes,
+                 n_layers=${L}, n_hidden=${h}, dropout=${gat_dropout},
+                 lr=${lr}, wd=${wd}, jknet_aggr=None,
+                 gcnii_lamda=None, gcnii_alpha=None, gcnii_variant=False,
+                 backend='gnn', model_name='GAT', early_fuse='concat',
+                 aggregator=None, n_heads=${gat_n_heads}, attn_drop=${gat_attn_drop}, edge_drop=${gat_edge_drop},
+                 use_symmetric_norm=False).to(device)
+
+classification(args, graph, graph, model, feat, labels, train_idx, val_idx, test_idx, 1)
+" \
                 --data_name "${DATA_NAME}" \
                 --graph_path "${GRAPH_PATH}" \
-                  --text_feature "${TEXT_FEAT}" \
-                  --visual_feature "${VIS_FEAT}" \
-                  --gpu "${GPU_ID}" \
-                  --n-runs "${N_RUNS}" \
-                  --n-epochs "${N_EPOCHS}" \
-                  --warmup_epochs "${WARMUP_EPOCHS}" \
-                  --eval_steps "${EVAL_STEPS}" \
-                  --early_stop_patience "${gat_early_stop_patience}" \
-                  --lr "${lr}" --wd "${wd}" \
-                  --n-layers "${L}" --n-hidden "${h}" --dropout "${gat_dropout}" \
-                  --label-smoothing "${gat_label_smoothing}" \
-                  --metric "${METRIC}" --average "${AVERAGE}" \
-                  --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                  --undirected "${UNDIRECTED}" \
-                  --inductive "${INDUCTIVE}" \
-                  --n-heads "${gat_n_heads}" \
-                  --attn-drop "${gat_attn_drop}" \
-                  --edge-drop "${gat_edge_drop}" \
-                  --no-attn-dst \
-                  --disable_wandb \
-                  --result_csv "${RESULT_CSV}" \
-                  --result_csv_all "${RESULT_CSV_ALL}"
+                --text_feature "${TEXT_FEAT}" \
+                --visual_feature "${VIS_FEAT}" \
+                --gpu "${GPU_ID}" \
+                --n-runs "${N_RUNS}" \
+                --n-epochs "${N_EPOCHS}" \
+                --warmup_epochs "${WARMUP_EPOCHS}" \
+                --eval_steps "${EVAL_STEPS}" \
+                --early_stop_patience "${gat_early_stop_patience}" \
+                --lr "${lr}" --wd "${wd}" \
+                --n-layers "${L}" --n-hidden "${h}" --dropout "${gat_dropout}" \
+                --label-smoothing "${gat_label_smoothing}" \
+                --metric "${METRIC}" --average "${AVERAGE}" \
+                --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
+                --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
+                --inductive "${INDUCTIVE}" \
+                --disable_wandb \
+                --result_csv "${RESULT_CSV}" \
+                --result_csv_all "${RESULT_CSV_ALL}"
           done
         done
       done

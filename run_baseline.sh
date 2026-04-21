@@ -170,7 +170,9 @@ EOF
 MODEL=""
 DATA_NAME=""
 FEATURE_GROUP="clip_roberta"
-OUTPUT_DIR="logs_baseline"
+OUTPUT_DIR=${OUTPUT_DIR:-logs_baseline}
+RESULT_CSV=${RESULT_CSV:-results_csv/baseline_best.csv}
+RESULT_CSV_ALL=${RESULT_CSV_ALL:-results_csv/baseline_all.csv}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -180,6 +182,8 @@ while [[ $# -gt 0 ]]; do
     --gpu) GPU_ID="$2"; shift 2 ;;
     --n_runs) N_RUNS="$2"; shift 2 ;;
     --output_dir) OUTPUT_DIR="$2"; shift 2 ;;
+    --result_csv) RESULT_CSV="$2"; shift 2 ;;
+    --result_csv_all) RESULT_CSV_ALL="$2"; shift 2 ;;
     --selfloop) SELFLOOP="true"; shift ;;
     --no-selfloop) SELFLOOP="false"; shift ;;
     --undirected) UNDIRECTED="true"; shift ;;
@@ -318,13 +322,15 @@ case "${MODEL}" in
                   --eval_steps "${EVAL_STEPS}" \
                   --early_stop_patience "${gcn_early_stop_patience}" \
                   --lr "${lr}" --wd "${wd}" \
-                  --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
+                  --n-layers "${L}" --n-hidden "${h}" --dropout "${gcn_dropout}" \
                   --label-smoothing "${gcn_label_smoothing}" \
                   --metric "${METRIC}" --average "${AVERAGE}" \
                   --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
                   --undirected --selfloop \
                   --inductive "${INDUCTIVE}" \
-                  --disable_wandb
+                  --disable_wandb \
+                  --result_csv "${RESULT_CSV}" \
+                  --result_csv_all "${RESULT_CSV_ALL}"
           done
         done
       done
@@ -385,7 +391,7 @@ case "${MODEL}" in
                   --eval_steps "${EVAL_STEPS}" \
                   --early_stop_patience "${gat_early_stop_patience}" \
                   --lr "${lr}" --wd "${wd}" \
-                  --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
+                  --n-layers "${L}" --n-hidden "${h}" --dropout "${gcn_dropout}" \
                   --label-smoothing "${gat_label_smoothing}" \
                   --metric "${METRIC}" --average "${AVERAGE}" \
                   --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
@@ -395,7 +401,9 @@ case "${MODEL}" in
                   --attn-drop "${gat_attn_drop}" \
                   --edge-drop "${gat_edge_drop}" \
                   --no-attn-dst \
-                  --disable_wandb
+                  --disable_wandb \
+                  --result_csv "${RESULT_CSV}" \
+                  --result_csv_all "${RESULT_CSV_ALL}"
           done
         done
       done
@@ -469,7 +477,9 @@ classification(args, graph, graph, model, feat, labels, train_idx, val_idx, test
                 --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
                 --undirected --selfloop \
                 --inductive "${INDUCTIVE}" \
-                --disable_wandb
+                --disable_wandb \
+                --result_csv "${RESULT_CSV}" \
+                --result_csv_all "${RESULT_CSV_ALL}"
           done
         done
       done
@@ -543,7 +553,9 @@ classification(args, graph, graph, model, feat, labels, train_idx, val_idx, test
                 --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
                 --undirected --selfloop \
                 --inductive "${INDUCTIVE}" \
-                --disable_wandb
+                --disable_wandb \
+                --result_csv "${RESULT_CSV}" \
+                --result_csv_all "${RESULT_CSV_ALL}"
           done
         done
       done

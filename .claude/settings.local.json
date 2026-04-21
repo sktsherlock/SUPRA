@@ -19,7 +19,12 @@
       "Bash(awk NR>=200 && NR<=245 {print NR\": \"$0}:*)",
       "mcp__MiniMax__web_search",
       "WebFetch(domain:arxiv.org)",
-      "WebFetch(domain:blog.csdn.net)"
+      "WebFetch(domain:blog.csdn.net)",
+      "Bash(git push:*)",
+      "Bash(curl -I https://github.com)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(bash:*)"
     ]
   }
 }

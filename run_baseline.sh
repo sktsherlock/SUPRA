@@ -326,7 +326,7 @@ case "${MODEL}" in
                   --label-smoothing "${gcn_label_smoothing}" \
                   --metric "${METRIC}" --average "${AVERAGE}" \
                   --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                  --undirected --selfloop \
+                  --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
                   --inductive "${INDUCTIVE}" \
                   --disable_wandb \
                   --result_csv "${RESULT_CSV}" \
@@ -475,7 +475,7 @@ classification(args, graph, graph, model, feat, labels, train_idx, val_idx, test
                 --label-smoothing "${gcnii_label_smoothing}" \
                 --metric "${METRIC}" --average "${AVERAGE}" \
                 --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                --undirected --selfloop \
+                --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
                 --inductive "${INDUCTIVE}" \
                 --disable_wandb \
                 --result_csv "${RESULT_CSV}" \
@@ -551,7 +551,7 @@ classification(args, graph, graph, model, feat, labels, train_idx, val_idx, test
                 --label-smoothing "${jknet_label_smoothing}" \
                 --metric "${METRIC}" --average "${AVERAGE}" \
                 --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                --undirected --selfloop \
+                --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
                 --inductive "${INDUCTIVE}" \
                 --disable_wandb \
                 --result_csv "${RESULT_CSV}" \

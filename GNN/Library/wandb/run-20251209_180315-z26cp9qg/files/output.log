@@ -1,0 +1,125 @@
+The Graph change to the undirected graph
+Total edges before adding self-loop 3109156
+Total edges after adding self-loop 3186031
+Total edges after adding self-loop 3186031
+Train_idx: 46125
+Valid_idx: 15375
+Test_idx: 15375
+Trainable parameters total: 1,635,992
+  llm_proj: 655,488 (40.07%)
+  tlm_proj: 98,432 (6.02%)
+  shared_encoder: 16,512 (1.01%)
+  llm_decoder: 660,480 (40.37%)
+  tlm_decoder: 99,072 (6.06%)
+  gnn_model: 106,008 (6.48%)
+Warmup Epoch 20/50 | total: 2.2095 | cls_llm: 2.0515 | recon_llm: 0.1580
+Warmup Epoch 40/50 | total: 2.1275 | cls_llm: 1.9843 | recon_llm: 0.1433
+Run: 1/3, Epoch: 20/1000, Average epoch time: 0.15
+Loss total: 4.6006 | cls_llm: 1.9561 | cls_tlm: 1.9305 | recon_llm: 0.1416 | recon_tlm: 0.5725 | val_loss: 2.1042 | test_loss: 2.1040
+Train/Val/Test accuracy (fused): 0.4777/0.4675/0.4637
+Run: 1/3, Epoch: 40/1000, Average epoch time: 0.15
+Loss total: 4.5082 | cls_llm: 1.9162 | cls_tlm: 1.8921 | recon_llm: 0.1400 | recon_tlm: 0.5599 | val_loss: 2.0174 | test_loss: 2.0103
+Train/Val/Test accuracy (fused): 0.5673/0.5422/0.5405
+Run: 1/3, Epoch: 60/1000, Average epoch time: 0.15
+Loss total: 4.4459 | cls_llm: 1.8844 | cls_tlm: 1.8686 | recon_llm: 0.1389 | recon_tlm: 0.5540 | val_loss: 2.0473 | test_loss: 2.0386
+Train/Val/Test accuracy (fused): 0.5847/0.5534/0.5512
+Run: 1/3, Epoch: 80/1000, Average epoch time: 0.15
+Loss total: 4.4016 | cls_llm: 1.8628 | cls_tlm: 1.8485 | recon_llm: 0.1390 | recon_tlm: 0.5513 | val_loss: 2.0529 | test_loss: 2.0438
+Train/Val/Test accuracy (fused): 0.5900/0.5525/0.5520
+Run: 1/3, Epoch: 100/1000, Average epoch time: 0.15
+Loss total: 4.3666 | cls_llm: 1.8436 | cls_tlm: 1.8351 | recon_llm: 0.1386 | recon_tlm: 0.5493 | val_loss: 2.0210 | test_loss: 2.0131
+Train/Val/Test accuracy (fused): 0.6082/0.5596/0.5605
+Run: 1/3, Epoch: 120/1000, Average epoch time: 0.15
+Loss total: 4.3318 | cls_llm: 1.8255 | cls_tlm: 1.8202 | recon_llm: 0.1381 | recon_tlm: 0.5480 | val_loss: 1.9731 | test_loss: 1.9647
+Train/Val/Test accuracy (fused): 0.6275/0.5717/0.5716
+Run: 1/3, Epoch: 140/1000, Average epoch time: 0.15
+Loss total: 4.3080 | cls_llm: 1.8131 | cls_tlm: 1.8092 | recon_llm: 0.1383 | recon_tlm: 0.5473 | val_loss: 1.9433 | test_loss: 1.9381
+Train/Val/Test accuracy (fused): 0.6470/0.5799/0.5806
+Run: 1/3, Epoch: 160/1000, Average epoch time: 0.15
+Loss total: 4.2904 | cls_llm: 1.8063 | cls_tlm: 1.7990 | recon_llm: 0.1382 | recon_tlm: 0.5469 | val_loss: 1.9361 | test_loss: 1.9302
+Train/Val/Test accuracy (fused): 0.6600/0.5887/0.5863
+Run: 1/3, Epoch: 180/1000, Average epoch time: 0.15
+Loss total: 4.2652 | cls_llm: 1.7908 | cls_tlm: 1.7897 | recon_llm: 0.1384 | recon_tlm: 0.5461 | val_loss: 1.9437 | test_loss: 1.9379
+Train/Val/Test accuracy (fused): 0.6556/0.5787/0.5826
+Run: 1/3, Epoch: 200/1000, Average epoch time: 0.15
+Loss total: 4.2516 | cls_llm: 1.7863 | cls_tlm: 1.7810 | recon_llm: 0.1387 | recon_tlm: 0.5456 | val_loss: 1.9380 | test_loss: 1.9301
+Train/Val/Test accuracy (fused): 0.6696/0.5882/0.5883
+Best Val accuracy (fused): 0.5887, Final Test accuracy (fused): 0.5863
+Warmup Epoch 20/50 | total: 2.1873 | cls_llm: 2.0363 | recon_llm: 0.1509
+Warmup Epoch 40/50 | total: 2.1191 | cls_llm: 1.9723 | recon_llm: 0.1468
+Run: 2/3, Epoch: 20/1000, Average epoch time: 0.16
+Loss total: 4.5747 | cls_llm: 1.9369 | cls_tlm: 1.9186 | recon_llm: 0.1472 | recon_tlm: 0.5719 | val_loss: 2.1111 | test_loss: 2.1101
+Train/Val/Test accuracy (fused): 0.5070/0.4937/0.4903
+Run: 2/3, Epoch: 40/1000, Average epoch time: 0.15
+Loss total: 4.4866 | cls_llm: 1.8958 | cls_tlm: 1.8869 | recon_llm: 0.1449 | recon_tlm: 0.5589 | val_loss: 2.0452 | test_loss: 2.0394
+Train/Val/Test accuracy (fused): 0.5569/0.5322/0.5296
+Run: 2/3, Epoch: 60/1000, Average epoch time: 0.15
+Loss total: 4.4233 | cls_llm: 1.8637 | cls_tlm: 1.8637 | recon_llm: 0.1436 | recon_tlm: 0.5523 | val_loss: 2.0466 | test_loss: 2.0371
+Train/Val/Test accuracy (fused): 0.5815/0.5466/0.5473
+Run: 2/3, Epoch: 80/1000, Average epoch time: 0.15
+Loss total: 4.3791 | cls_llm: 1.8422 | cls_tlm: 1.8457 | recon_llm: 0.1420 | recon_tlm: 0.5492 | val_loss: 1.9762 | test_loss: 1.9666
+Train/Val/Test accuracy (fused): 0.6167/0.5663/0.5704
+Run: 2/3, Epoch: 100/1000, Average epoch time: 0.15
+Loss total: 4.3378 | cls_llm: 1.8184 | cls_tlm: 1.8305 | recon_llm: 0.1412 | recon_tlm: 0.5478 | val_loss: 1.9561 | test_loss: 1.9464
+Train/Val/Test accuracy (fused): 0.6287/0.5744/0.5745
+Run: 2/3, Epoch: 120/1000, Average epoch time: 0.15
+Loss total: 4.3187 | cls_llm: 1.8105 | cls_tlm: 1.8188 | recon_llm: 0.1425 | recon_tlm: 0.5469 | val_loss: 1.9276 | test_loss: 1.9174
+Train/Val/Test accuracy (fused): 0.6379/0.5739/0.5793
+Run: 2/3, Epoch: 140/1000, Average epoch time: 0.15
+Loss total: 4.2874 | cls_llm: 1.7923 | cls_tlm: 1.8079 | recon_llm: 0.1409 | recon_tlm: 0.5463 | val_loss: 1.9428 | test_loss: 1.9349
+Train/Val/Test accuracy (fused): 0.6362/0.5709/0.5705
+Run: 2/3, Epoch: 160/1000, Average epoch time: 0.15
+Loss total: 4.2637 | cls_llm: 1.7796 | cls_tlm: 1.7980 | recon_llm: 0.1400 | recon_tlm: 0.5460 | val_loss: 1.9118 | test_loss: 1.9056
+Train/Val/Test accuracy (fused): 0.6574/0.5813/0.5813
+Run: 2/3, Epoch: 180/1000, Average epoch time: 0.15
+Loss total: 4.2466 | cls_llm: 1.7742 | cls_tlm: 1.7868 | recon_llm: 0.1398 | recon_tlm: 0.5458 | val_loss: 1.8987 | test_loss: 1.8924
+Train/Val/Test accuracy (fused): 0.6667/0.5851/0.5874
+Run: 2/3, Epoch: 200/1000, Average epoch time: 0.15
+Loss total: 4.2337 | cls_llm: 1.7644 | cls_tlm: 1.7820 | recon_llm: 0.1416 | recon_tlm: 0.5457 | val_loss: 1.9212 | test_loss: 1.9161
+Train/Val/Test accuracy (fused): 0.6559/0.5739/0.5775
+Run: 2/3, Epoch: 220/1000, Average epoch time: 0.15
+Loss total: 4.2148 | cls_llm: 1.7567 | cls_tlm: 1.7724 | recon_llm: 0.1401 | recon_tlm: 0.5456 | val_loss: 1.8934 | test_loss: 1.8882
+Train/Val/Test accuracy (fused): 0.6844/0.5880/0.5900
+Run: 2/3, Epoch: 240/1000, Average epoch time: 0.15
+Loss total: 4.2336 | cls_llm: 1.7735 | cls_tlm: 1.7729 | recon_llm: 0.1415 | recon_tlm: 0.5456 | val_loss: 1.9073 | test_loss: 1.9004
+Train/Val/Test accuracy (fused): 0.6673/0.5745/0.5759
+Run: 2/3, Epoch: 260/1000, Average epoch time: 0.15
+Loss total: 4.1916 | cls_llm: 1.7471 | cls_tlm: 1.7587 | recon_llm: 0.1402 | recon_tlm: 0.5456 | val_loss: 1.8936 | test_loss: 1.8884
+Train/Val/Test accuracy (fused): 0.6879/0.5878/0.5904
+Best Val accuracy (fused): 0.5940, Final Test accuracy (fused): 0.5958
+Warmup Epoch 20/50 | total: 2.2024 | cls_llm: 2.0524 | recon_llm: 0.1500
+Warmup Epoch 40/50 | total: 2.1278 | cls_llm: 1.9814 | recon_llm: 0.1464
+Run: 3/3, Epoch: 20/1000, Average epoch time: 0.16
+Loss total: 4.5909 | cls_llm: 1.9427 | cls_tlm: 1.9252 | recon_llm: 0.1469 | recon_tlm: 0.5762 | val_loss: 2.1698 | test_loss: 2.1679
+Train/Val/Test accuracy (fused): 0.4649/0.4550/0.4522
+Run: 3/3, Epoch: 40/1000, Average epoch time: 0.15
+Loss total: 4.4961 | cls_llm: 1.8996 | cls_tlm: 1.8910 | recon_llm: 0.1446 | recon_tlm: 0.5609 | val_loss: 2.0457 | test_loss: 2.0364
+Train/Val/Test accuracy (fused): 0.5710/0.5447/0.5443
+Run: 3/3, Epoch: 60/1000, Average epoch time: 0.15
+Loss total: 4.4309 | cls_llm: 1.8668 | cls_tlm: 1.8668 | recon_llm: 0.1428 | recon_tlm: 0.5544 | val_loss: 2.0700 | test_loss: 2.0565
+Train/Val/Test accuracy (fused): 0.6007/0.5651/0.5642
+Run: 3/3, Epoch: 80/1000, Average epoch time: 0.15
+Loss total: 4.3883 | cls_llm: 1.8448 | cls_tlm: 1.8499 | recon_llm: 0.1421 | recon_tlm: 0.5515 | val_loss: 1.9953 | test_loss: 1.9818
+Train/Val/Test accuracy (fused): 0.6270/0.5765/0.5793
+Run: 3/3, Epoch: 100/1000, Average epoch time: 0.15
+Loss total: 4.3589 | cls_llm: 1.8312 | cls_tlm: 1.8359 | recon_llm: 0.1421 | recon_tlm: 0.5497 | val_loss: 1.9654 | test_loss: 1.9539
+Train/Val/Test accuracy (fused): 0.6403/0.5847/0.5863
+Run: 3/3, Epoch: 120/1000, Average epoch time: 0.15
+Loss total: 4.3176 | cls_llm: 1.8075 | cls_tlm: 1.8209 | recon_llm: 0.1407 | recon_tlm: 0.5486 | val_loss: 1.9924 | test_loss: 1.9827
+Train/Val/Test accuracy (fused): 0.6372/0.5778/0.5777
+Run: 3/3, Epoch: 140/1000, Average epoch time: 0.15
+Loss total: 4.2958 | cls_llm: 1.7976 | cls_tlm: 1.8101 | recon_llm: 0.1405 | recon_tlm: 0.5476 | val_loss: 1.9506 | test_loss: 1.9417
+Train/Val/Test accuracy (fused): 0.6538/0.5847/0.5876
+Run: 3/3, Epoch: 160/1000, Average epoch time: 0.15
+Loss total: 4.2709 | cls_llm: 1.7834 | cls_tlm: 1.8006 | recon_llm: 0.1402 | recon_tlm: 0.5467 | val_loss: 1.9256 | test_loss: 1.9171
+Train/Val/Test accuracy (fused): 0.6599/0.5832/0.5860
+Run: 3/3, Epoch: 180/1000, Average epoch time: 0.15
+Loss total: 4.2590 | cls_llm: 1.7829 | cls_tlm: 1.7899 | recon_llm: 0.1400 | recon_tlm: 0.5462 | val_loss: 1.9355 | test_loss: 1.9282
+Train/Val/Test accuracy (fused): 0.6656/0.5872/0.5896
+Run: 3/3, Epoch: 200/1000, Average epoch time: 0.15
+Loss total: 4.2376 | cls_llm: 1.7694 | cls_tlm: 1.7830 | recon_llm: 0.1395 | recon_tlm: 0.5457 | val_loss: 1.9298 | test_loss: 1.9257
+Train/Val/Test accuracy (fused): 0.6745/0.5861/0.5893
+Best Val accuracy (fused): 0.5932, Final Test accuracy (fused): 0.5941
+Runned 3 times
+Average val accuracy: 0.5919783197831978 ± 0.0023518788721640462
+Average test accuracy: 0.5920867208672087 ± 0.0041163875438585676

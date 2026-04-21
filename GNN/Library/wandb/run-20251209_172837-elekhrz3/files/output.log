@@ -1,0 +1,157 @@
+The Graph change to the undirected graph
+Total edges before adding self-loop 3109156
+Total edges after adding self-loop 3186031
+Total edges after adding self-loop 3186031
+Train_idx: 46125
+Valid_idx: 15375
+Test_idx: 15375
+Warmup Epoch 20/50 | total: 2.2107 | cls_llm: 2.0514 | recon_llm: 0.1593
+Warmup Epoch 40/50 | total: 2.1286 | cls_llm: 1.9854 | recon_llm: 0.1432
+Run: 1/3, Epoch: 20/1000, Average epoch time: 0.17
+Loss total: 4.3393 | cls_llm: 1.9372 | cls_tlm: 1.9144 | recon_llm: 0.1369 | recon_tlm: 0.3507 | val_loss: 1.9486 | test_loss: 1.9398
+Train/Val/Test accuracy (fused): 0.5800/0.5546/0.5576
+Run: 1/3, Epoch: 40/1000, Average epoch time: 0.16
+Loss total: 4.2431 | cls_llm: 1.9050 | cls_tlm: 1.8875 | recon_llm: 0.1343 | recon_tlm: 0.3163 | val_loss: 1.9895 | test_loss: 1.9801
+Train/Val/Test accuracy (fused): 0.5799/0.5558/0.5528
+Run: 1/3, Epoch: 60/1000, Average epoch time: 0.16
+Loss total: 4.1877 | cls_llm: 1.8812 | cls_tlm: 1.8690 | recon_llm: 0.1331 | recon_tlm: 0.3044 | val_loss: 1.9667 | test_loss: 1.9567
+Train/Val/Test accuracy (fused): 0.6063/0.5683/0.5714
+Run: 1/3, Epoch: 80/1000, Average epoch time: 0.16
+Loss total: 4.1502 | cls_llm: 1.8634 | cls_tlm: 1.8559 | recon_llm: 0.1317 | recon_tlm: 0.2991 | val_loss: 1.9480 | test_loss: 1.9391
+Train/Val/Test accuracy (fused): 0.6157/0.5730/0.5741
+Run: 1/3, Epoch: 100/1000, Average epoch time: 0.16
+Loss total: 4.1183 | cls_llm: 1.8488 | cls_tlm: 1.8433 | recon_llm: 0.1303 | recon_tlm: 0.2959 | val_loss: 1.9302 | test_loss: 1.9219
+Train/Val/Test accuracy (fused): 0.6266/0.5759/0.5768
+Run: 1/3, Epoch: 120/1000, Average epoch time: 0.16
+Loss total: 4.0902 | cls_llm: 1.8348 | cls_tlm: 1.8314 | recon_llm: 0.1298 | recon_tlm: 0.2942 | val_loss: 1.9071 | test_loss: 1.8981
+Train/Val/Test accuracy (fused): 0.6325/0.5800/0.5836
+Run: 1/3, Epoch: 140/1000, Average epoch time: 0.16
+Loss total: 4.0703 | cls_llm: 1.8257 | cls_tlm: 1.8218 | recon_llm: 0.1297 | recon_tlm: 0.2931 | val_loss: 1.9098 | test_loss: 1.9006
+Train/Val/Test accuracy (fused): 0.6358/0.5775/0.5789
+Run: 1/3, Epoch: 160/1000, Average epoch time: 0.16
+Loss total: 4.0491 | cls_llm: 1.8127 | cls_tlm: 1.8141 | recon_llm: 0.1299 | recon_tlm: 0.2924 | val_loss: 1.8841 | test_loss: 1.8768
+Train/Val/Test accuracy (fused): 0.6541/0.5879/0.5926
+Run: 1/3, Epoch: 180/1000, Average epoch time: 0.16
+Loss total: 4.0308 | cls_llm: 1.8056 | cls_tlm: 1.8032 | recon_llm: 0.1295 | recon_tlm: 0.2925 | val_loss: 1.9036 | test_loss: 1.8951
+Train/Val/Test accuracy (fused): 0.6434/0.5785/0.5799
+Run: 1/3, Epoch: 200/1000, Average epoch time: 0.16
+Loss total: 4.0154 | cls_llm: 1.7990 | cls_tlm: 1.7951 | recon_llm: 0.1292 | recon_tlm: 0.2921 | val_loss: 1.8903 | test_loss: 1.8833
+Train/Val/Test accuracy (fused): 0.6610/0.5877/0.5904
+Run: 1/3, Epoch: 220/1000, Average epoch time: 0.16
+Loss total: 3.9994 | cls_llm: 1.7906 | cls_tlm: 1.7874 | recon_llm: 0.1292 | recon_tlm: 0.2922 | val_loss: 1.8880 | test_loss: 1.8797
+Train/Val/Test accuracy (fused): 0.6700/0.5924/0.5963
+Run: 1/3, Epoch: 240/1000, Average epoch time: 0.16
+Loss total: 3.9925 | cls_llm: 1.7918 | cls_tlm: 1.7791 | recon_llm: 0.1291 | recon_tlm: 0.2925 | val_loss: 1.8976 | test_loss: 1.8892
+Train/Val/Test accuracy (fused): 0.6691/0.5879/0.5880
+Run: 1/3, Epoch: 260/1000, Average epoch time: 0.16
+Loss total: 3.9813 | cls_llm: 1.7858 | cls_tlm: 1.7736 | recon_llm: 0.1291 | recon_tlm: 0.2928 | val_loss: 1.9272 | test_loss: 1.9194
+Train/Val/Test accuracy (fused): 0.6535/0.5775/0.5789
+Run: 1/3, Epoch: 280/1000, Average epoch time: 0.16
+Loss total: 3.9577 | cls_llm: 1.7697 | cls_tlm: 1.7659 | recon_llm: 0.1290 | recon_tlm: 0.2929 | val_loss: 1.8837 | test_loss: 1.8770
+Train/Val/Test accuracy (fused): 0.6841/0.5936/0.5964
+Run: 1/3, Epoch: 300/1000, Average epoch time: 0.16
+Loss total: 3.9551 | cls_llm: 1.7739 | cls_tlm: 1.7590 | recon_llm: 0.1290 | recon_tlm: 0.2932 | val_loss: 1.9187 | test_loss: 1.9107
+Train/Val/Test accuracy (fused): 0.6659/0.5814/0.5830
+Run: 1/3, Epoch: 320/1000, Average epoch time: 0.16
+Loss total: 3.9307 | cls_llm: 1.7556 | cls_tlm: 1.7535 | recon_llm: 0.1283 | recon_tlm: 0.2932 | val_loss: 1.8977 | test_loss: 1.8899
+Train/Val/Test accuracy (fused): 0.6888/0.5939/0.5960
+Run: 1/3, Epoch: 340/1000, Average epoch time: 0.16
+Loss total: 3.9115 | cls_llm: 1.7433 | cls_tlm: 1.7466 | recon_llm: 0.1283 | recon_tlm: 0.2933 | val_loss: 1.9070 | test_loss: 1.8995
+Train/Val/Test accuracy (fused): 0.6948/0.5954/0.5940
+Run: 1/3, Epoch: 360/1000, Average epoch time: 0.16
+Loss total: 3.8988 | cls_llm: 1.7352 | cls_tlm: 1.7418 | recon_llm: 0.1282 | recon_tlm: 0.2936 | val_loss: 1.9037 | test_loss: 1.8963
+Train/Val/Test accuracy (fused): 0.7003/0.5954/0.5956
+Run: 1/3, Epoch: 380/1000, Average epoch time: 0.16
+Loss total: 3.8888 | cls_llm: 1.7292 | cls_tlm: 1.7377 | recon_llm: 0.1282 | recon_tlm: 0.2938 | val_loss: 1.9101 | test_loss: 1.9022
+Train/Val/Test accuracy (fused): 0.6983/0.5912/0.5950
+Run: 1/3, Epoch: 400/1000, Average epoch time: 0.16
+Loss total: 3.8826 | cls_llm: 1.7246 | cls_tlm: 1.7361 | recon_llm: 0.1280 | recon_tlm: 0.2939 | val_loss: 1.9033 | test_loss: 1.8962
+Train/Val/Test accuracy (fused): 0.7056/0.5957/0.5977
+Best Val accuracy (fused): 0.5979, Final Test accuracy (fused): 0.5979
+Warmup Epoch 20/50 | total: 2.2058 | cls_llm: 2.0605 | recon_llm: 0.1453
+Warmup Epoch 40/50 | total: 2.1334 | cls_llm: 1.9970 | recon_llm: 0.1364
+Run: 2/3, Epoch: 20/1000, Average epoch time: 0.17
+Loss total: 4.3473 | cls_llm: 1.9479 | cls_tlm: 1.9270 | recon_llm: 0.1323 | recon_tlm: 0.3402 | val_loss: 2.0980 | test_loss: 2.0893
+Train/Val/Test accuracy (fused): 0.5459/0.5276/0.5292
+Run: 2/3, Epoch: 40/1000, Average epoch time: 0.16
+Loss total: 4.2548 | cls_llm: 1.9162 | cls_tlm: 1.8952 | recon_llm: 0.1310 | recon_tlm: 0.3123 | val_loss: 2.0653 | test_loss: 2.0522
+Train/Val/Test accuracy (fused): 0.5796/0.5512/0.5560
+Run: 2/3, Epoch: 60/1000, Average epoch time: 0.16
+Loss total: 4.1984 | cls_llm: 1.8913 | cls_tlm: 1.8760 | recon_llm: 0.1302 | recon_tlm: 0.3009 | val_loss: 2.0771 | test_loss: 2.0644
+Train/Val/Test accuracy (fused): 0.5917/0.5584/0.5590
+Run: 2/3, Epoch: 80/1000, Average epoch time: 0.16
+Loss total: 4.1594 | cls_llm: 1.8735 | cls_tlm: 1.8605 | recon_llm: 0.1299 | recon_tlm: 0.2955 | val_loss: 2.0723 | test_loss: 2.0589
+Train/Val/Test accuracy (fused): 0.6095/0.5691/0.5718
+Run: 2/3, Epoch: 100/1000, Average epoch time: 0.16
+Loss total: 4.1273 | cls_llm: 1.8575 | cls_tlm: 1.8477 | recon_llm: 0.1294 | recon_tlm: 0.2927 | val_loss: 2.0289 | test_loss: 2.0169
+Train/Val/Test accuracy (fused): 0.6198/0.5721/0.5748
+Run: 2/3, Epoch: 120/1000, Average epoch time: 0.16
+Loss total: 4.0996 | cls_llm: 1.8405 | cls_tlm: 1.8388 | recon_llm: 0.1291 | recon_tlm: 0.2912 | val_loss: 2.0543 | test_loss: 2.0412
+Train/Val/Test accuracy (fused): 0.6285/0.5727/0.5755
+Run: 2/3, Epoch: 140/1000, Average epoch time: 0.16
+Loss total: 4.0735 | cls_llm: 1.8272 | cls_tlm: 1.8276 | recon_llm: 0.1288 | recon_tlm: 0.2899 | val_loss: 2.0222 | test_loss: 2.0106
+Train/Val/Test accuracy (fused): 0.6365/0.5776/0.5800
+Run: 2/3, Epoch: 160/1000, Average epoch time: 0.16
+Loss total: 4.0609 | cls_llm: 1.8258 | cls_tlm: 1.8175 | recon_llm: 0.1283 | recon_tlm: 0.2894 | val_loss: 2.0078 | test_loss: 1.9942
+Train/Val/Test accuracy (fused): 0.6325/0.5700/0.5794
+Run: 2/3, Epoch: 180/1000, Average epoch time: 0.16
+Loss total: 4.0377 | cls_llm: 1.8091 | cls_tlm: 1.8110 | recon_llm: 0.1286 | recon_tlm: 0.2891 | val_loss: 1.9872 | test_loss: 1.9784
+Train/Val/Test accuracy (fused): 0.6453/0.5799/0.5786
+Run: 2/3, Epoch: 200/1000, Average epoch time: 0.16
+Loss total: 4.0158 | cls_llm: 1.7982 | cls_tlm: 1.8003 | recon_llm: 0.1283 | recon_tlm: 0.2890 | val_loss: 1.9812 | test_loss: 1.9706
+Train/Val/Test accuracy (fused): 0.6585/0.5828/0.5875
+Run: 2/3, Epoch: 220/1000, Average epoch time: 0.16
+Loss total: 4.0108 | cls_llm: 1.8012 | cls_tlm: 1.7922 | recon_llm: 0.1285 | recon_tlm: 0.2890 | val_loss: 1.9745 | test_loss: 1.9636
+Train/Val/Test accuracy (fused): 0.6615/0.5846/0.5892
+Run: 2/3, Epoch: 240/1000, Average epoch time: 0.16
+Loss total: 3.9883 | cls_llm: 1.7845 | cls_tlm: 1.7859 | recon_llm: 0.1286 | recon_tlm: 0.2893 | val_loss: 1.9791 | test_loss: 1.9686
+Train/Val/Test accuracy (fused): 0.6655/0.5813/0.5867
+Run: 2/3, Epoch: 260/1000, Average epoch time: 0.16
+Loss total: 3.9735 | cls_llm: 1.7781 | cls_tlm: 1.7775 | recon_llm: 0.1283 | recon_tlm: 0.2896 | val_loss: 1.9606 | test_loss: 1.9505
+Train/Val/Test accuracy (fused): 0.6712/0.5835/0.5889
+Run: 2/3, Epoch: 280/1000, Average epoch time: 0.16
+Loss total: 3.9769 | cls_llm: 1.7868 | cls_tlm: 1.7715 | recon_llm: 0.1289 | recon_tlm: 0.2897 | val_loss: 1.9668 | test_loss: 1.9580
+Train/Val/Test accuracy (fused): 0.6725/0.5869/0.5918
+Run: 2/3, Epoch: 300/1000, Average epoch time: 0.16
+Loss total: 3.9564 | cls_llm: 1.7701 | cls_tlm: 1.7674 | recon_llm: 0.1288 | recon_tlm: 0.2900 | val_loss: 1.9751 | test_loss: 1.9667
+Train/Val/Test accuracy (fused): 0.6771/0.5850/0.5910
+Best Val accuracy (fused): 0.5891, Final Test accuracy (fused): 0.5882
+Warmup Epoch 20/50 | total: 2.2317 | cls_llm: 2.0872 | recon_llm: 0.1445
+Warmup Epoch 40/50 | total: 2.1513 | cls_llm: 2.0162 | recon_llm: 0.1350
+Run: 3/3, Epoch: 20/1000, Average epoch time: 0.17
+Loss total: 4.3604 | cls_llm: 1.9605 | cls_tlm: 1.9324 | recon_llm: 0.1313 | recon_tlm: 0.3362 | val_loss: 2.0335 | test_loss: 2.0258
+Train/Val/Test accuracy (fused): 0.5523/0.5333/0.5350
+Run: 3/3, Epoch: 40/1000, Average epoch time: 0.16
+Loss total: 4.2657 | cls_llm: 1.9268 | cls_tlm: 1.8978 | recon_llm: 0.1299 | recon_tlm: 0.3112 | val_loss: 2.0207 | test_loss: 2.0118
+Train/Val/Test accuracy (fused): 0.5830/0.5508/0.5553
+Run: 3/3, Epoch: 60/1000, Average epoch time: 0.16
+Loss total: 4.2096 | cls_llm: 1.9014 | cls_tlm: 1.8780 | recon_llm: 0.1294 | recon_tlm: 0.3008 | val_loss: 2.0112 | test_loss: 2.0012
+Train/Val/Test accuracy (fused): 0.6005/0.5630/0.5670
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 352, in <module>
+    model.reset_parameters()
+  File "/output/MAGB/GNN/Library/IMoK.py", line 339, in main
+    total = sum(per_module.values())
+  File "/output/MAGB/GNN/Library/IMoK.py", line 185, in classification
+    gnn_output_llm, gnn_output_tlm, _, _ = model(graph, feat[0], feat[1])
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/output/MAGB/GNN/Library/IMoK.py", line 73, in forward
+    loss_llm = loss_tlm = th.tensor(0.0, device=llm_feat.device)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 352, in <module>
+    model.reset_parameters()
+  File "/output/MAGB/GNN/Library/IMoK.py", line 339, in main
+    total = sum(per_module.values())
+  File "/output/MAGB/GNN/Library/IMoK.py", line 185, in classification
+    gnn_output_llm, gnn_output_tlm, _, _ = model(graph, feat[0], feat[1])
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/output/MAGB/GNN/Library/IMoK.py", line 73, in forward
+    loss_llm = loss_tlm = th.tensor(0.0, device=llm_feat.device)
+KeyboardInterrupt

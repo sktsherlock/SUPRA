@@ -1,0 +1,204 @@
+The Graph change to the undirected graph
+Total edges before adding self-loop 3109156
+Total edges after adding self-loop 3186031
+Total edges after adding self-loop 3186031
+Train_idx: 46125
+Valid_idx: 15375
+Test_idx: 15375
+Run: 1/3, Epoch: 20/1000, Average epoch time: 0.26
+Loss: 3.9907, Val Loss: 4.0949, Test Loss: 4.0872
+Train/Val/Test accuracy: 0.9988/0.9761/0.9775
+Run: 1/3, Epoch: 40/1000, Average epoch time: 0.21
+Loss: 3.8854, Val Loss: 3.9479, Test Loss: 3.9359
+Train/Val/Test accuracy: 1.0919/1.0660/1.0594
+Run: 1/3, Epoch: 60/1000, Average epoch time: 0.20
+Loss: 3.8211, Val Loss: 3.9001, Test Loss: 3.8872
+Train/Val/Test accuracy: 1.1600/1.1078/1.1082
+Run: 1/3, Epoch: 80/1000, Average epoch time: 0.19
+Loss: 3.7721, Val Loss: 3.9628, Test Loss: 3.9467
+Train/Val/Test accuracy: 1.1853/1.1202/1.1195
+Run: 1/3, Epoch: 100/1000, Average epoch time: 0.19
+Loss: 3.7331, Val Loss: 4.0060, Test Loss: 3.9903
+Train/Val/Test accuracy: 1.2175/1.1285/1.1360
+Run: 1/3, Epoch: 120/1000, Average epoch time: 0.18
+Loss: 3.6982, Val Loss: 4.0000, Test Loss: 3.9816
+Train/Val/Test accuracy: 1.2390/1.1378/1.1387
+Run: 1/3, Epoch: 140/1000, Average epoch time: 0.18
+Loss: 3.6784, Val Loss: 3.9888, Test Loss: 3.9712
+Train/Val/Test accuracy: 1.2174/1.1200/1.1143
+Run: 1/3, Epoch: 160/1000, Average epoch time: 0.18
+Loss: 3.6439, Val Loss: 3.9063, Test Loss: 3.8955
+Train/Val/Test accuracy: 1.2544/1.1388/1.1361
+Run: 1/3, Epoch: 180/1000, Average epoch time: 0.18
+Loss: 3.6273, Val Loss: 3.9154, Test Loss: 3.9017
+Train/Val/Test accuracy: 1.2813/1.1454/1.1428
+Run: 1/3, Epoch: 200/1000, Average epoch time: 0.18
+Loss: 3.6007, Val Loss: 3.9136, Test Loss: 3.8986
+Train/Val/Test accuracy: 1.3049/1.1570/1.1604
+Run: 1/3, Epoch: 220/1000, Average epoch time: 0.18
+Loss: 3.5939, Val Loss: 3.8840, Test Loss: 3.8725
+Train/Val/Test accuracy: 1.3150/1.1515/1.1580
+Run: 1/3, Epoch: 240/1000, Average epoch time: 0.18
+Loss: 3.5748, Val Loss: 3.8876, Test Loss: 3.8761
+Train/Val/Test accuracy: 1.3270/1.1538/1.1607
+Run: 1/3, Epoch: 260/1000, Average epoch time: 0.17
+Loss: 3.5548, Val Loss: 3.9118, Test Loss: 3.8963
+Train/Val/Test accuracy: 1.3325/1.1582/1.1605
+Run: 1/3, Epoch: 280/1000, Average epoch time: 0.17
+Loss: 3.5272, Val Loss: 3.9122, Test Loss: 3.8956
+Train/Val/Test accuracy: 1.3568/1.1634/1.1726
+Run: 1/3, Epoch: 300/1000, Average epoch time: 0.17
+Loss: 3.5094, Val Loss: 3.9157, Test Loss: 3.9025
+Train/Val/Test accuracy: 1.3738/1.1719/1.1765
+Run: 1/3, Epoch: 320/1000, Average epoch time: 0.17
+Loss: 3.4980, Val Loss: 3.9285, Test Loss: 3.9185
+Train/Val/Test accuracy: 1.3770/1.1675/1.1700
+Run: 1/3, Epoch: 340/1000, Average epoch time: 0.17
+Loss: 3.4888, Val Loss: 3.9407, Test Loss: 3.9290
+Train/Val/Test accuracy: 1.3750/1.1634/1.1670
+Run: 1/3, Epoch: 360/1000, Average epoch time: 0.17
+Loss: 3.4826, Val Loss: 3.9684, Test Loss: 3.9568
+Train/Val/Test accuracy: 1.3797/1.1601/1.1660
+Run: 1/3, Epoch: 380/1000, Average epoch time: 0.17
+Loss: 3.4689, Val Loss: 3.9329, Test Loss: 3.9211
+Train/Val/Test accuracy: 1.3904/1.1638/1.1692
+Run: 1/3, Epoch: 400/1000, Average epoch time: 0.17
+Loss: 3.4608, Val Loss: 3.9455, Test Loss: 3.9342
+Train/Val/Test accuracy: 1.3943/1.1633/1.1670
+Run: 1/3, Epoch: 420/1000, Average epoch time: 0.17
+Loss: 3.4576, Val Loss: 3.9469, Test Loss: 3.9361
+Train/Val/Test accuracy: 1.4002/1.1633/1.1692
+Run: 1/3, Epoch: 440/1000, Average epoch time: 0.17
+Loss: 3.4513, Val Loss: 3.9541, Test Loss: 3.9428
+Train/Val/Test accuracy: 1.3998/1.1655/1.1683
+Run: 1/3, Epoch: 460/1000, Average epoch time: 0.17
+Loss: 3.4486, Val Loss: 3.9616, Test Loss: 3.9526
+Train/Val/Test accuracy: 1.4040/1.1633/1.1655
+Run: 1/3, Epoch: 480/1000, Average epoch time: 0.17
+Loss: 3.4406, Val Loss: 3.9646, Test Loss: 3.9541
+Train/Val/Test accuracy: 1.4010/1.1648/1.1666
+Run: 1/3, Epoch: 500/1000, Average epoch time: 0.17
+Loss: 3.4382, Val Loss: 3.9637, Test Loss: 3.9536
+Train/Val/Test accuracy: 1.4066/1.1627/1.1659
+Run: 1/3, Epoch: 520/1000, Average epoch time: 0.17
+Loss: 3.4348, Val Loss: 3.9674, Test Loss: 3.9590
+Train/Val/Test accuracy: 1.4097/1.1627/1.1670
+Run: 1/3, Epoch: 540/1000, Average epoch time: 0.17
+Loss: 3.4324, Val Loss: 3.9650, Test Loss: 3.9563
+Train/Val/Test accuracy: 1.4113/1.1612/1.1651
+Run: 1/3, Epoch: 560/1000, Average epoch time: 0.17
+Loss: 3.4311, Val Loss: 3.9793, Test Loss: 3.9689
+Train/Val/Test accuracy: 1.4087/1.1599/1.1639
+Run: 1/3, Epoch: 580/1000, Average epoch time: 0.17
+Loss: 3.4230, Val Loss: 3.9679, Test Loss: 3.9597
+Train/Val/Test accuracy: 1.4129/1.1633/1.1634
+Run: 1/3, Epoch: 600/1000, Average epoch time: 0.17
+Loss: 3.4255, Val Loss: 3.9783, Test Loss: 3.9707
+Train/Val/Test accuracy: 1.4114/1.1604/1.1620
+Run: 1/3, Epoch: 620/1000, Average epoch time: 0.17
+Loss: 3.4229, Val Loss: 3.9765, Test Loss: 3.9678
+Train/Val/Test accuracy: 1.4129/1.1578/1.1634
+Run: 1/3, Epoch: 640/1000, Average epoch time: 0.17
+Loss: 3.4212, Val Loss: 3.9773, Test Loss: 3.9686
+Train/Val/Test accuracy: 1.4140/1.1612/1.1634
+Run: 1/3, Epoch: 660/1000, Average epoch time: 0.17
+Loss: 3.4203, Val Loss: 3.9796, Test Loss: 3.9716
+Train/Val/Test accuracy: 1.4171/1.1614/1.1647
+Run: 1/3, Epoch: 680/1000, Average epoch time: 0.17
+Loss: 3.4178, Val Loss: 3.9749, Test Loss: 3.9667
+Train/Val/Test accuracy: 1.4172/1.1629/1.1634
+Run: 1/3, Epoch: 700/1000, Average epoch time: 0.17
+Loss: 3.4154, Val Loss: 3.9792, Test Loss: 3.9714
+Train/Val/Test accuracy: 1.4158/1.1583/1.1621
+Run: 1/3, Epoch: 720/1000, Average epoch time: 0.17
+Loss: 3.4176, Val Loss: 3.9795, Test Loss: 3.9714
+Train/Val/Test accuracy: 1.4175/1.1592/1.1613
+Run: 1/3, Epoch: 740/1000, Average epoch time: 0.17
+Loss: 3.4148, Val Loss: 3.9801, Test Loss: 3.9731
+Train/Val/Test accuracy: 1.4176/1.1592/1.1620
+Run: 1/3, Epoch: 760/1000, Average epoch time: 0.17
+Loss: 3.4162, Val Loss: 3.9841, Test Loss: 3.9764
+Train/Val/Test accuracy: 1.4167/1.1579/1.1618
+Run: 1/3, Epoch: 780/1000, Average epoch time: 0.17
+Loss: 3.4139, Val Loss: 3.9815, Test Loss: 3.9741
+Train/Val/Test accuracy: 1.4202/1.1595/1.1627
+Run: 1/3, Epoch: 800/1000, Average epoch time: 0.17
+Loss: 3.4103, Val Loss: 3.9808, Test Loss: 3.9730
+Train/Val/Test accuracy: 1.4186/1.1590/1.1627
+Run: 1/3, Epoch: 820/1000, Average epoch time: 0.17
+Loss: 3.4131, Val Loss: 3.9846, Test Loss: 3.9772
+Train/Val/Test accuracy: 1.4185/1.1599/1.1625
+Run: 1/3, Epoch: 840/1000, Average epoch time: 0.17
+Loss: 3.4141, Val Loss: 3.9799, Test Loss: 3.9727
+Train/Val/Test accuracy: 1.4205/1.1591/1.1636
+Run: 1/3, Epoch: 860/1000, Average epoch time: 0.17
+Loss: 3.4114, Val Loss: 3.9841, Test Loss: 3.9765
+Train/Val/Test accuracy: 1.4180/1.1587/1.1633
+Run: 1/3, Epoch: 880/1000, Average epoch time: 0.17
+Loss: 3.4113, Val Loss: 3.9840, Test Loss: 3.9765
+Train/Val/Test accuracy: 1.4194/1.1598/1.1636
+Run: 1/3, Epoch: 900/1000, Average epoch time: 0.17
+Loss: 3.4130, Val Loss: 3.9844, Test Loss: 3.9771
+Train/Val/Test accuracy: 1.4196/1.1596/1.1599
+Run: 1/3, Epoch: 920/1000, Average epoch time: 0.17
+Loss: 3.4118, Val Loss: 3.9829, Test Loss: 3.9762
+Train/Val/Test accuracy: 1.4226/1.1609/1.1630
+Run: 1/3, Epoch: 940/1000, Average epoch time: 0.17
+Loss: 3.4106, Val Loss: 3.9877, Test Loss: 3.9806
+Train/Val/Test accuracy: 1.4191/1.1582/1.1603
+Run: 1/3, Epoch: 960/1000, Average epoch time: 0.17
+Loss: 3.4091, Val Loss: 3.9811, Test Loss: 3.9741
+Train/Val/Test accuracy: 1.4212/1.1606/1.1621
+Run: 1/3, Epoch: 980/1000, Average epoch time: 0.17
+Loss: 3.4072, Val Loss: 3.9854, Test Loss: 3.9782
+Train/Val/Test accuracy: 1.4212/1.1592/1.1608
+Run: 1/3, Epoch: 1000/1000, Average epoch time: 0.17
+Loss: 3.4092, Val Loss: 3.9818, Test Loss: 3.9750
+Train/Val/Test accuracy: 1.4212/1.1592/1.1630
+Best Val accuracy: 1.1719, Final Test accuracy: 1.1765
+Run: 2/3, Epoch: 20/1000, Average epoch time: 0.17
+Loss: 4.0096, Val Loss: 4.3713, Test Loss: 4.3681
+Train/Val/Test accuracy: 0.8737/0.8584/0.8544
+Run: 2/3, Epoch: 40/1000, Average epoch time: 0.17
+Loss: 3.8947, Val Loss: 4.1784, Test Loss: 4.1690
+Train/Val/Test accuracy: 1.0354/1.0066/1.0032
+Run: 2/3, Epoch: 60/1000, Average epoch time: 0.17
+Loss: 3.8285, Val Loss: 4.1326, Test Loss: 4.1162
+Train/Val/Test accuracy: 1.1232/1.0797/1.0769
+Run: 2/3, Epoch: 80/1000, Average epoch time: 0.17
+Loss: 3.7769, Val Loss: 4.1647, Test Loss: 4.1445
+Train/Val/Test accuracy: 1.1672/1.1041/1.1032
+Run: 2/3, Epoch: 100/1000, Average epoch time: 0.17
+Loss: 3.7378, Val Loss: 4.1719, Test Loss: 4.1490
+Train/Val/Test accuracy: 1.1859/1.1067/1.1056
+Run: 2/3, Epoch: 120/1000, Average epoch time: 0.17
+Loss: 3.7075, Val Loss: 4.1148, Test Loss: 4.0903
+Train/Val/Test accuracy: 1.2048/1.1131/1.1181
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 391, in <module>
+    )
+  File "/output/MAGB/GNN/Library/IMoK.py", line 378, in main
+    n_hidden=args.same_dim,
+  File "/output/MAGB/GNN/Library/IMoK.py", line 237, in classification
+    # Compute loss (classification + reconstruction)
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/output/MAGB/GNN/Library/IMoK.py", line 73, in forward
+    loss_llm = loss_tlm = th.tensor(0.0, device=llm_feat.device)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 391, in <module>
+    )
+  File "/output/MAGB/GNN/Library/IMoK.py", line 378, in main
+    n_hidden=args.same_dim,
+  File "/output/MAGB/GNN/Library/IMoK.py", line 237, in classification
+    # Compute loss (classification + reconstruction)
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/output/MAGB/GNN/Library/IMoK.py", line 73, in forward
+    loss_llm = loss_tlm = th.tensor(0.0, device=llm_feat.device)
+KeyboardInterrupt

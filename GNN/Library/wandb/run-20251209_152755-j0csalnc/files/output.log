@@ -1,0 +1,23 @@
+The Graph change to the undirected graph
+Total edges before adding self-loop 3109156
+Total edges after adding self-loop 3186031
+Total edges after adding self-loop 3186031
+Train_idx: 46125
+Valid_idx: 15375
+Test_idx: 15375
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 390, in <module>
+    main()
+  File "/output/MAGB/GNN/Library/IMoK.py", line 377, in main
+    val_result, test_result = classification(
+  File "/output/MAGB/GNN/Library/IMoK.py", line 229, in classification
+    total_loss = gnn_loss_llm + gnn_loss_tlm + args.lambda_recon * (loss_llm + loss_tlm)
+AttributeError: 'Namespace' object has no attribute 'lambda_recon'
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 390, in <module>
+    main()
+  File "/output/MAGB/GNN/Library/IMoK.py", line 377, in main
+    val_result, test_result = classification(
+  File "/output/MAGB/GNN/Library/IMoK.py", line 229, in classification
+    total_loss = gnn_loss_llm + gnn_loss_tlm + args.lambda_recon * (loss_llm + loss_tlm)
+AttributeError: 'Namespace' object has no attribute 'lambda_recon'

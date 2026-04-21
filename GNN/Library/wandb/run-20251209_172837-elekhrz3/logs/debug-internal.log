@@ -1,0 +1,12 @@
+{"time":"2025-12-09T17:28:37.370279769Z","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-12-09T17:28:37.370324925Z","level":"INFO","msg":"created symlink","path":"/output/MAGB/GNN/Library/wandb/run-20251209_172837-elekhrz3/logs/debug-core.log"}
+{"time":"2025-12-09T17:28:37.602180641Z","level":"INFO","msg":"created new stream","id":"elekhrz3"}
+{"time":"2025-12-09T17:28:37.602264417Z","level":"INFO","msg":"stream: started","id":"elekhrz3"}
+{"time":"2025-12-09T17:28:37.602381163Z","level":"INFO","msg":"writer: Do: started","stream_id":"elekhrz3"}
+{"time":"2025-12-09T17:28:37.602464111Z","level":"INFO","msg":"sender: started","stream_id":"elekhrz3"}
+{"time":"2025-12-09T17:28:37.602466577Z","level":"INFO","msg":"handler: started","stream_id":"elekhrz3"}
+{"time":"2025-12-09T17:28:38.377876539Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-12-09T17:31:07.386569183Z","level":"INFO","msg":"stream: closing","id":"elekhrz3"}
+{"time":"2025-12-09T17:31:07.386647212Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-12-09T17:31:07.390038247Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-12-09T17:31:08.468273022Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}

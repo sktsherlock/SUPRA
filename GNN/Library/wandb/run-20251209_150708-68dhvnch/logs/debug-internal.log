@@ -1,0 +1,16 @@
+{"time":"2025-12-09T15:07:08.969071069Z","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-12-09T15:07:08.969111517Z","level":"INFO","msg":"created symlink","path":"/output/MAGB/GNN/Library/wandb/run-20251209_150708-68dhvnch/logs/debug-core.log"}
+{"time":"2025-12-09T15:07:09.200802092Z","level":"INFO","msg":"created new stream","id":"68dhvnch"}
+{"time":"2025-12-09T15:07:09.200965612Z","level":"INFO","msg":"stream: started","id":"68dhvnch"}
+{"time":"2025-12-09T15:07:09.201085166Z","level":"INFO","msg":"writer: Do: started","stream_id":"68dhvnch"}
+{"time":"2025-12-09T15:07:09.201103886Z","level":"INFO","msg":"handler: started","stream_id":"68dhvnch"}
+{"time":"2025-12-09T15:07:09.201179497Z","level":"INFO","msg":"sender: started","stream_id":"68dhvnch"}
+{"time":"2025-12-09T15:07:10.196451473Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-12-09T15:07:14.49424672Z","level":"INFO","msg":"stream: closing","id":"68dhvnch"}
+{"time":"2025-12-09T15:07:14.49434477Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-12-09T15:07:14.495242116Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-12-09T15:07:15.798784109Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-12-09T15:07:16.52355577Z","level":"INFO","msg":"handler: closed","stream_id":"68dhvnch"}
+{"time":"2025-12-09T15:07:16.52360513Z","level":"INFO","msg":"writer: Close: closed","stream_id":"68dhvnch"}
+{"time":"2025-12-09T15:07:16.523633065Z","level":"INFO","msg":"sender: closed","stream_id":"68dhvnch"}
+{"time":"2025-12-09T15:07:16.523688215Z","level":"INFO","msg":"stream: closed","id":"68dhvnch"}

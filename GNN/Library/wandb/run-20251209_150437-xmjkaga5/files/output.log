@@ -1,0 +1,23 @@
+The Graph change to the undirected graph
+Total edges before adding self-loop 3109156
+Total edges after adding self-loop 3186031
+Total edges after adding self-loop 3186031
+Train_idx: 46125
+Valid_idx: 15375
+Test_idx: 15375
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 387, in <module>
+    main()
+  File "/output/MAGB/GNN/Library/IMoK.py", line 374, in main
+    val_result, test_result = classification(
+  File "/output/MAGB/GNN/Library/IMoK.py", line 189, in classification
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+TypeError: ReduceLROnPlateau.__init__() got an unexpected keyword argument 'verbose'
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 387, in <module>
+    main()
+  File "/output/MAGB/GNN/Library/IMoK.py", line 374, in main
+    val_result, test_result = classification(
+  File "/output/MAGB/GNN/Library/IMoK.py", line 189, in classification
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+TypeError: ReduceLROnPlateau.__init__() got an unexpected keyword argument 'verbose'

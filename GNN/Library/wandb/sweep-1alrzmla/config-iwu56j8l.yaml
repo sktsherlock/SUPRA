@@ -1,0 +1,40 @@
+wandb_version: 1
+
+average:
+  value: macro
+dropout:
+  value: 0.2
+early_stop_patience:
+  value: 100
+graph_path:
+  value: /openbayes/input/input0/CSTAG/Photo/Photo.pt
+label-smoothing:
+  value: 0.1
+llm_feature:
+  value: /openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_Llama_2_13b_hf_256_mean.npy
+llm_warmup_epochs:
+  value: 50
+lr:
+  value: 0.0005
+metric:
+  value: accuracy
+n-epochs:
+  value: 1000
+n-hidden:
+  value: 256
+n-layers:
+  value: 2
+n-runs:
+  value: 10
+same_dim:
+  value: 128
+selfloop:
+  value:
+  - true
+tlm_feature:
+  value: /openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_roberta_base_512_Tuned_cls.npy
+undirected:
+  value:
+  - true
+warmup_epochs:
+  value: 25

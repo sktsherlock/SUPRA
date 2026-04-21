@@ -1,0 +1,106 @@
+_wandb:
+    value:
+        cli_version: 0.19.1
+        m: []
+        python_version: 3.10.14
+        t:
+            "1":
+                - 1
+                - 5
+                - 53
+                - 55
+                - 76
+            "2":
+                - 1
+                - 5
+                - 53
+                - 55
+                - 76
+            "3":
+                - 16
+                - 23
+                - 55
+            "4": 3.10.14
+            "5": 0.19.1
+            "8":
+                - 5
+            "12": 0.19.1
+            "13": linux-x86_64
+alpha:
+    value: 0.5
+average:
+    value: macro
+data_name:
+    value: null
+dropout:
+    value: 0.5
+early_stop_patience:
+    value: null
+eval_steps:
+    value: 1
+exp_path:
+    value: Exp/Transductive/
+feature:
+    value: null
+fewshots:
+    value: null
+fusion_name:
+    value: LRTF
+gnn_model:
+    value: GCN
+gpu:
+    value: 0
+graph_path:
+    value: /openbayes/input/input0/CSTAG/Children/Children.pt
+inductive:
+    value: false
+label_smoothing:
+    value: 0.1
+lambda_recon:
+    value: 1
+llm_feature:
+    value: /openbayes/input/input0/CSTAG/Children/TextFeature/Children_Llama_2_13b_hf_256_mean.npy
+llm_warmup_epochs:
+    value: 50
+log_every:
+    value: 20
+lr:
+    value: 0.005
+metric:
+    value: accuracy
+min_lr:
+    value: 0.0001
+model_name:
+    value: GCN
+n_epochs:
+    value: 1000
+n_hidden:
+    value: 256
+n_layers:
+    value: 3
+n_runs:
+    value: 3
+same_dim:
+    value: 512
+seed:
+    value: 42
+selfloop:
+    value: true
+test_ratio:
+    value: 0.08
+text_feature:
+    value: null
+tlm_feature:
+    value: /openbayes/input/input0/CSTAG/Children/TextFeature/Children_roberta_base_512_Tuned_cls.npy
+train_ratio:
+    value: 0.6
+undirected:
+    value: true
+val_ratio:
+    value: 0.2
+visual_feature:
+    value: null
+warmup_epochs:
+    value: null
+wd:
+    value: 0

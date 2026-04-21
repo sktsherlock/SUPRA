@@ -1,0 +1,16 @@
+{"time":"2025-12-09T15:27:55.374756157Z","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-12-09T15:27:55.374797203Z","level":"INFO","msg":"created symlink","path":"/output/MAGB/GNN/Library/wandb/run-20251209_152755-j0csalnc/logs/debug-core.log"}
+{"time":"2025-12-09T15:27:55.605731143Z","level":"INFO","msg":"created new stream","id":"j0csalnc"}
+{"time":"2025-12-09T15:27:55.605801612Z","level":"INFO","msg":"stream: started","id":"j0csalnc"}
+{"time":"2025-12-09T15:27:55.605890413Z","level":"INFO","msg":"handler: started","stream_id":"j0csalnc"}
+{"time":"2025-12-09T15:27:55.605952385Z","level":"INFO","msg":"writer: Do: started","stream_id":"j0csalnc"}
+{"time":"2025-12-09T15:27:55.605980905Z","level":"INFO","msg":"sender: started","stream_id":"j0csalnc"}
+{"time":"2025-12-09T15:27:57.143903823Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-12-09T15:28:02.930372811Z","level":"INFO","msg":"stream: closing","id":"j0csalnc"}
+{"time":"2025-12-09T15:28:02.930500169Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-12-09T15:28:02.931542104Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-12-09T15:28:04.643554319Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-12-09T15:28:05.312944411Z","level":"INFO","msg":"handler: closed","stream_id":"j0csalnc"}
+{"time":"2025-12-09T15:28:05.312995313Z","level":"INFO","msg":"writer: Close: closed","stream_id":"j0csalnc"}
+{"time":"2025-12-09T15:28:05.313021882Z","level":"INFO","msg":"sender: closed","stream_id":"j0csalnc"}
+{"time":"2025-12-09T15:28:05.313084011Z","level":"INFO","msg":"stream: closed","id":"j0csalnc"}

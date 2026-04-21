@@ -1,0 +1,17 @@
+{"time":"2025-12-09T15:35:55.275195545Z","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-12-09T15:35:55.275240059Z","level":"INFO","msg":"created symlink","path":"/output/MAGB/GNN/Library/wandb/run-20251209_153555-x9mnlq3f/logs/debug-core.log"}
+{"time":"2025-12-09T15:35:55.506225342Z","level":"INFO","msg":"created new stream","id":"x9mnlq3f"}
+{"time":"2025-12-09T15:35:55.50628285Z","level":"INFO","msg":"stream: started","id":"x9mnlq3f"}
+{"time":"2025-12-09T15:35:55.5064131Z","level":"INFO","msg":"writer: Do: started","stream_id":"x9mnlq3f"}
+{"time":"2025-12-09T15:35:55.506451199Z","level":"INFO","msg":"sender: started","stream_id":"x9mnlq3f"}
+{"time":"2025-12-09T15:35:55.506533877Z","level":"INFO","msg":"handler: started","stream_id":"x9mnlq3f"}
+{"time":"2025-12-09T15:35:56.375744951Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-12-09T15:40:24.508555901Z","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/sherirto/MAGB-GNN_Library/x9mnlq3f/file_stream\": read tcp 10.96.251.177:58924->35.186.228.49:443: read: connection reset by peer"}
+{"time":"2025-12-09T15:40:53.180419486Z","level":"INFO","msg":"stream: closing","id":"x9mnlq3f"}
+{"time":"2025-12-09T15:40:53.18049217Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-12-09T15:40:53.181292263Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-12-09T15:40:55.131161622Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-12-09T15:40:56.005624168Z","level":"INFO","msg":"handler: closed","stream_id":"x9mnlq3f"}
+{"time":"2025-12-09T15:40:56.005726569Z","level":"INFO","msg":"writer: Close: closed","stream_id":"x9mnlq3f"}
+{"time":"2025-12-09T15:40:56.005738563Z","level":"INFO","msg":"sender: closed","stream_id":"x9mnlq3f"}
+{"time":"2025-12-09T15:40:56.005897202Z","level":"INFO","msg":"stream: closed","id":"x9mnlq3f"}

@@ -1,0 +1,52 @@
+{
+  "os":  "Linux-5.15.0-161-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.10.14",
+  "startedAt":  "2025-12-09T14:57:02.120699Z",
+  "args":  [
+    "--llm_feature",
+    "/openbayes/input/input0/CSTAG/Children/TextFeature/Children_roberta_base_512_cls.npy",
+    "--tlm_feature",
+    "/openbayes/input/input0/CSTAG/Children/TextFeature/Children_roberta_base_512_cls.npy",
+    "--gnn_model",
+    "GCN",
+    "--graph_path",
+    "/openbayes/input/input0/CSTAG/Children/Children.pt"
+  ],
+  "program":  "/output/MAGB/GNN/Library/IMoK.py",
+  "codePath":  "GNN/Library/IMoK.py",
+  "git":  {
+    "remote":  "https://sktsherlock:@github.com/sktsherlock/MAGB.git",
+    "commit":  "dfc4b182a183a7fe25d40e995d09fb765ee8564d"
+  },
+  "email":  "1033270581@qq.com",
+  "root":  "/output/MAGB/GNN/Library",
+  "host":  "polyu-zhanggroup-92o782lkq59v-main",
+  "executable":  "/openbayes/input/input0/envs/MAG/bin/python",
+  "codePathLocal":  "IMoK.py",
+  "cpu_count":  48,
+  "cpu_count_logical":  8,
+  "gpu":  "Tesla V100-SXM3-32GB",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "107374182400",
+      "used":  "55308288"
+    }
+  },
+  "memory":  {
+    "total":  "33554432000"
+  },
+  "cpu":  {
+    "count":  48,
+    "countLogical":  8
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "Tesla V100-SXM3-32GB",
+      "memoryTotal":  "34359738368",
+      "cudaCores":  5120,
+      "architecture":  "Volta"
+    }
+  ],
+  "cudaVersion":  "12.8"
+}

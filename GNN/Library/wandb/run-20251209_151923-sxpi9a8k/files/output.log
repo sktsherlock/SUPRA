@@ -1,0 +1,35 @@
+The Graph change to the undirected graph
+Total edges before adding self-loop 3109156
+Total edges after adding self-loop 3186031
+Total edges after adding self-loop 3186031
+Train_idx: 46125
+Valid_idx: 15375
+Test_idx: 15375
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 390, in <module>
+    main()
+  File "/output/MAGB/GNN/Library/IMoK.py", line 377, in main
+    val_result, test_result = classification(
+  File "/output/MAGB/GNN/Library/IMoK.py", line 224, in classification
+    gnn_output_llm, gnn_output_tlm, loss_llm, loss_tlm = model(observe_graph, feat[0], feat[1])
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/output/MAGB/GNN/Library/IMoK.py", line 73, in forward
+    loss_llm = loss_tlm = torch.tensor(0.0, device=llm_feat.device)
+NameError: name 'torch' is not defined
+Traceback (most recent call last):
+  File "/output/MAGB/GNN/Library/IMoK.py", line 390, in <module>
+    main()
+  File "/output/MAGB/GNN/Library/IMoK.py", line 377, in main
+    val_result, test_result = classification(
+  File "/output/MAGB/GNN/Library/IMoK.py", line 224, in classification
+    gnn_output_llm, gnn_output_tlm, loss_llm, loss_tlm = model(observe_graph, feat[0], feat[1])
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/openbayes/input/input0/envs/MAG/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/output/MAGB/GNN/Library/IMoK.py", line 73, in forward
+    loss_llm = loss_tlm = torch.tensor(0.0, device=llm_feat.device)
+NameError: name 'torch' is not defined

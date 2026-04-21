@@ -1,0 +1,16 @@
+{"time":"2025-12-09T15:04:37.303823904Z","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-12-09T15:04:37.30386481Z","level":"INFO","msg":"created symlink","path":"/output/MAGB/GNN/Library/wandb/run-20251209_150437-xmjkaga5/logs/debug-core.log"}
+{"time":"2025-12-09T15:04:37.534400639Z","level":"INFO","msg":"created new stream","id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:37.534789529Z","level":"INFO","msg":"stream: started","id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:37.53482609Z","level":"INFO","msg":"writer: Do: started","stream_id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:37.534842414Z","level":"INFO","msg":"handler: started","stream_id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:37.534867884Z","level":"INFO","msg":"sender: started","stream_id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:38.756527385Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-12-09T15:04:42.58046907Z","level":"INFO","msg":"stream: closing","id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:42.580574692Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-12-09T15:04:42.581581144Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-12-09T15:04:43.866381615Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-12-09T15:04:44.933885942Z","level":"INFO","msg":"handler: closed","stream_id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:44.933965229Z","level":"INFO","msg":"writer: Close: closed","stream_id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:44.933990964Z","level":"INFO","msg":"sender: closed","stream_id":"xmjkaga5"}
+{"time":"2025-12-09T15:04:44.934064679Z","level":"INFO","msg":"stream: closed","id":"xmjkaga5"}

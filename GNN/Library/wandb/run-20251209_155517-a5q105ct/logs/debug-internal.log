@@ -1,0 +1,12 @@
+{"time":"2025-12-09T15:55:17.095011166Z","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-12-09T15:55:17.095051925Z","level":"INFO","msg":"created symlink","path":"/output/MAGB/GNN/Library/wandb/run-20251209_155517-a5q105ct/logs/debug-core.log"}
+{"time":"2025-12-09T15:55:17.324753128Z","level":"INFO","msg":"created new stream","id":"a5q105ct"}
+{"time":"2025-12-09T15:55:17.324846852Z","level":"INFO","msg":"stream: started","id":"a5q105ct"}
+{"time":"2025-12-09T15:55:17.325537325Z","level":"INFO","msg":"writer: Do: started","stream_id":"a5q105ct"}
+{"time":"2025-12-09T15:55:17.325559943Z","level":"INFO","msg":"sender: started","stream_id":"a5q105ct"}
+{"time":"2025-12-09T15:55:17.325633953Z","level":"INFO","msg":"handler: started","stream_id":"a5q105ct"}
+{"time":"2025-12-09T15:55:18.467086583Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-12-09T15:58:35.57163318Z","level":"INFO","msg":"stream: closing","id":"a5q105ct"}
+{"time":"2025-12-09T15:58:35.571788543Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-12-09T15:58:35.575617363Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-12-09T15:58:36.934321113Z","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}

@@ -1,0 +1,382 @@
+nohup: ignoring input
+===== 2026-04-19 20:37:41 | START | fg=clip_roberta ds=Movies PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Movies | Test Nodes: 3335
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 45.67%
+Visual-Only MLP     : 47.62%
+Multimodal MLP      : 51.30%
+Ensemble MLP        : 50.25%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |     971 |  29.12% |
+|   O   |   O   |   O   |    X     |      29 |   0.87% |
+|   O   |   O   |   X   |    O     |      22 |   0.66% |
+|   O   |   O   |   X   |    X     |      24 |   0.72% |
+|   O   |   X   |   O   |    O     |     167 |   5.01% |
+|   O   |   X   |   O   |    X     |      57 |   1.71% |
+|   O   |   X   |   X   |    O     |      13 |   0.39% |
+|   O   |   X   |   X   |    X     |     240 |   7.20% |
+|   X   |   O   |   O   |    O     |     345 |  10.34% |
+|   X   |   O   |   O   |    X     |      30 |   0.90% |
+|   X   |   O   |   X   |    O     |      54 |   1.62% |
+|   X   |   O   |   X   |    X     |     113 |   3.39% |
+|   X   |   X   |   O   |    O     |      65 |   1.95% |
+|   X   |   X   |   O   |    X     |      47 |   1.41% |
+|   X   |   X   |   X   |    O     |      39 |   1.17% |
+|   X   |   X   |   X   |    X     |    1119 |  33.55% |
+===== 2026-04-19 20:37:52 | END | fg=clip_roberta ds=Movies =====
+
+===== 2026-04-19 20:37:52 | START | fg=clip_roberta ds=Grocery PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Grocery | Test Nodes: 3416
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 76.73%
+Visual-Only MLP     : 65.54%
+Multimodal MLP      : 77.90%
+Ensemble MLP        : 76.99%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    1876 |  54.92% |
+|   O   |   O   |   O   |    X     |      32 |   0.94% |
+|   O   |   O   |   X   |    O     |      22 |   0.64% |
+|   O   |   O   |   X   |    X     |      14 |   0.41% |
+|   O   |   X   |   O   |    O     |     413 |  12.09% |
+|   O   |   X   |   O   |    X     |      61 |   1.79% |
+|   O   |   X   |   X   |    O     |      59 |   1.73% |
+|   O   |   X   |   X   |    X     |     144 |   4.22% |
+|   X   |   O   |   O   |    O     |     173 |   5.06% |
+|   X   |   O   |   O   |    X     |      30 |   0.88% |
+|   X   |   O   |   X   |    O     |      28 |   0.82% |
+|   X   |   O   |   X   |    X     |      64 |   1.87% |
+|   X   |   X   |   O   |    O     |      42 |   1.23% |
+|   X   |   X   |   O   |    X     |      34 |   1.00% |
+|   X   |   X   |   X   |    O     |      17 |   0.50% |
+|   X   |   X   |   X   |    X     |     407 |  11.91% |
+===== 2026-04-19 20:38:02 | END | fg=clip_roberta ds=Grocery =====
+
+===== 2026-04-19 20:38:02 | START | fg=clip_roberta ds=Reddit-M PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Reddit-M | Test Nodes: 19929
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 46.33%
+Visual-Only MLP     : 77.74%
+Multimodal MLP      : 82.80%
+Ensemble MLP        : 82.68%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    7417 |  37.22% |
+|   O   |   O   |   O   |    X     |      52 |   0.26% |
+|   O   |   O   |   X   |    O     |      32 |   0.16% |
+|   O   |   O   |   X   |    X     |      43 |   0.22% |
+|   O   |   X   |   O   |    O     |    1084 |   5.44% |
+|   O   |   X   |   O   |    X     |     105 |   0.53% |
+|   O   |   X   |   X   |    O     |     105 |   0.53% |
+|   O   |   X   |   X   |    X     |     396 |   1.99% |
+|   X   |   O   |   O   |    O     |    7206 |  36.16% |
+|   X   |   O   |   O   |    X     |     172 |   0.86% |
+|   X   |   O   |   X   |    O     |     167 |   0.84% |
+|   X   |   O   |   X   |    X     |     403 |   2.02% |
+|   X   |   X   |   O   |    O     |     324 |   1.63% |
+|   X   |   X   |   O   |    X     |     142 |   0.71% |
+|   X   |   X   |   X   |    O     |     142 |   0.71% |
+|   X   |   X   |   X   |    X     |    2139 |  10.73% |
+===== 2026-04-19 20:38:25 | END | fg=clip_roberta ds=Reddit-M =====
+
+===== 2026-04-19 20:38:25 | START | fg=clip_roberta ds=Reddit-S PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Reddit-S | Test Nodes: 3180
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 69.94%
+Visual-Only MLP     : 89.53%
+Multimodal MLP      : 93.36%
+Ensemble MLP        : 92.80%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    2046 |  64.34% |
+|   O   |   O   |   O   |    X     |       7 |   0.22% |
+|   O   |   O   |   X   |    O     |       2 |   0.06% |
+|   O   |   O   |   X   |    X     |       3 |   0.09% |
+|   O   |   X   |   O   |    O     |     128 |   4.03% |
+|   O   |   X   |   O   |    X     |       5 |   0.16% |
+|   O   |   X   |   X   |    O     |       8 |   0.25% |
+|   O   |   X   |   X   |    X     |      25 |   0.79% |
+|   X   |   O   |   O   |    O     |     727 |  22.86% |
+|   X   |   O   |   O   |    X     |      22 |   0.69% |
+|   X   |   O   |   X   |    O     |      12 |   0.38% |
+|   X   |   O   |   X   |    X     |      28 |   0.88% |
+|   X   |   X   |   O   |    O     |      17 |   0.53% |
+|   X   |   X   |   O   |    X     |      17 |   0.53% |
+|   X   |   X   |   X   |    O     |      11 |   0.35% |
+|   X   |   X   |   X   |    X     |     122 |   3.84% |
+===== 2026-04-19 20:38:34 | END | fg=clip_roberta ds=Reddit-S =====
+
+===== 2026-04-19 20:38:34 | START | fg=clip_roberta ds=Toys PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Toys | Test Nodes: 4139
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 72.36%
+Visual-Only MLP     : 67.26%
+Multimodal MLP      : 74.99%
+Ensemble MLP        : 73.96%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    2270 |  54.84% |
+|   O   |   O   |   O   |    X     |      35 |   0.85% |
+|   O   |   O   |   X   |    O     |      15 |   0.36% |
+|   O   |   O   |   X   |    X     |      15 |   0.36% |
+|   O   |   X   |   O   |    O     |     367 |   8.87% |
+|   O   |   X   |   O   |    X     |      56 |   1.35% |
+|   O   |   X   |   X   |    O     |      35 |   0.85% |
+|   O   |   X   |   X   |    X     |     202 |   4.88% |
+|   X   |   O   |   O   |    O     |     278 |   6.72% |
+|   X   |   O   |   O   |    X     |      33 |   0.80% |
+|   X   |   O   |   X   |    O     |      37 |   0.89% |
+|   X   |   O   |   X   |    X     |     101 |   2.44% |
+|   X   |   X   |   O   |    O     |      43 |   1.04% |
+|   X   |   X   |   O   |    X     |      22 |   0.53% |
+|   X   |   X   |   X   |    O     |      16 |   0.39% |
+|   X   |   X   |   X   |    X     |     614 |  14.83% |
+===== 2026-04-19 20:38:45 | END | fg=clip_roberta ds=Toys =====
+
+===== 2026-04-19 20:38:45 | START | fg=default ds=Movies PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Movies | Test Nodes: 3335
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 51.12%
+Visual-Only MLP     : 53.19%
+Multimodal MLP      : 55.59%
+Ensemble MLP        : 54.36%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    1061 |  31.81% |
+|   O   |   O   |   O   |    X     |      91 |   2.73% |
+|   O   |   O   |   X   |    O     |      37 |   1.11% |
+|   O   |   O   |   X   |    X     |      31 |   0.93% |
+|   O   |   X   |   O   |    O     |     289 |   8.67% |
+|   O   |   X   |   O   |    X     |      55 |   1.65% |
+|   O   |   X   |   X   |    O     |      61 |   1.83% |
+|   O   |   X   |   X   |    X     |      80 |   2.40% |
+|   X   |   O   |   O   |    O     |     152 |   4.56% |
+|   X   |   O   |   O   |    X     |      98 |   2.94% |
+|   X   |   O   |   X   |    O     |      66 |   1.98% |
+|   X   |   O   |   X   |    X     |     238 |   7.14% |
+|   X   |   X   |   O   |    O     |      48 |   1.44% |
+|   X   |   X   |   O   |    X     |      60 |   1.80% |
+|   X   |   X   |   X   |    O     |      99 |   2.97% |
+|   X   |   X   |   X   |    X     |     869 |  26.06% |
+===== 2026-04-19 20:38:56 | END | fg=default ds=Movies =====
+
+===== 2026-04-19 20:38:56 | START | fg=default ds=Grocery PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Grocery | Test Nodes: 3416
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 85.71%
+Visual-Only MLP     : 72.37%
+Multimodal MLP      : 86.01%
+Ensemble MLP        : 86.12%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    2312 |  67.68% |
+|   O   |   O   |   O   |    X     |      11 |   0.32% |
+|   O   |   O   |   X   |    O     |      11 |   0.32% |
+|   O   |   O   |   X   |    X     |       3 |   0.09% |
+|   O   |   X   |   O   |    O     |     520 |  15.22% |
+|   O   |   X   |   O   |    X     |      23 |   0.67% |
+|   O   |   X   |   X   |    O     |      22 |   0.64% |
+|   O   |   X   |   X   |    X     |      26 |   0.76% |
+|   X   |   O   |   O   |    O     |      30 |   0.88% |
+|   X   |   O   |   O   |    X     |      14 |   0.41% |
+|   X   |   O   |   X   |    O     |      15 |   0.44% |
+|   X   |   O   |   X   |    X     |      76 |   2.22% |
+|   X   |   X   |   O   |    O     |      17 |   0.50% |
+|   X   |   X   |   O   |    X     |      11 |   0.32% |
+|   X   |   X   |   X   |    O     |      15 |   0.44% |
+|   X   |   X   |   X   |    X     |     310 |   9.07% |
+===== 2026-04-19 20:39:09 | END | fg=default ds=Grocery =====
+
+===== 2026-04-19 20:39:09 | START | fg=default ds=Reddit-M PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Reddit-M | Test Nodes: 19929
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 57.96%
+Visual-Only MLP     : 78.58%
+Multimodal MLP      : 84.56%
+Ensemble MLP        : 84.71%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    9590 |  48.12% |
+|   O   |   O   |   O   |    X     |      25 |   0.13% |
+|   O   |   O   |   X   |    O     |      46 |   0.23% |
+|   O   |   O   |   X   |    X     |      34 |   0.17% |
+|   O   |   X   |   O   |    O     |    1391 |   6.98% |
+|   O   |   X   |   O   |    X     |      94 |   0.47% |
+|   O   |   X   |   X   |    O     |      89 |   0.45% |
+|   O   |   X   |   X   |    X     |     282 |   1.42% |
+|   X   |   O   |   O   |    O     |    5272 |  26.45% |
+|   X   |   O   |   O   |    X     |     121 |   0.61% |
+|   X   |   O   |   X   |    O     |     149 |   0.75% |
+|   X   |   O   |   X   |    X     |     424 |   2.13% |
+|   X   |   X   |   O   |    O     |     232 |   1.16% |
+|   X   |   X   |   O   |    X     |     126 |   0.63% |
+|   X   |   X   |   X   |    O     |     112 |   0.56% |
+|   X   |   X   |   X   |    X     |    1942 |   9.74% |
+===== 2026-04-19 20:40:00 | END | fg=default ds=Reddit-M =====
+
+===== 2026-04-19 20:40:00 | START | fg=default ds=Reddit-S PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Reddit-S | Test Nodes: 3180
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 81.13%
+Visual-Only MLP     : 89.53%
+Multimodal MLP      : 94.31%
+Ensemble MLP        : 94.37%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    2371 |  74.56% |
+|   O   |   O   |   O   |    X     |       4 |   0.13% |
+|   O   |   O   |   X   |    O     |       1 |   0.03% |
+|   O   |   O   |   X   |    X     |       4 |   0.13% |
+|   O   |   X   |   O   |    O     |     167 |   5.25% |
+|   O   |   X   |   O   |    X     |       5 |   0.16% |
+|   O   |   X   |   X   |    O     |       9 |   0.28% |
+|   O   |   X   |   X   |    X     |      19 |   0.60% |
+|   X   |   O   |   O   |    O     |     425 |  13.36% |
+|   X   |   O   |   O   |    X     |       6 |   0.19% |
+|   X   |   O   |   X   |    O     |       7 |   0.22% |
+|   X   |   O   |   X   |    X     |      29 |   0.91% |
+|   X   |   X   |   O   |    O     |      15 |   0.47% |
+|   X   |   X   |   O   |    X     |       6 |   0.19% |
+|   X   |   X   |   X   |    O     |       6 |   0.19% |
+|   X   |   X   |   X   |    X     |     106 |   3.33% |
+===== 2026-04-19 20:40:13 | END | fg=default ds=Reddit-S =====
+
+===== 2026-04-19 20:40:13 | START | fg=default ds=Toys PreExp-MLP-h256-do0.2-lr0.001 =====
+Dataset: Toys | Test Nodes: 4139
+Training Text-only MLP...
+Training Visual-only MLP...
+Training Multimodal MLP...
+Training Ensemble MLP (Average Logits)...
+
+============================================================
+                    OVERALL ACCURACY
+============================================================
+Text-Only MLP       : 80.62%
+Visual-Only MLP     : 73.38%
+Multimodal MLP      : 80.94%
+Ensemble MLP        : 80.84%
+
+============================================================
+               DETAILED OVERLAP STATISTICS (16 Sets)
+============================================================
+| Text  | Vis   | Multi | Ensemble | Count   | Percent |
+|-------|-------|-------|----------|---------|---------|
+|   O   |   O   |   O   |    O     |    2705 |  65.35% |
+|   O   |   O   |   O   |    X     |      12 |   0.29% |
+|   O   |   O   |   X   |    O     |      61 |   1.47% |
+|   O   |   O   |   X   |    X     |      16 |   0.39% |
+|   O   |   X   |   O   |    O     |     412 |   9.95% |
+|   O   |   X   |   O   |    X     |      38 |   0.92% |
+|   O   |   X   |   X   |    O     |      46 |   1.11% |
+|   O   |   X   |   X   |    X     |      47 |   1.14% |
+|   X   |   O   |   O   |    O     |      62 |   1.50% |
+|   X   |   O   |   O   |    X     |      49 |   1.18% |
+|   X   |   O   |   X   |    O     |      23 |   0.56% |
+|   X   |   O   |   X   |    X     |     109 |   2.63% |
+|   X   |   X   |   O   |    O     |      14 |   0.34% |
+|   X   |   X   |   O   |    X     |      58 |   1.40% |
+|   X   |   X   |   X   |    O     |      23 |   0.56% |
+|   X   |   X   |   X   |    X     |     464 |  11.21% |
+===== 2026-04-19 20:40:25 | END | fg=default ds=Toys =====
+
+===== 2026-04-19 20:40:25 | ALL DONE. Results saved to: logs_pre_experiment/pre_results.txt =====

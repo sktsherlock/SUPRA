@@ -1,0 +1,123 @@
+The Graph change to the undirected graph
+Total edges before adding self-loop 1167188
+Total edges after adding self-loop 1266826
+Run: 1/3, Epoch: 20/1000, Average epoch time: 0.12
+Loss: 2.1582
+Train/Val/Test loss: 2.1582/2.0656/2.0621
+Train/Val/Test/Best Val/Final Test accuracy: 0.6729/0.6687/0.6719/0.6687/0.6719
+Run: 1/3, Epoch: 40/1000, Average epoch time: 0.11
+Loss: 1.7250
+Train/Val/Test loss: 1.7250/1.7120/1.7086
+Train/Val/Test/Best Val/Final Test accuracy: 0.7973/0.7890/0.7913/0.7890/0.7913
+Run: 1/3, Epoch: 60/1000, Average epoch time: 0.10
+Loss: 1.5851
+Train/Val/Test loss: 1.5851/1.6002/1.5970
+Train/Val/Test/Best Val/Final Test accuracy: 0.8689/0.8423/0.8445/0.8423/0.8415
+Run: 1/3, Epoch: 80/1000, Average epoch time: 0.10
+Loss: 1.4914
+Train/Val/Test loss: 1.4914/1.5445/1.5403
+Train/Val/Test/Best Val/Final Test accuracy: 0.9140/0.8651/0.8679/0.8671/0.8673
+Run: 1/3, Epoch: 100/1000, Average epoch time: 0.10
+Loss: 1.4227
+Train/Val/Test loss: 1.4227/1.5181/1.5138
+Train/Val/Test/Best Val/Final Test accuracy: 0.9512/0.8760/0.8770/0.8760/0.8770
+Run: 1/3, Epoch: 120/1000, Average epoch time: 0.10
+Loss: 1.3688
+Train/Val/Test loss: 1.3688/1.5174/1.5146
+Train/Val/Test/Best Val/Final Test accuracy: 0.9734/0.8787/0.8794/0.8793/0.8810
+Run: 1/3, Epoch: 140/1000, Average epoch time: 0.10
+Loss: 1.3355
+Train/Val/Test loss: 1.3355/1.5228/1.5199
+Train/Val/Test/Best Val/Final Test accuracy: 0.9877/0.8786/0.8794/0.8803/0.8800
+Run: 1/3, Epoch: 160/1000, Average epoch time: 0.10
+Loss: 1.3093
+Train/Val/Test loss: 1.3093/1.5294/1.5253
+Train/Val/Test/Best Val/Final Test accuracy: 0.9934/0.8756/0.8796/0.8803/0.8800
+Run: 1/3, Epoch: 180/1000, Average epoch time: 0.10
+Loss: 1.2926
+Train/Val/Test loss: 1.2926/1.5328/1.5300
+Train/Val/Test/Best Val/Final Test accuracy: 0.9961/0.8757/0.8808/0.8803/0.8800
+**************************************************
+Best val accuracy: 0.880262959803282, Final test accuracy: 0.8799739073711677
+**************************************************
+Run: 2/3, Epoch: 20/1000, Average epoch time: 0.10
+Loss: 2.1475
+Train/Val/Test loss: 2.1475/2.0456/2.0408
+Train/Val/Test/Best Val/Final Test accuracy: 0.6770/0.6715/0.6767/0.6715/0.6767
+Run: 2/3, Epoch: 40/1000, Average epoch time: 0.10
+Loss: 1.7298
+Train/Val/Test loss: 1.7298/1.7198/1.7129
+Train/Val/Test/Best Val/Final Test accuracy: 0.7936/0.7834/0.7894/0.7834/0.7894
+Run: 2/3, Epoch: 60/1000, Average epoch time: 0.10
+Loss: 1.5878
+Train/Val/Test loss: 1.5878/1.6061/1.6012
+Train/Val/Test/Best Val/Final Test accuracy: 0.8676/0.8426/0.8435/0.8426/0.8435
+Run: 2/3, Epoch: 80/1000, Average epoch time: 0.09
+Loss: 1.4928
+Train/Val/Test loss: 1.4928/1.5442/1.5397
+Train/Val/Test/Best Val/Final Test accuracy: 0.9152/0.8654/0.8693/0.8654/0.8693
+Run: 2/3, Epoch: 100/1000, Average epoch time: 0.09
+Loss: 1.4221
+Train/Val/Test loss: 1.4221/1.5223/1.5180
+Train/Val/Test/Best Val/Final Test accuracy: 0.9497/0.8728/0.8756/0.8728/0.8756
+Run: 2/3, Epoch: 120/1000, Average epoch time: 0.09
+Loss: 1.3731
+Train/Val/Test loss: 1.3731/1.5217/1.5195
+Train/Val/Test/Best Val/Final Test accuracy: 0.9727/0.8741/0.8758/0.8756/0.8775
+Run: 2/3, Epoch: 140/1000, Average epoch time: 0.09
+Loss: 1.3353
+Train/Val/Test loss: 1.3353/1.5253/1.5216
+Train/Val/Test/Best Val/Final Test accuracy: 0.9862/0.8750/0.8766/0.8784/0.8793
+Run: 2/3, Epoch: 160/1000, Average epoch time: 0.09
+Loss: 1.3078
+Train/Val/Test loss: 1.3078/1.5277/1.5247
+Train/Val/Test/Best Val/Final Test accuracy: 0.9934/0.8789/0.8762/0.8795/0.8778
+Run: 2/3, Epoch: 180/1000, Average epoch time: 0.09
+Loss: 1.2926
+Train/Val/Test loss: 1.2926/1.5319/1.5289
+Train/Val/Test/Best Val/Final Test accuracy: 0.9966/0.8772/0.8779/0.8795/0.8778
+**************************************************
+Best val accuracy: 0.8795102122748031, Final test accuracy: 0.8778162476792614
+**************************************************
+Run: 3/3, Epoch: 20/1000, Average epoch time: 0.10
+Loss: 2.1615
+Train/Val/Test loss: 2.1615/2.0783/2.0751
+Train/Val/Test/Best Val/Final Test accuracy: 0.6358/0.6328/0.6425/0.6328/0.6425
+Run: 3/3, Epoch: 40/1000, Average epoch time: 0.10
+Loss: 1.7315
+Train/Val/Test loss: 1.7315/1.7198/1.7146
+Train/Val/Test/Best Val/Final Test accuracy: 0.7920/0.7849/0.7892/0.7849/0.7892
+Run: 3/3, Epoch: 60/1000, Average epoch time: 0.09
+Loss: 1.5856
+Train/Val/Test loss: 1.5856/1.6021/1.5994
+Train/Val/Test/Best Val/Final Test accuracy: 0.8683/0.8429/0.8440/0.8429/0.8440
+Run: 3/3, Epoch: 80/1000, Average epoch time: 0.10
+Loss: 1.4896
+Train/Val/Test loss: 1.4896/1.5450/1.5418
+Train/Val/Test/Best Val/Final Test accuracy: 0.9157/0.8652/0.8676/0.8660/0.8677
+Run: 3/3, Epoch: 100/1000, Average epoch time: 0.09
+Loss: 1.4227
+Train/Val/Test loss: 1.4227/1.5218/1.5177
+Train/Val/Test/Best Val/Final Test accuracy: 0.9507/0.8733/0.8775/0.8733/0.8775
+Run: 3/3, Epoch: 120/1000, Average epoch time: 0.09
+Loss: 1.3714
+Train/Val/Test loss: 1.3714/1.5181/1.5147
+Train/Val/Test/Best Val/Final Test accuracy: 0.9721/0.8769/0.8774/0.8769/0.8774
+Run: 3/3, Epoch: 140/1000, Average epoch time: 0.09
+Loss: 1.3368
+Train/Val/Test loss: 1.3368/1.5187/1.5155
+Train/Val/Test/Best Val/Final Test accuracy: 0.9876/0.8793/0.8811/0.8801/0.8806
+Run: 3/3, Epoch: 160/1000, Average epoch time: 0.09
+Loss: 1.3066
+Train/Val/Test loss: 1.3066/1.5252/1.5233
+Train/Val/Test/Best Val/Final Test accuracy: 0.9937/0.8784/0.8795/0.8805/0.8820
+Run: 3/3, Epoch: 180/1000, Average epoch time: 0.09
+Loss: 1.2915
+Train/Val/Test loss: 1.2915/1.5310/1.5282
+Train/Val/Test/Best Val/Final Test accuracy: 0.9969/0.8772/0.8801/0.8805/0.8820
+**************************************************
+Best val accuracy: 0.8804636924775431, Final test accuracy: 0.8820312107983341
+**************************************************
+Runned 3 times
+Average val accuracy: 88.008 ± 0.041%
+Average test accuracy: 87.994 ± 0.172%

@@ -1,0 +1,71 @@
+2025-12-09 18:15:11 INFO Running runs: []
+2025-12-09 18:15:11 INFO Agent received command: run
+2025-12-09 18:15:11 INFO Agent starting run with config:
+	average: macro
+	dropout: 0.2
+	early_stop_patience: 100
+	graph_path: /openbayes/input/input0/CSTAG/Photo/Photo.pt
+	label-smoothing: 0.1
+	llm_feature: /openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_Llama_2_13b_hf_256_mean.npy
+	llm_warmup_epochs: 50
+	lr: 0.0005
+	metric: accuracy
+	n-epochs: 1000
+	n-hidden: 256
+	n-layers: 2
+	n-runs: 10
+	same_dim: 128
+	selfloop: [True]
+	tlm_feature: /openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_roberta_base_512_Tuned_cls.npy
+	undirected: [True]
+	warmup_epochs: 100
+2025-12-09 18:15:11 INFO About to run command: /usr/bin/env python GNN/Library/IMoK.py --average=macro --dropout=0.2 --early_stop_patience=100 --graph_path=/openbayes/input/input0/CSTAG/Photo/Photo.pt --label-smoothing=0.1 --llm_feature=/openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_Llama_2_13b_hf_256_mean.npy --llm_warmup_epochs=50 --lr=0.0005 --metric=accuracy --n-epochs=1000 --n-hidden=256 --n-layers=2 --n-runs=10 --same_dim=128 --selfloop=[True] --tlm_feature=/openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_roberta_base_512_Tuned_cls.npy --undirected=[True] --warmup_epochs=100
+2025-12-09 18:15:16 INFO Running runs: ['cgpd91sa']
+2025-12-09 18:15:16 INFO Cleaning up finished run: cgpd91sa
+2025-12-09 18:15:17 INFO Agent received command: run
+2025-12-09 18:15:17 INFO Agent starting run with config:
+	average: macro
+	dropout: 0.2
+	early_stop_patience: 100
+	graph_path: /openbayes/input/input0/CSTAG/Photo/Photo.pt
+	label-smoothing: 0.1
+	llm_feature: /openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_Llama_2_13b_hf_256_mean.npy
+	llm_warmup_epochs: 50
+	lr: 0.0005
+	metric: accuracy
+	n-epochs: 1000
+	n-hidden: 256
+	n-layers: 2
+	n-runs: 10
+	same_dim: 128
+	selfloop: [True]
+	tlm_feature: /openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_roberta_base_512_Tuned_cls.npy
+	undirected: [True]
+	warmup_epochs: 25
+2025-12-09 18:15:17 INFO About to run command: /usr/bin/env python GNN/Library/IMoK.py --average=macro --dropout=0.2 --early_stop_patience=100 --graph_path=/openbayes/input/input0/CSTAG/Photo/Photo.pt --label-smoothing=0.1 --llm_feature=/openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_Llama_2_13b_hf_256_mean.npy --llm_warmup_epochs=50 --lr=0.0005 --metric=accuracy --n-epochs=1000 --n-hidden=256 --n-layers=2 --n-runs=10 --same_dim=128 --selfloop=[True] --tlm_feature=/openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_roberta_base_512_Tuned_cls.npy --undirected=[True] --warmup_epochs=25
+2025-12-09 18:15:22 INFO Running runs: ['iwu56j8l']
+2025-12-09 18:15:22 INFO Cleaning up finished run: iwu56j8l
+2025-12-09 18:15:22 INFO Agent received command: run
+2025-12-09 18:15:22 INFO Agent starting run with config:
+	average: macro
+	dropout: 0.2
+	early_stop_patience: 100
+	graph_path: /openbayes/input/input0/CSTAG/Photo/Photo.pt
+	label-smoothing: 0.1
+	llm_feature: /openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_Llama_2_13b_hf_256_mean.npy
+	llm_warmup_epochs: 50
+	lr: 0.0005
+	metric: accuracy
+	n-epochs: 1000
+	n-hidden: 256
+	n-layers: 3
+	n-runs: 10
+	same_dim: 128
+	selfloop: [True]
+	tlm_feature: /openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_roberta_base_512_Tuned_cls.npy
+	undirected: [True]
+	warmup_epochs: 100
+2025-12-09 18:15:22 INFO About to run command: /usr/bin/env python GNN/Library/IMoK.py --average=macro --dropout=0.2 --early_stop_patience=100 --graph_path=/openbayes/input/input0/CSTAG/Photo/Photo.pt --label-smoothing=0.1 --llm_feature=/openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_Llama_2_13b_hf_256_mean.npy --llm_warmup_epochs=50 --lr=0.0005 --metric=accuracy --n-epochs=1000 --n-hidden=256 --n-layers=3 --n-runs=10 --same_dim=128 --selfloop=[True] --tlm_feature=/openbayes/input/input0/CSTAG/Photo/TextFeature/Photo_roberta_base_512_Tuned_cls.npy --undirected=[True] --warmup_epochs=100
+2025-12-09 18:15:27 INFO Running runs: ['34ahxluc']
+2025-12-09 18:15:27 ERROR Detected 3 failed runs in the first 60 seconds, shutting down.
+2025-12-09 18:15:27 INFO To disable this check set WANDB_AGENT_DISABLE_FLAPPING=true

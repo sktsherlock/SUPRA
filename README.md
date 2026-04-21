@@ -16,10 +16,10 @@ SUPRA introduces a **Shared-Unique Decomposition** architecture with **Newton-Sc
 ### Baseline Models (`run_baseline.sh`)
 | Model | Description | Layers |
 |-------|-------------|--------|
-| MLP | Multi-layer perceptron (no graph) | 2, 3, 4 |
-| GCN | Graph Convolutional Network | 1, 2 |
-| SAGE | GraphSAGE (mean aggregator) | 2, 3, 4 |
-| GAT | Graph Attention Network | 1, 2 |
+| MLP | Multi-layer perceptron (no graph) | 2, 3 |
+| GCN | Graph Convolutional Network (via Early_GNN) | 1, 2 |
+| SAGE | GraphSAGE (mean aggregator, via Early_GNN) | 2, 3, 4 |
+| GAT | Graph Attention Network (via Early_GNN) | 1, 2 |
 | GCNII | GCN with Initial residual + Identity mapping | 2, 3, 4 |
 | JKNet | Jumping Knowledge Network | 2, 3, 4 |
 
@@ -35,22 +35,26 @@ SUPRA introduces a **Shared-Unique Decomposition** architecture with **Newton-Sc
 ```
 SUPRA_2.0/
 ├── GNN/
-│   ├── SUPRA.py           # SUPRA model implementation
-│   ├── Library/           # Baseline GNN implementations
-│   │   ├── GCN.py, GAT.py, GraphSAGE.py, GCNII.py, JKNet.py, MLP.py
-│   │   └── APPNP.py, SGC.py (reference)
-│   ├── Baselines/          # Early/late fusion baselines
-│   │   ├── Early_GNN.py, Late_GNN.py
+│   ├── SUPRA.py              # SUPRA model implementation with spectral orthogonalization
+│   ├── Library/               # Simple single-modality baselines
+│   │   ├── MLP.py, GCN.py, GAT.py, GraphSAGE.py
+│   │   ├── GCNII.py, JKNet.py, SGC.py, APPNP.py
+│   ├── Baselines/            # Multimodal baselines (Early/Late fusion)
+│   │   ├── Early_GNN.py      # Early fusion: concat text+visual -> GNN
+│   │   ├── Late_GNN.py       # Late fusion: separate encoders -> GNN -> fuse
 │   │   ├── MIG_GT.py, NTSFormer.py
-│   │   └── OGM-GE/ (submodule)
-│   └── GraphData.py        # Data loading utilities
-├── plot/                   # Visualization scripts
-│   ├── path_config.sh      # Data path configuration
-│   ├── plot_gnn.sh        # Plot training curves
-│   └── plot_rank_*.sh     # Rank collapse/training plots
-├── run_baseline.sh         # Baseline experiment runner
-├── run_supra.sh            # SUPRA experiment runner
-└── requirements.yaml       # Conda environment spec
+│   │   └── OGM-GE/, NTSFormer/ (submodules)
+│   └── GraphData.py          # Data loading utilities
+├── plot/                      # Visualization scripts
+│   ├── path_config.sh         # Data path configuration
+│   └── plot_*.sh              # Various plotting scripts
+├── scripts/                   # Additional experiment scripts
+│   ├── baselines/            # Baseline sweep scripts
+│   └── supra/                 # SUPRA sweep scripts
+├── run_baseline.sh            # Baseline experiment runner
+├── run_supra.sh               # SUPRA experiment runner
+├── run_batch_baseline.sh      # Batch runner for all baselines
+└── requirements.yaml          # Conda environment spec
 ```
 
 ## Setup
@@ -58,6 +62,10 @@ SUPRA_2.0/
 ### 1. Environment
 
 ```bash
+# Clone the repository
+git clone https://github.com/sktsherlock/SUPRA.git
+cd SUPRA
+
 # Create conda environment
 conda env create -f requirements.yaml
 
@@ -92,30 +100,45 @@ Feature groups supported:
 
 ## Running Experiments
 
+### Quick Start
+
+```bash
+# Run baseline experiments on all models
+./run_batch_baseline.sh
+
+# Or run a specific model
+./run_baseline.sh --model GCN --data_name Movies
+
+# Run SUPRA experiments
+./run_supra.sh --data_name Movies
+```
+
 ### Baseline Experiments
 
 ```bash
-# Run all baselines on Movies dataset
-./run_baseline.sh --data_name Movies
+# Run all baseline models on Movies dataset
+./run_baseline.sh --model GCN --data_name Movies
 
 # Run specific model with custom params
-./run_baseline.sh --data_name Movies --model GCN --n_layers 2
+./run_baseline.sh --data_name Movies --model SAGE --n_layers 2
 
 # Run with specific feature group
-FEATURE_GROUPS="default" ./run_baseline.sh --data_name Grocery
+FEATURE_GROUPS="default" ./run_baseline.sh --data_name Grocery --model GAT
+
+# Run with F1-macro metric
+./run_baseline.sh --data_name Movies --model GCN --metric f1_macro --average macro
 ```
 
 **Key parameters:**
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--data_name` | Dataset (Movies, Grocery, Toys, Reddit-M) | Required |
-| `--model` | Model (MLP, GCN, SAGE, GAT, GCNII, JKNet) | GCN |
+| `--model` | Model (MLP, GCN, SAGE, GAT, GCNII, JKNet) | Required |
 | `--feature_group` | Feature set (clip_roberta, default) | clip_roberta |
-| `--n_hidden` | Hidden dimension | 256 |
-| `--n_layers` | Number of layers | 2 |
+| `--metric` | Metric (accuracy, f1_macro) | accuracy |
+| `--average` | Average mode (macro, micro) | macro |
 | `--gpu` | GPU device ID | 0 |
 | `--n_runs` | Number of runs | 3 |
-| `--output_dir` | Output directory | logs_baseline |
 
 ### SUPRA Experiments
 
@@ -141,40 +164,50 @@ SUPRA_LAYERS="2 3 4" ./run_supra.sh --data_name Toys
 | `--gpu` | GPU device ID | 0 |
 | `--n_runs` | Number of runs | 3 |
 
+### Batch Experiments
+
+```bash
+# Run all baselines on all datasets with all metrics (dry run)
+./run_batch_baseline.sh --dry_run
+
+# Run only GCN and SAGE
+./run_batch_baseline.sh --models "GCN SAGE"
+
+# Run only F1-macro metric
+./run_batch_baseline.sh --metrics "f1_macro"
+```
+
 ## Hyperparameters
 
 ### Fixed Parameters (All Methods)
-- Dropout: 0.3
+- Dropout: 0.3 (fixed)
 - Weight decay: 1e-4
 - Train ratio: 0.6
 - Val ratio: 0.2
-- Metric: accuracy
-- Average: macro
 
 ### Baseline Search Space
 | Model | Learning Rate | Layers |
 |-------|--------------|--------|
-| MLP | 0.001, 0.005 | 2, 3, 4 |
-| GCN | 0.001, 0.005 | 1, 2 |
+| MLP | 0.0005, 0.001 | 2, 3 |
+| GCN | 0.0005, 0.001 | 1, 2 |
 | SAGE | 0.0005, 0.001 | 2, 3, 4 |
-| GAT | 0.001, 0.005 | 1, 2 |
-| GCNII | 0.001, 0.005 | 2, 3, 4 |
+| GAT | 0.0005, 0.001 | 1, 2 |
+| GCNII | 0.0005, 0.001 | 2, 3, 4 |
 | JKNet | 0.0005, 0.001 | 2, 3, 4 |
 
 ### SUPRA Search Space
 - Learning rate: 0.0005, 0.001
-- Layers: 2, 3, 4
+- Layers (n_layers): 2, 3, 4
 - Embed dim: 128, 256
 - Shared depth: 1, 2, 3, 4
 
 ## Output
 
-Logs are saved to `logs_baseline/` and `logs_supra/` by default:
-```
-logs_supra/
-└── Movies/
-    └── SUPRA-GCN-lr0.001-wd0.0001-h256-L2-...log
-```
+Results are saved to:
+- `logs_baseline/` - Training logs for baseline experiments
+- `logs_supra/` - Training logs for SUPRA experiments
+- `results_csv/baseline_best.csv` - Best results per method/dataset/metric
+- `results_csv/baseline_all.csv` - All experimental results
 
 ## Citation
 

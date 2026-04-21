@@ -361,10 +361,12 @@ case "${MODEL}" in
                 --label-smoothing "${sage_label_smoothing}" \
                 --metric "${METRIC}" --average "${AVERAGE}" \
                 --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                --undirected \
+                --undirected "${UNDIRECTED}" \
                 --inductive "${INDUCTIVE}" \
                 --aggregator "${sage_aggregator}" \
-                --disable_wandb
+                --disable_wandb \
+                --result_csv "${RESULT_CSV}" \
+                --result_csv_all "${RESULT_CSV_ALL}"
           done
         done
       done
@@ -391,11 +393,11 @@ case "${MODEL}" in
                   --eval_steps "${EVAL_STEPS}" \
                   --early_stop_patience "${gat_early_stop_patience}" \
                   --lr "${lr}" --wd "${wd}" \
-                  --n-layers "${L}" --n-hidden "${h}" --dropout "${gcn_dropout}" \
+                  --n-layers "${L}" --n-hidden "${h}" --dropout "${gat_dropout}" \
                   --label-smoothing "${gat_label_smoothing}" \
                   --metric "${METRIC}" --average "${AVERAGE}" \
                   --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                  --undirected \
+                  --undirected "${UNDIRECTED}" \
                   --inductive "${INDUCTIVE}" \
                   --n-heads "${gat_n_heads}" \
                   --attn-drop "${gat_attn_drop}" \

@@ -302,10 +302,16 @@ class SUPRA(nn.Module):
         self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
 
         def _make_mp_layers(num_layers: int) -> nn.ModuleList:
-            return nn.ModuleList([
-                _build_gnn_backbone(args, self.embed_dim * 2, self.embed_dim, device, n_layers_override=1, n_hidden_override=self.embed_dim)
-                for _ in range(int(num_layers))
-            ])
+            # First layer: projects from concat(e_t, e_v) = 2*embed_dim down to embed_dim
+            # Subsequent layers: process embed_dim features sequentially
+            layers = []
+            first_in_dim = self.embed_dim * 2
+            for i in range(int(num_layers)):
+                in_dim = first_in_dim if i == 0 else self.embed_dim
+                layers.append(
+                    _build_gnn_backbone(args, in_dim, self.embed_dim, device, n_layers_override=1, n_hidden_override=self.embed_dim)
+                )
+            return nn.ModuleList(layers)
 
         # Shared message passing layers (deeper propagation)
         self.mp_C = _make_mp_layers(self.shared_depth)

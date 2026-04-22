@@ -54,16 +54,15 @@ class GraphConvolution(nn.Module):
         g.ndata['h0'] = h0
 
         # Symmetric normalization: D^{-1/2} A D^{-1/2} for undirected graphs
-        # Each edge message is weighted by 1/sqrt(deg(src)) and multiplied by 1/sqrt(deg(dst)) on recv
         deg = g.in_degrees().float().clamp_min(1)
-        deg_inv_sqrt = deg.pow(-0.5)
+        deg_inv_sqrt = deg.pow(-0.5).view(-1, 1)  # [N, 1] for broadcasting with [E, D]
         g.ndata['deg_norm'] = deg_inv_sqrt
-        # Message: src_h * deg_inv_sqrt(src)
+        # Message: src_h * deg_inv_sqrt(src) -> [E, D] * [E, 1] broadcasts to [E, D]
         g.update_all(
             lambda edges: {'m': edges.src['h'] * edges.src['deg_norm']},
             dgl.function.sum('m', 'h_acc')
         )
-        # Receive: multiply by deg_inv_sqrt(dst) for symmetric normalization
+        # Receive: multiply by deg_inv_sqrt(dst) for symmetric normalization: [N, D] * [N, 1] -> [N, D]
         h_agg = g.ndata['h_acc'] * g.ndata['deg_norm']
 
         # Clean up temp features

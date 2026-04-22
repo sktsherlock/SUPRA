@@ -632,9 +632,9 @@ def main():
                     final_test_result = float(test_score)
                     # Store logits from all channels for oracle analysis
                     run_best_logits = {
-                        'Ut': out_full.logits_Ut.detach().clone(),
-                        'Uv': out_full.logits_Uv.detach().clone(),
-                        'C': out_full.logits_C.detach().clone(),
+                        'Ut': out_full.logits_Ut_0.detach().clone(),
+                        'Uv': out_full.logits_Uv_0.detach().clone(),
+                        'C': out_full.logits_C_0.detach().clone(),
                     }
                 if stopper and stopper.step(val_score): break
 

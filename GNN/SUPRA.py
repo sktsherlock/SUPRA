@@ -480,6 +480,91 @@ def args_init():
     return parser
 
 
+def oracle_gate_analysis(logits_Ut, logits_Uv, logits_C, labels, train_idx, val_idx, test_idx):
+    """
+    Offline analysis: theoretical upper bound of oracle gate.
+
+    For each node, we choose the channel that gives the correct prediction.
+    Priority: Ut > Uv > C > average
+    """
+    results = {}
+
+    for split_name, idx in [("Train", train_idx), ("Val", val_idx), ("Test", test_idx)]:
+        y = labels[idx]
+        p_Ut = th.argmax(logits_Ut[idx], dim=1)
+        p_Uv = th.argmax(logits_Uv[idx], dim=1)
+        p_C = th.argmax(logits_C[idx], dim=1)
+        p_avg = th.argmax((logits_Ut[idx] + logits_Uv[idx] + logits_C[idx]) / 3, dim=1)
+
+        # Individual channel accuracy
+        acc_Ut = (p_Ut == y).float().mean().item()
+        acc_Uv = (p_Uv == y).float().mean().item()
+        acc_C = (p_C == y).float().mean().item()
+        acc_avg = (p_avg == y).float().mean().item()
+
+        # Oracle gate: choose the channel that predicts correctly for each node
+        correct_Ut = (p_Ut == y)
+        correct_Uv = (p_Uv == y)
+        correct_C = (p_C == y)
+
+        # Priority: Ut > Uv > C > avg
+        oracle_pred = torch.where(correct_Ut, p_Ut,
+                       torch.where(correct_Uv, p_Uv,
+                       torch.where(correct_C, p_C, p_avg)))
+        acc_oracle = (oracle_pred == y).float().mean().item()
+
+        # Classification statistics
+        n_total = len(y)
+        n_all_correct = (correct_Ut & correct_Uv & correct_C).sum().item()
+        n_Ut_only = (correct_Ut & ~correct_Uv & ~correct_C).sum().item()
+        n_Uv_only = (~correct_Ut & correct_Uv & ~correct_C).sum().item()
+        n_C_only = (~correct_Ut & ~correct_Uv & correct_C).sum().item()
+        n_Ut_Uv = (correct_Ut & correct_Uv & ~correct_C).sum().item()
+        n_none = (~correct_Ut & ~correct_Uv & ~correct_C).sum().item()
+
+        results[split_name] = {
+            "acc_Ut": acc_Ut,
+            "acc_Uv": acc_Uv,
+            "acc_C": acc_C,
+            "acc_avg": acc_avg,
+            "acc_oracle": acc_oracle,
+            "n_total": n_total,
+            "n_all_correct": n_all_correct,
+            "n_Ut_only": n_Ut_only,
+            "n_Uv_only": n_Uv_only,
+            "n_C_only": n_C_only,
+            "n_Ut_Uv": n_Ut_Uv,
+            "n_none": n_none,
+        }
+
+        # Pretty print
+        print(f"\n{'='*60}")
+        print(f"  Oracle Gate Analysis - {split_name} Set")
+        print(f"{'='*60}")
+        print(f"  Individual Channel Accuracy:")
+        print(f"    Ut (text only, no GNN):     {acc_Ut*100:.2f}%")
+        print(f"    Uv (visual only, no GNN):   {acc_Uv*100:.2f}%")
+        print(f"    C  (GNN aggregated):         {acc_C*100:.2f}%")
+        print(f"    Average (current):           {acc_avg*100:.2f}%")
+        print(f"  Oracle Gate (ideal):          {acc_oracle*100:.2f}%")
+        print(f"  {'='*60}")
+        print(f"  Channel Contribution Statistics:")
+        print(f"    Total nodes:                {n_total}")
+        print(f"    All three correct:          {n_all_correct} ({n_all_correct/n_total*100:.1f}%)")
+        print(f"    Only Ut correct:            {n_Ut_only} ({n_Ut_only/n_total*100:.1f}%)")
+        print(f"    Only Uv correct:            {n_Uv_only} ({n_Uv_only/n_total*100:.1f}%)")
+        print(f"    Only C correct:             {n_C_only} ({n_C_only/n_total*100:.1f}%)")
+        print(f"    Ut+Uv correct, C wrong:     {n_Ut_Uv} ({n_Ut_Uv/n_total*100:.1f}%)")
+        print(f"    All three wrong:            {n_none} ({n_none/n_total*100:.1f}%)")
+        print(f"  {'='*60}")
+        print(f"  Key Insights:")
+        print(f"    C-only rescue nodes:       {n_C_only} ({n_C_only/n_total*100:.1f}% of total)")
+        print(f"    Oracle improvement over avg: {(acc_oracle-acc_avg)*100:.2f}%")
+        print(f"  {'='*60}")
+
+    return results
+
+
 def main():
     parser = args_init()
     args = parser.parse_args()
@@ -500,6 +585,10 @@ def main():
     embed_dim = int(args.embed_dim) if args.embed_dim is not None else int(args.n_hidden)
     shared_depth = int(args.shared_depth) if args.shared_depth is not None else int(args.n_layers)
 
+    # Store best logits from all channels for oracle gate analysis
+    best_logits_Ut_all, best_logits_Uv_all, best_logits_C_all = None, None, None
+    best_labels_all = None
+
     for run in range(args.n_runs):
         set_seed(args.seed + run)
         model = SUPRA(
@@ -513,6 +602,7 @@ def main():
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
         best_val_score, final_test_result, best_val_result, total_time = -1.0, 0.0, -1.0, 0.0
+        run_best_logits = None
 
         for epoch in range(1, args.n_epochs + 1):
             tic = time.time()
@@ -530,7 +620,8 @@ def main():
             if epoch % args.eval_steps == 0:
                 model.eval()
                 with th.no_grad():
-                    logits_e = model(graph, text_feat, vis_feat)
+                    out_full = model.forward_multiple(graph, text_feat, vis_feat)
+                    logits_e = out_full.logits_final
 
                 val_score = get_metric(th.argmax(logits_e[val_idx], dim=1), labels[val_idx], select_metric, average=select_average)
                 test_score = get_metric(th.argmax(logits_e[test_idx], dim=1), labels[test_idx], select_metric, average=select_average)
@@ -539,6 +630,12 @@ def main():
                     best_val_score = float(val_score)
                     best_val_result = float(val_score)
                     final_test_result = float(test_score)
+                    # Store logits from all channels for oracle analysis
+                    run_best_logits = {
+                        'Ut': out_full.logits_Ut.detach().clone(),
+                        'Uv': out_full.logits_Uv.detach().clone(),
+                        'C': out_full.logits_C.detach().clone(),
+                    }
                 if stopper and stopper.step(val_score): break
 
                 total_time += time.time() - tic
@@ -549,6 +646,13 @@ def main():
 
         if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
             wandb.log({f'Val_{args.metric}': best_val_result, f'Test_{args.metric}': final_test_result})
+
+        # Use last run's best logits for oracle analysis
+        if run_best_logits is not None:
+            best_logits_Ut_all = run_best_logits['Ut']
+            best_logits_Uv_all = run_best_logits['Uv']
+            best_logits_C_all = run_best_logits['C']
+            best_labels_all = labels.clone()
 
     def _mean_std(values): return float(np.mean(values)), float(np.std(values))
     def _fmt_pct(values):
@@ -561,6 +665,21 @@ def main():
 
     if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
         wandb.log({f'Mean_Val_{args.metric}': float(np.mean(val_results)), f'Mean_Test_{args.metric}': float(np.mean(test_results))})
+
+    # Oracle Gate Analysis: theoretical upper bound of selective fusion
+    if best_logits_Ut_all is not None and best_labels_all is not None:
+        print("\n" + "="*60)
+        print("  ORACLE GATE ANALYSIS")
+        print("="*60)
+        oracle_gate_analysis(
+            logits_Ut=best_logits_Ut_all,
+            logits_Uv=best_logits_Uv_all,
+            logits_C=best_logits_C_all,
+            labels=best_labels_all,
+            train_idx=train_idx,
+            val_idx=val_idx,
+            test_idx=test_idx,
+        )
 
     # Save results to CSV if requested
     if getattr(args, 'result_csv', None) or getattr(args, 'result_csv_all', None):

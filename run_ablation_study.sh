@@ -23,6 +23,10 @@ N_RUNS=${N_RUNS:-3}
 OUTPUT_DIR=${OUTPUT_DIR:-"logs_ablation"}
 GPU_ID=${GPU_ID:-0}
 DATA_NAME=""
+RESULT_CSV=${RESULT_CSV:-results_csv/ablation_best.csv}
+RESULT_CSV_ALL=${RESULT_CSV_ALL:-results_csv/ablation_all.csv}
+
+mkdir -p "$(dirname "${RESULT_CSV}")" "$(dirname "${RESULT_CSV_ALL}")"
 
 N_EPOCHS=${N_EPOCHS:-1000}
 WARMUP_EPOCHS=${WARMUP_EPOCHS:-50}
@@ -245,6 +249,9 @@ for ds in ${DATASETS}; do
                     --shared_depth "${sd}" \
                     --ortho_alpha "${ortho_alpha}" \
                     ${AUX_ARGS} \
+                    --result_tag "${label_prefix}" \
+                    --result_csv "${RESULT_CSV}" \
+                    --result_csv_all "${RESULT_CSV_ALL}" \
                     --disable_wandb \
                     ${EXTRA_ARGS}
               done

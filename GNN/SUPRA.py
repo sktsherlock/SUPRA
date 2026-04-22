@@ -553,5 +553,14 @@ def main():
     print(f"Average val {args.metric}: {_fmt_pct(val_results)}")
     print(f"Average test {args.metric}: {_fmt_pct(test_results)}")
 
+    # Save results to CSV if requested
+    if getattr(args, 'result_csv', None):
+        test_mean = float(np.mean(test_results))
+        test_std = float(np.std(test_results))
+        method_name = getattr(args, 'result_tag', None) or "SUPRA"
+        row = build_result_row(args=args, method=method_name, full_metric=test_mean, extra={"full_std": test_std})
+        key_fields = ["dataset", "method", "backbone", "metric", "single_modality", "inductive", "fewshots"]
+        update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
+
 if __name__ == "__main__":
     main()

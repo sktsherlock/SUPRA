@@ -14,8 +14,7 @@ except Exception:  # pragma: no cover
     wandb = None
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _ROOT not in sys.path:
-    sys.path.insert(0, _ROOT)
+sys.path.append(os.path.dirname(_ROOT))
 
 from GNN.GraphData import load_data, set_seed
 from GNN.Utils.LossFunction import cross_entropy, get_metric, EarlyStopping

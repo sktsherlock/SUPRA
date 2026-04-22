@@ -20,6 +20,7 @@ MODEL_NAME=${MODEL_NAME:-"GCN"}
 N_RUNS=${N_RUNS:-3}
 OUTPUT_DIR=${OUTPUT_DIR:-"logs_ablation"}
 GPU_ID=${GPU_ID:-0}
+DATA_NAME=""
 
 N_EPOCHS=${N_EPOCHS:-1000}
 WARMUP_EPOCHS=${WARMUP_EPOCHS:-50}
@@ -171,6 +172,8 @@ for ds in ${DATASETS}; do
   echo "  Graph: ${GRAPH_PATH}"
   echo "  Text:  ${TEXT_FEAT}"
   echo "  Visual: ${VIS_FEAT}"
+
+  DATA_NAME="${ds}"
 
   case "${MODEL_NAME}" in
     "GCN") SELFLOOP="true" ;;

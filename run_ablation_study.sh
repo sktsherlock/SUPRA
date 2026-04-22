@@ -10,6 +10,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 source "${SCRIPT_DIR}/path_config.sh"
+export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH}"
 
 # Default: run GCN backbone on all 4 datasets
 DATASETS=${DATASETS:-"Movies Grocery Toys Reddit-M"}

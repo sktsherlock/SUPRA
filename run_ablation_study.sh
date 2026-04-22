@@ -23,10 +23,12 @@ N_RUNS=${N_RUNS:-3}
 OUTPUT_DIR=${OUTPUT_DIR:-"logs_ablation"}
 GPU_ID=${GPU_ID:-0}
 DATA_NAME=""
-RESULT_CSV=${RESULT_CSV:-results_csv/ablation_best.csv}
-RESULT_CSV_ALL=${RESULT_CSV_ALL:-results_csv/ablation_all.csv}
 
-mkdir -p "$(dirname "${RESULT_CSV}")" "$(dirname "${RESULT_CSV_ALL}")"
+METRICS=${METRICS:-"accuracy f1_macro"}
+FEATURE_GROUPS=${FEATURE_GROUPS:-"clip_roberta default"}
+AVERAGE=${AVERAGE:-macro}
+
+mkdir -p results_csv
 
 # =============================================================================
 # Parse arguments
@@ -36,15 +38,17 @@ show_help() {
 Usage: run_ablation_study.sh [options]
 
 Options:
-  --gpu ID           GPU device ID (default: 0)
-  --datasets LIST    Space-separated list of datasets (default: Movies Grocery Toys Reddit-M)
-  --n_runs N         Number of runs per experiment (default: 3)
-  --output_dir DIR   Output log directory (default: logs_ablation)
-  --help             Show this help message
+  --gpu ID             GPU device ID (default: 0)
+  --datasets LIST       Space-separated list of datasets (default: Movies Grocery Toys Reddit-M)
+  --metrics LIST       Space-separated list of metrics (default: accuracy f1_macro)
+  --feature_groups LIST Space-separated list of feature groups (default: clip_roberta default)
+  --n_runs N           Number of runs per experiment (default: 3)
+  --output_dir DIR      Output log directory (default: logs_ablation)
+  --help               Show this help message
 
 Examples:
   ./run_ablation_study.sh --gpu 1
-  ./run_ablation_study.sh --datasets "Movies Grocery" --n_runs 5
+  ./run_ablation_study.sh --datasets "Movies Grocery" --metrics "accuracy f1_macro" --feature_groups "clip_roberta default"
 HELPEOF
 }
 
@@ -52,6 +56,8 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --gpu) GPU_ID="$2"; shift 2 ;;
     --datasets) DATASETS="$2"; shift 2 ;;
+    --metrics) METRICS="$2"; shift 2 ;;
+    --feature_groups) FEATURE_GROUPS="$2"; shift 2 ;;
     --n_runs) N_RUNS="$2"; shift 2 ;;
     --output_dir) OUTPUT_DIR="$2"; shift 2 ;;
     --help) show_help; exit 0 ;;
@@ -59,10 +65,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+read -r -a METRIC_ARR <<< "${METRICS}"
+read -r -a FG_ARR <<< "${FEATURE_GROUPS}"
+
 N_EPOCHS=${N_EPOCHS:-1000}
 WARMUP_EPOCHS=${WARMUP_EPOCHS:-50}
 EVAL_STEPS=${EVAL_STEPS:-1}
-METRIC=${METRIC:-accuracy}
 AVERAGE=${AVERAGE:-macro}
 UNDIRECTED=${UNDIRECTED:-true}
 TRAIN_RATIO=${TRAIN_RATIO:-0.6}
@@ -189,107 +197,116 @@ echo "================================================"
 echo "SUPRA Ablation Study (standalone)"
 echo "Datasets: ${DATASETS}"
 echo "Model: ${MODEL_NAME}"
+echo "Metrics: ${METRICS}"
+echo "Feature Groups: ${FEATURE_GROUPS}"
 echo "Output: ${OUTPUT_DIR}"
 echo "GPU: ${GPU_ID}"
 echo "================================================"
 
-FEATURE_GROUP="clip_roberta"
+for metric in "${METRIC_ARR[@]}"; do
+  for fg in "${FG_ARR[@]}"; do
+    # Set CSV paths based on metric and feature group
+    RESULT_CSV="results_csv/ablation_best_${metric}_${fg}.csv"
+    RESULT_CSV_ALL="results_csv/ablation_all_${metric}_${fg}.csv"
 
-for ds in ${DATASETS}; do
-  echo ""
-  echo "=============================================="
-  echo "[${ds}]"
-  echo "=============================================="
+    for ds in ${DATASETS}; do
+      echo ""
+      echo "=============================================="
+      echo "[${fg}] ${ds} (${metric})"
+      echo "=============================================="
 
-  if ! dataset_config "${ds}" "${FEATURE_GROUP}"; then
-    echo "  [SKIP] Cannot configure dataset ${ds}"
-    continue
-  fi
+      if ! dataset_config "${ds}" "${fg}"; then
+        echo "  [SKIP] Cannot configure dataset ${ds}"
+        continue
+      fi
 
-  echo "  Graph: ${GRAPH_PATH}"
-  echo "  Text:  ${TEXT_FEAT}"
-  echo "  Visual: ${VIS_FEAT}"
+      echo "  Graph: ${GRAPH_PATH}"
+      echo "  Text:  ${TEXT_FEAT}"
+      echo "  Visual: ${VIS_FEAT}"
 
-  DATA_NAME="${ds}"
+      DATA_NAME="${ds}"
 
-  case "${MODEL_NAME}" in
-    "GCN") SELFLOOP="true" ;;
-    "SAGE") SELFLOOP="false" ;;
-    "GAT") SELFLOOP="false" ;;
-    "RevGAT") SELFLOOP="false" ;;
-    *) SELFLOOP="true" ;;
-  esac
+      case "${MODEL_NAME}" in
+        "GCN") SELFLOOP="true" ;;
+        "SAGE") SELFLOOP="false" ;;
+        "GAT") SELFLOOP="false" ;;
+        "RevGAT") SELFLOOP="false" ;;
+        *) SELFLOOP="true" ;;
+      esac
 
-  EXTRA_ARGS=""
-  case "${MODEL_NAME}" in
-    "GAT")
-      EXTRA_ARGS="--n-heads ${gat_n_heads} --attn-drop ${gat_attn_drop} --edge-drop ${gat_edge_drop}"
-      ;;
-    "SAGE")
-      EXTRA_ARGS="--aggregator mean"
-      ;;
-  esac
+      EXTRA_ARGS=""
+      case "${MODEL_NAME}" in
+        "GAT")
+          EXTRA_ARGS="--n-heads ${gat_n_heads} --attn-drop ${gat_attn_drop} --edge-drop ${gat_edge_drop}"
+          ;;
+        "SAGE")
+          EXTRA_ARGS="--aggregator mean"
+          ;;
+      esac
 
-  for mode in none ortho aux full; do
-    read -r ortho_alpha aux_loss <<< "${MODE_CONFIG[${mode}]}"
+      for mode in none ortho aux full; do
+        read -r ortho_alpha aux_loss <<< "${MODE_CONFIG[${mode}]}"
 
-    case "${mode}" in
-      none)  label_prefix="Ablate-None" ;;
-      ortho) label_prefix="Ablate-Ortho" ;;
-      aux)   label_prefix="Ablate-Aux" ;;
-      full)  label_prefix="SUPRA-Full" ;;
-    esac
+        case "${mode}" in
+          none)  label_prefix="Ablate-None" ;;
+          ortho) label_prefix="Ablate-Ortho" ;;
+          aux)   label_prefix="Ablate-Aux" ;;
+          full)  label_prefix="SUPRA-Full" ;;
+        esac
 
-    echo ""
-    echo "  >>> [${label_prefix}] OrthoAlpha=${ortho_alpha}, AuxLoss=${aux_loss}"
+        echo ""
+        echo "  >>> [${label_prefix}] OrthoAlpha=${ortho_alpha}, AuxLoss=${aux_loss}"
 
-    AUX_ARGS=""
-    if [[ "${aux_loss}" == "true" ]]; then
-      AUX_ARGS="--use_aux_loss"
-    fi
+        AUX_ARGS=""
+        if [[ "${aux_loss}" == "true" ]]; then
+          AUX_ARGS="--use_aux_loss"
+        fi
 
-    for lr in "${supra_lrs[@]}"; do
-      for wd in "${supra_wds[@]}"; do
-        for h in "${supra_n_hidden[@]}"; do
-          for L in "${supra_n_layers[@]}"; do
-            for ed in "${supra_embed_dims[@]}"; do
-              for sd in "${supra_shared_depths[@]}"; do
-                label="${label_prefix}-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}-sd${sd}"
-                run_model "${label}" \
-                  python GNN/SUPRA.py \
-                    --data_name "${ds}" \
-                    --graph_path "${GRAPH_PATH}" \
-                    --text_feature "${TEXT_FEAT}" \
-                    --visual_feature "${VIS_FEAT}" \
-                    --gpu "${GPU_ID}" \
-                    --n-runs "${N_RUNS}" \
-                    --n-epochs "${N_EPOCHS}" \
-                    --warmup_epochs "${WARMUP_EPOCHS}" \
-                    --eval_steps "${EVAL_STEPS}" \
-                    --early_stop_patience "${supra_early_stop_patience}" \
-                    --lr "${lr}" --wd "${wd}" \
-                    --n-layers "${L}" --n-hidden "${h}" --dropout "${supra_dropout}" \
-                    --label-smoothing "${supra_label_smoothing}" \
-                    --metric "${METRIC}" --average "${AVERAGE}" \
-                    --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                    --undirected "${UNDIRECTED}" \
-                    --selfloop "${SELFLOOP}" \
-                    --inductive "${INDUCTIVE}" \
-                    --model_name "${MODEL_NAME}" \
-                    --embed_dim "${ed}" \
-                    --shared_depth "${sd}" \
-                    --ortho_alpha "${ortho_alpha}" \
-                    ${AUX_ARGS} \
-                    --result_tag "${label_prefix}" \
-                    --result_csv "${RESULT_CSV}" \
-                    --result_csv_all "${RESULT_CSV_ALL}" \
-                    --disable_wandb \
-                    ${EXTRA_ARGS}
+        for lr in "${supra_lrs[@]}"; do
+          for wd in "${supra_wds[@]}"; do
+            for h in "${supra_n_hidden[@]}"; do
+              for L in "${supra_n_layers[@]}"; do
+                for ed in "${supra_embed_dims[@]}"; do
+                  for sd in "${supra_shared_depths[@]}"; do
+                    label="${label_prefix}-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}-sd${sd}"
+                    run_model "${label}" \
+                      python GNN/SUPRA.py \
+                        --data_name "${ds}" \
+                        --graph_path "${GRAPH_PATH}" \
+                        --text_feature "${TEXT_FEAT}" \
+                        --visual_feature "${VIS_FEAT}" \
+                        --gpu "${GPU_ID}" \
+                        --n-runs "${N_RUNS}" \
+                        --n-epochs "${N_EPOCHS}" \
+                        --warmup_epochs "${WARMUP_EPOCHS}" \
+                        --eval_steps "${EVAL_STEPS}" \
+                        --early_stop_patience "${supra_early_stop_patience}" \
+                        --lr "${lr}" --wd "${wd}" \
+                        --n-layers "${L}" --n-hidden "${h}" --dropout "${supra_dropout}" \
+                        --label-smoothing "${supra_label_smoothing}" \
+                        --metric "${metric}" --average "${AVERAGE}" \
+                        --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
+                        --undirected "${UNDIRECTED}" \
+                        --selfloop "${SELFLOOP}" \
+                        --inductive "${INDUCTIVE}" \
+                        --model_name "${MODEL_NAME}" \
+                        --embed_dim "${ed}" \
+                        --shared_depth "${sd}" \
+                        --ortho_alpha "${ortho_alpha}" \
+                        ${AUX_ARGS} \
+                        --result_tag "${label_prefix}" \
+                        --result_csv "${RESULT_CSV}" \
+                        --result_csv_all "${RESULT_CSV_ALL}" \
+                        --disable_wandb \
+                        ${EXTRA_ARGS}
+                  done
+                done
               done
             done
           done
         done
       done
+
     done
   done
 done

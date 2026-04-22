@@ -508,9 +508,9 @@ def oracle_gate_analysis(logits_Ut, logits_Uv, logits_C, labels, train_idx, val_
         correct_C = (p_C == y)
 
         # Priority: Ut > Uv > C > avg
-        oracle_pred = torch.where(correct_Ut, p_Ut,
-                       torch.where(correct_Uv, p_Uv,
-                       torch.where(correct_C, p_C, p_avg)))
+        oracle_pred = th.where(correct_Ut, p_Ut,
+                       th.where(correct_Uv, p_Uv,
+                       th.where(correct_C, p_C, p_avg)))
         acc_oracle = (oracle_pred == y).float().mean().item()
 
         # Classification statistics

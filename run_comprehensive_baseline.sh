@@ -34,12 +34,13 @@ GPU_ID=${GPU_ID:-0}
 DRY_RUN=${DRY_RUN:-false}
 OUTPUT_DIR=${OUTPUT_DIR:-logs_baseline}
 
-# Result CSV paths
-RESULT_CSV=${RESULT_CSV:-results_csv/baseline_best.csv}
-RESULT_CSV_ALL=${RESULT_CSV_ALL:-results_csv/baseline_all.csv}
+# Result CSV paths (per metric + feature_group)
+# Will be set dynamically inside the loop based on metric and feature_group
+RESULT_CSV=""
+RESULT_CSV_ALL=""
 
-# Create results directory
-mkdir -p "$(dirname "${RESULT_CSV}")"
+# Create results directory once
+mkdir -p results_csv
 
 # =============================================================================
 # Feature path mappings (same as run_baseline.sh)
@@ -261,6 +262,9 @@ failed=()
 
 for metric in "${METRIC_ARR[@]}"; do
   for fg in "${FG_ARR[@]}"; do
+    # Set CSV paths based on metric and feature group
+    RESULT_CSV="results_csv/baseline_best_${metric}_${fg}.csv"
+    RESULT_CSV_ALL="results_csv/baseline_all_${metric}_${fg}.csv"
     for ds in "${DATASET_ARR[@]}"; do
       DATA_NAME="${ds}"
 

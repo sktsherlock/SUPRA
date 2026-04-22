@@ -563,8 +563,6 @@ def args_init():
     supra.add_argument("--ortho_alpha", type=float, default=1.0, help="Spectral orthogonalization strength (0=disable)")
     supra.add_argument("--use_aux_loss", action="store_true", help="Enable auxiliary loss on each branch (C, Ut, Uv)")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
-    supra.add_argument("--freeze_channels", action="store_true", help="Freeze channel parameters, train only gate (for two-stage training)")
-    supra.add_argument("--two_stage", action="store_true", help="Enable two-stage training: train channels first, then freeze channels and train gate")
 
     return parser
 
@@ -693,61 +691,9 @@ def main():
         best_val_score, final_test_result, best_val_result, total_time = -1.0, 0.0, -1.0, 0.0
         run_best_logits = None
 
-        # Two-stage training support
-        two_stage = getattr(args, 'two_stage', False)
-        freeze_channels = getattr(args, 'freeze_channels', False)
-        use_gate = getattr(args, 'use_gate', False)
-
-        # Helper to set requires_grad for channel parameters
-        def set_channel_grad(model, requires_grad: bool):
-            """Freeze or unfreeze channel parameters (not the gate)."""
-            for param in model.enc_t.parameters():
-                param.requires_grad = requires_grad
-            for param in model.enc_v.parameters():
-                param.requires_grad = requires_grad
-            for param in model.mp_C.parameters():
-                param.requires_grad = requires_grad
-            for param in model.head_C.parameters():
-                param.requires_grad = requires_grad
-            for param in model.head_Ut.parameters():
-                param.requires_grad = requires_grad
-            for param in model.head_Uv.parameters():
-                param.requires_grad = requires_grad
-
-        # Set initial channel training mode
-        if freeze_channels and use_gate:
-            # Freeze channels, only train gate
-            set_channel_grad(model, requires_grad=False)
-            if model.channel_gate is not None:
-                for param in model.channel_gate.parameters():
-                    param.requires_grad = True
-            stage_info = "[Gate-Only Mode] "
-        elif two_stage and use_gate:
-            stage_info = "[Two-Stage] "
-        else:
-            stage_info = ""
-
-        n_epochs = int(args.n_epochs)
-        gate_train_start = n_epochs // 2  # Stage 2 starts at 50% of training
-
         for epoch in range(1, args.n_epochs + 1):
             tic = time.time()
             adjust_learning_rate_if_needed(args, optimizer, epoch)
-
-            # Two-stage: switch to gate-only training at midpoint
-            if two_stage and use_gate and epoch == gate_train_start + 1:
-                print(f"\n{'':8s}[Stage 2] Freezing channels, training gate only (epoch {epoch}/{n_epochs})")
-                set_channel_grad(model, requires_grad=False)
-                if model.channel_gate is not None:
-                    for param in model.channel_gate.parameters():
-                        param.requires_grad = True
-                # Reinitialize optimizer for gate-only training
-                gate_params = [p for p in model.parameters() if p.requires_grad]
-                if gate_params:
-                    import torch.optim as optim
-                    optimizer = optim.Adam(gate_params, lr=float(args.lr), weight_decay=float(args.wd))
-                    if lr_scheduler is not None:
-                        lr_scheduler = None  # Reset scheduler for stage 2
 
             model.train()
             optimizer.zero_grad()
@@ -781,7 +727,7 @@ def main():
 
                 total_time += time.time() - tic
 
-        print(f"Run {run+1} {stage_info}Final Test Score: {final_test_result:.4f}")
+        print(f"Run {run+1} Final Test Score: {final_test_result:.4f}")
         val_results.append(best_val_result)
         test_results.append(final_test_result)
 

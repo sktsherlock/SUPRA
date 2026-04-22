@@ -56,8 +56,6 @@ VAL_RATIO=${VAL_RATIO:-0.2}
 INDUCTIVE=${INDUCTIVE:-false}
 ORTHO_ALPHA=${ORTHO_ALPHA:-"1.0"}
 USE_AUX_LOSS=${USE_AUX_LOSS:-"false"}
-USE_GATE=${USE_GATE:-"false"}
-TWO_STAGE=${TWO_STAGE:-"false"}
 
 supra_dropout="0.3"
 supra_lrs=("0.0005" "0.001")
@@ -92,8 +90,6 @@ Optional:
   --output_dir DIR     Output directory (default: logs_supra)
   --ortho_alpha N     Spectral orthogonalization strength (0=disable, 1=full) (default: 1.0)
   --use_aux_loss       Enable auxiliary loss on each branch (default: off)
-  --use_gate           Enable learnable channel gate for adaptive fusion (default: off)
-  --two_stage          Enable two-stage training: train channels first, then freeze and train gate (default: off)
 
 Ablation modes (via environment variables):
   ORTHO_ALPHA=0.0 USE_AUX_LOSS=false ./run_supra.sh ...  # Ablate-None
@@ -101,16 +97,11 @@ Ablation modes (via environment variables):
   ORTHO_ALPHA=0.0 USE_AUX_LOSS=true  ./run_supra.sh ...  # Ablate-Aux
   ORTHO_ALPHA=1.0 USE_AUX_LOSS=true  ./run_supra.sh ...  # SUPRA-Full
 
-Gating experiments:
-  USE_GATE=true ./run_supra.sh --data_name Movies              # Joint training with gate
-  USE_GATE=true TWO_STAGE=true ./run_supra.sh --data_name Movies  # Two-stage: train channels first, then gate
-
 Examples:
   ./run_supra.sh --data_name Movies
   ./run_supra.sh --data_name Grocery --model_name GAT --embed_dim 128
   ./run_supra.sh --data_name Reddit-M --n_runs 5
   ORTHO_ALPHA=0.0 USE_AUX_LOSS=false ./run_supra.sh --data_name Movies  # Ablate-None
-  USE_GATE=true TWO_STAGE=true ./run_supra.sh --data_name Movies  # Two-stage gating
 HELPEOF
 }
 
@@ -221,15 +212,6 @@ case "${ORTHO_ALPHA}|${USE_AUX_LOSS}" in
   *)           label_prefix="SUPRA" ;;
 esac
 
-# Add gate suffix to label
-if [[ "${USE_GATE}" == "true" ]]; then
-  if [[ "${TWO_STAGE}" == "true" ]]; then
-    label_prefix="${label_prefix}-Gate2Stage"
-  else
-    label_prefix="${label_prefix}-Gate"
-  fi
-fi
-
 echo ">>> Ortho alpha: ${ORTHO_ALPHA}, Aux loss: ${USE_AUX_LOSS}, Label: ${label_prefix}"
 
 EXTRA_ARGS=""
@@ -245,13 +227,7 @@ esac
 # Build auxiliary args
 AUX_ARGS=""
 if [[ "${USE_AUX_LOSS}" == "true" ]]; then
-  AUX_ARGS="${AUX_ARGS} --use_aux_loss"
-fi
-if [[ "${USE_GATE}" == "true" ]]; then
-  AUX_ARGS="${AUX_ARGS} --use_gate"
-fi
-if [[ "${TWO_STAGE}" == "true" ]]; then
-  AUX_ARGS="${AUX_ARGS} --two_stage"
+  AUX_ARGS="--use_aux_loss"
 fi
 
 for lr in "${supra_lrs[@]}"; do

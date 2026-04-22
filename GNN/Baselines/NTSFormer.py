@@ -323,8 +323,18 @@ class NTSFormerModel(nn.Module):
         self.input_dropout = nn.Dropout(dropout)
 
     def reset_parameters(self):
-        for module in self.modules():
-            if hasattr(module, 'reset_parameters'):
+        # Use named_modules iteration (non-recursive via stack) to avoid deep recursion
+        # Skip nn.Module instances in iteration since their reset_parameters()
+        # does NOT recurse into children by default - calling it per-module
+        # would cause 992-level recursion through the module tree.
+        visited = set()
+        stack = list(self.modules())
+        while stack:
+            module = stack.pop()
+            if id(module) in visited:
+                continue
+            visited.add(id(module))
+            if hasattr(module, 'reset_parameters') and not isinstance(module, nn.Module):
                 module.reset_parameters()
 
     def forward(self, graph, text_feat: th.Tensor, vis_feat: th.Tensor,

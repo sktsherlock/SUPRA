@@ -116,6 +116,9 @@ class SimpleMAGGNN(nn.Module):
             feat = text_h + vis_h
         else:
             feat = th.cat([text_h, vis_h], dim=1)
+        gnn_name = type(self.gnn).__name__
+        if gnn_name == "GCNII":
+            return self.gnn(feat, graph)
         return self.gnn(graph, feat)
 
 
@@ -305,7 +308,6 @@ def _build_gnn_backbone(args, in_dim: int, n_classes: int, device: th.device):
             n_classes=n_classes,
             n_layers=args.n_layers,
             dropout=args.dropout,
-            activation=F.relu,
             aggr=str(getattr(args, "jknet_aggr", "concat")),
         ).to(device)
 

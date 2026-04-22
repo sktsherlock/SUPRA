@@ -13,11 +13,8 @@ except Exception:  # pragma: no cover
     wandb = None
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.dirname(_ROOT))
-
-_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-if _CURRENT_DIR not in sys.path:
-    sys.path.insert(0, _CURRENT_DIR)
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
 from GNN.GraphData import load_data, set_seed
 from GNN.Utils.LossFunction import cross_entropy, get_metric, EarlyStopping
@@ -25,9 +22,14 @@ from GNN.Utils.NodeClassification import _as_scalar_float
 from GNN.Utils.model_config import add_common_args
 from GNN.Utils.result_logger import build_result_row, update_best_result_csv
 
-from mig_gt.layers.common import MyMLP
-from mig_gt.layers.mgdcf import MGDCF
-from mig_gt.layers.mirf_gt import Transformer
+try:
+    from mig_gt.layers.common import MyMLP
+    from mig_gt.layers.mgdcf import MGDCF
+    from mig_gt.layers.mirf_gt import Transformer
+except ModuleNotFoundError:
+    from GNN.Baselines.mig_gt.layers.common import MyMLP
+    from GNN.Baselines.mig_gt.layers.mgdcf import MGDCF
+    from GNN.Baselines.mig_gt.layers.mirf_gt import Transformer
 
 
 class MIGGT_NodeClassifier(nn.Module):

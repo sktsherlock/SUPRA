@@ -401,8 +401,6 @@ class SUPRA(nn.Module):
             if hasattr(module, "reset_parameters"): module.reset_parameters()
         for layer in self.mp_C:
             if hasattr(layer, "reset_parameters"): layer.reset_parameters()
-        if hasattr(self, "channel_gate"):
-            self.channel_gate.reset_parameters()
 
     def _init_channels(self, e_t: th.Tensor, e_v: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         """Initialize shared and unique channel representations.

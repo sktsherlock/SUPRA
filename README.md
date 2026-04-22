@@ -1,3 +1,8 @@
+# 🌍 Language | 语言
+| [English](README.md) | [中文](README_CN.md) |
+
+---
+
 # SUPRA: Unified Multimodal Learning with Spectral Orthogonalization
 
 A multimodal graph neural network framework that leverages spectral orthogonalization to mitigate gradient competition and low-rank bias in shared graph representation learning.

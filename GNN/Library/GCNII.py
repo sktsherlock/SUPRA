@@ -1,12 +1,13 @@
 """GCNII: Graph Convolutional Networks with Initial Residual and Identity Mapping.
 Based on "Simple and Deep Graph Convolutional Networks" (ICML 2020).
 
-Adapated from PyG implementation to DGL.
+Adapted from PyG implementation to DGL.
 """
 import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import dgl
 import dgl.nn.pytorch as dglnn
 
 
@@ -34,7 +35,7 @@ class GraphConvolution(nn.Module):
 
         Args:
             inputs: Node features [N, in_features]
-            adj: Adjacency matrix (sparse) or DGL graph
+            adj: DGL graph
             h0: Initial features (x_0) [N, in_features]
             lamda: Damping factor
             alpha: Residual coefficient
@@ -42,13 +43,34 @@ class GraphConvolution(nn.Module):
         """
         theta = math.log(lamda / l + 1)
 
-        # Handle both sparse tensor and DGL graph
-        if hasattr(adj, 'spmm'):
-            # DGL graph - use spmm
-            hi = adj.spmm(inputs, inputs.new_ones(adj.num_edges()))
-        else:
-            # Sparse matrix
-            hi = torch.spmm(adj, inputs)
+        # DGL graph: use message passing API for normalized aggregation
+        g = adj
+        if not g.is_homogeneous:
+            raise ValueError("GCNII only supports homogeneous graphs")
+
+        # Store features in local graph (avoids modifying the original graph)
+        g = g.local_var()
+        g.ndata['h'] = inputs
+        g.ndata['h0'] = h0
+
+        # Symmetric normalization: D^{-1/2} A D^{-1/2} for undirected graphs
+        # Each edge message is weighted by 1/sqrt(deg(src)) and multiplied by 1/sqrt(deg(dst)) on recv
+        deg = g.in_degrees().float().clamp_min(1)
+        deg_inv_sqrt = deg.pow(-0.5)
+        g.ndata['deg_norm'] = deg_inv_sqrt
+        # Message: src_h * deg_inv_sqrt(src)
+        g.update_all(
+            lambda edges: {'m': edges.src['h'] * edges.src['deg_norm']},
+            dgl.function.sum('m', 'h_acc')
+        )
+        # Receive: multiply by deg_inv_sqrt(dst) for symmetric normalization
+        h_agg = g.ndata['h_acc'] * g.ndata['deg_norm']
+
+        # Clean up temp features
+        g.ndata.pop('h0')
+        g.ndata.pop('deg_norm')
+
+        hi = h_agg
 
         if self.variant:
             support = torch.cat([hi, h0], dim=1)

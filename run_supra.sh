@@ -6,8 +6,9 @@ set -euo pipefail
 # Our method: Unified Multimodal Learning with Spectral Orthogonalization
 # =============================================================================
 
-# Load centralized path config
+# Load centralized path config and change to project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
 source "${SCRIPT_DIR}/path_config.sh"
 
 FEATURE_GROUPS=${FEATURE_GROUPS:-"clip_roberta"}

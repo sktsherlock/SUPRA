@@ -556,10 +556,13 @@ def main():
     parser = args_init()
     args = parser.parse_args()
 
+    _wandb_enabled = False
     if args.disable_wandb or wandb is None:
         os.environ["WANDB_DISABLED"] = "true"
-    elif wandb.run is None:
-        wandb.init(config=args, reinit=True)
+    else:
+        _wandb_enabled = True
+        if wandb.run is None:
+            wandb.init(config=args, reinit=True)
 
     device = th.device("cuda:%d" % args.gpu if th.cuda.is_available() and args.gpu != -1 else "cpu")
 
@@ -647,14 +650,14 @@ def main():
         val_results.append(best_val_score)
         test_results.append(final_test_result)
 
-        if wandb:
+        if _wandb_enabled:
             wandb.log({f'Val_{args.metric}': best_val_score, f'Test_{args.metric}': final_test_result})
 
     print(f"\nRunned {args.n_runs} times")
     print(f"Average val {args.metric}: {np.mean(val_results):.4f} ± {np.std(val_results):.4f}")
     print(f"Average test {args.metric}: {np.mean(test_results):.4f} ± {np.std(test_results):.4f}")
 
-    if wandb:
+    if _wandb_enabled:
         wandb.log({
             f'Mean_Val_{args.metric}': np.mean(val_results),
             f'Mean_Test_{args.metric}': np.mean(test_results),

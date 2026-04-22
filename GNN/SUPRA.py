@@ -621,7 +621,7 @@ def main():
                 model.eval()
                 with th.no_grad():
                     out_full = model.forward_multiple(graph, text_feat, vis_feat)
-                    logits_e = out_full.logits_final
+                    logits_e = out_full.logits_final_0
 
                 val_score = get_metric(th.argmax(logits_e[val_idx], dim=1), labels[val_idx], select_metric, average=select_average)
                 test_score = get_metric(th.argmax(logits_e[test_idx], dim=1), labels[test_idx], select_metric, average=select_average)

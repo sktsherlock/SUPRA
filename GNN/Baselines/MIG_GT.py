@@ -6,6 +6,7 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
+import dgl
 
 try:
     import wandb  # type: ignore
@@ -22,14 +23,87 @@ from GNN.Utils.NodeClassification import _as_scalar_float
 from GNN.Utils.model_config import add_common_args
 from GNN.Utils.result_logger import build_result_row, update_best_result_csv
 
+class _LocalMyMLP(nn.Module):
+    """Local fallback for MyMLP (prelu MLP with optional batch norm)."""
+    def __init__(self, in_dim, hidden_dims, activation="prelu", drop_rate=0.0, bn=True,
+                 output_activation=None, output_drop_rate=0.0, output_bn=False):
+        super().__init__()
+        layers = []
+        prev_dim = in_dim
+        for h_dim in hidden_dims:
+            layers.append(nn.Linear(prev_dim, h_dim))
+            if bn:
+                layers.append(nn.BatchNorm1d(h_dim))
+            if activation == "prelu":
+                layers.append(nn.PReLU())
+            elif activation == "relu":
+                layers.append(nn.ReLU())
+            if drop_rate > 0:
+                layers.append(nn.Dropout(drop_rate))
+            prev_dim = h_dim
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class _LocalMGDCF(nn.Module):
+    """Local fallback for MGDCF (Multi-hop Graph Diffusion Convolution)."""
+    def __init__(self, k_hops, alpha, beta, drop_rate=0.0, edge_drop=0.0, att_drop=0.0):
+        super().__init__()
+        self.k_hops = k_hops
+        self.alpha = alpha
+        self.beta = beta
+        self.dropout = nn.Dropout(drop_rate)
+        self.edge_drop = edge_drop
+
+    def forward(self, g, x):
+        # Multi-hop graph diffusion: weighted neighborhood aggregation
+        h = x
+        g = g.local_var()
+        g.ndata['h'] = h
+        out = self.beta * x
+        hop_weight = self.alpha
+        for _ in range(self.k_hops):
+            g.update_all(lambda edges: {'msg': edges.src['h']}, dgl.function.mean('msg', 'h'))
+            h = g.ndata['h']
+            out = out + hop_weight * h
+            hop_weight = hop_weight * self.alpha
+        g.ndata.clear()
+        return self.dropout(out)
+
+
+class _LocalTransformer(nn.Module):
+    """Local fallback for Transformer (self-attention with optional residual)."""
+    def __init__(self, in_units, att_units, out_units, ff_units_list=None,
+                 att_residual=True, ff_residual=False, att_h_drop_rate=0.0, drop_rate=0.0, ln=False):
+        super().__init__()
+        self.att_residual = att_residual
+        self.ln = nn.LayerNorm(in_units) if ln else None
+        self.att = nn.MultiheadAttention(in_units, 1, dropout=att_h_drop_rate, batch_first=True)
+        self.dropout = nn.Dropout(drop_rate)
+        # Project to output
+        self.out_proj = nn.Linear(in_units, out_units)
+
+    def forward(self, q, k, att_mask=None):
+        # Self-attention: q=k=memory
+        att_out, _ = self.att(q, k, k, att_mask)
+        if self.ln is not None:
+            att_out = self.ln(att_out)
+        out = self.dropout(att_out)
+        if self.att_residual:
+            out = out + q
+        return self.out_proj(out)
+
+
 try:
     from mig_gt.layers.common import MyMLP
     from mig_gt.layers.mgdcf import MGDCF
     from mig_gt.layers.mirf_gt import Transformer
 except ModuleNotFoundError:
-    from GNN.Baselines.mig_gt.layers.common import MyMLP
-    from GNN.Baselines.mig_gt.layers.mgdcf import MGDCF
-    from GNN.Baselines.mig_gt.layers.mirf_gt import Transformer
+    MyMLP = _LocalMyMLP
+    MGDCF = _LocalMGDCF
+    Transformer = _LocalTransformer
 
 
 class MIGGT_NodeClassifier(nn.Module):

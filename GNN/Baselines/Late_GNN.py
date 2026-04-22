@@ -39,7 +39,7 @@ from GNN.Utils.model_config import (  # noqa: E402
     add_appnp_args,
 )
 from GNN.Utils.result_logger import build_result_row, update_best_result_csv, append_result_csv  # noqa: E402
-from GNN.Baselines.Early_GNN import Early_GNN as mag_base  # noqa: E402
+import GNN.Baselines.Early_GNN as mag_base  # noqa: E402
 
 
 def _info_nce(z1: th.Tensor, z2: th.Tensor, temperature: float = 0.1) -> th.Tensor:

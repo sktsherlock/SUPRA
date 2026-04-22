@@ -558,7 +558,7 @@ def main():
 
     if args.disable_wandb or wandb is None:
         os.environ["WANDB_DISABLED"] = "true"
-    else:
+    elif wandb.run is None:
         wandb.init(config=args, reinit=True)
 
     device = th.device("cuda:%d" % args.gpu if th.cuda.is_available() and args.gpu != -1 else "cpu")

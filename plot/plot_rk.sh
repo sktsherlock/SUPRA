@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Load centralized path config
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/path_config.sh"
+source "${SCRIPT_DIR}/../path_config.sh"
 
 export DGLBACKEND=${DGLBACKEND:-pytorch}
 

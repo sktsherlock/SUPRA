@@ -46,11 +46,9 @@ SUPRA_2.0/
 │   │   └── OGM-GE/, NTSFormer/ (子模块)
 │   └── GraphData.py          # 数据加载工具
 ├── plot/                      # 可视化脚本
-│   ├── path_config.sh         # 数据路径配置
 │   └── plot_*.sh              # 各种绘图脚本
 ├── scripts/                   # 额外的实验脚本
-│   ├── baselines/            # 基线扫描脚本
-│   └── supra/                 # SUPRA 扫描脚本
+├── path_config.sh             # 数据路径配置（各脚本共用）
 ├── run_baseline.sh            # 基线实验运行器
 ├── run_supra.sh               # SUPRA 实验运行器
 ├── run_batch_baseline.sh      # 所有基线的批量运行脚本
@@ -75,7 +73,7 @@ conda activate MAG
 
 ### 2. 数据路径配置
 
-编辑 `plot/path_config.sh` 设置数据根目录：
+编辑 `path_config.sh` 设置数据根目录：
 
 ```bash
 DATA_ROOT="${DATA_ROOT:-/path/to/your/MAGB_Dataset}"

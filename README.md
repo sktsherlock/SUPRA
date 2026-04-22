@@ -46,11 +46,9 @@ SUPRA_2.0/
 │   │   └── OGM-GE/, NTSFormer/ (submodules)
 │   └── GraphData.py          # Data loading utilities
 ├── plot/                      # Visualization scripts
-│   ├── path_config.sh         # Data path configuration
 │   └── plot_*.sh              # Various plotting scripts
 ├── scripts/                   # Additional experiment scripts
-│   ├── baselines/            # Baseline sweep scripts
-│   └── supra/                 # SUPRA sweep scripts
+├── path_config.sh             # Data path configuration (shared by scripts)
 ├── run_baseline.sh            # Baseline experiment runner
 ├── run_supra.sh               # SUPRA experiment runner
 ├── run_batch_baseline.sh      # Batch runner for all baselines
@@ -75,7 +73,7 @@ conda activate MAG
 
 ### 2. Data Path Configuration
 
-Edit `plot/path_config.sh` to set your data root:
+Edit `path_config.sh` to set your data root:
 
 ```bash
 DATA_ROOT="${DATA_ROOT:-/path/to/your/MAGB_Dataset}"

@@ -14,7 +14,7 @@ set -euo pipefail
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/plot/path_config.sh"
+source "${SCRIPT_DIR}/path_config.sh"
 
 # ---------------- Configurable defaults ----------------
 MODELS=${MODELS:-"MLP GCN SAGE GAT GCNII JKNet"}

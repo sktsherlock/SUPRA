@@ -316,7 +316,7 @@ class SUPRA(nn.Module):
         self.head_Uv = nn.Linear(self.embed_dim, self.n_classes)
 
         # Attach spectral orthogonalization hook to shared channel
-        self.spectral_orthogonalizer = SpectralOrthogonalizer(ns_steps=5)
+        self.spectral_orthogonalizer = SpectralOrthogonalizer(ns_steps=5, alpha=getattr(args, "ortho_alpha", 1.0))
         self._register_spectral_hooks()
 
     def _register_spectral_hooks(self):
@@ -405,11 +405,27 @@ def _compute_losses(*, out: ForwardMultiOutputs, labels: th.Tensor, train_idx: t
     idx = train_idx
     ls = float(getattr(args, "label_smoothing", 0.0))
 
-    total_task_loss = cross_entropy(out.logits_final_0[idx], labels[idx], label_smoothing=ls)
+    # Main loss: average of C, Ut, Uv logits
+    logits_final = (out.logits_C_0 + out.logits_Ut_0 + out.logits_Uv_0) / 3.0
+    total_task_loss = cross_entropy(logits_final[idx], labels[idx], label_smoothing=ls)
 
     logs = {
         "loss/task": float(total_task_loss.detach().cpu().item()),
     }
+
+    # Auxiliary loss: each branch predicts independently
+    if getattr(args, "use_aux_loss", False):
+        loss_C = cross_entropy(out.logits_C_0[idx], labels[idx], label_smoothing=ls)
+        loss_Ut = cross_entropy(out.logits_Ut_0[idx], labels[idx], label_smoothing=ls)
+        loss_Uv = cross_entropy(out.logits_Uv_0[idx], labels[idx], label_smoothing=ls)
+        aux_weight = 0.5
+        total_task_loss = total_task_loss + aux_weight * (loss_C + loss_Ut + loss_Uv)
+        logs.update({
+            "loss/aux_C": float(loss_C.detach().cpu().item()),
+            "loss/aux_Ut": float(loss_Ut.detach().cpu().item()),
+            "loss/aux_Uv": float(loss_Uv.detach().cpu().item()),
+        })
+
     return total_task_loss, logs
 
 
@@ -453,6 +469,8 @@ def args_init():
     supra.add_argument("--embed_dim", type=int, default=None, help="Embedding dimension for SUPRA channels")
     supra.add_argument("--dropout", type=float, default=0.2, help="Dropout rate")
     supra.add_argument("--shared_depth", type=int, default=None, help="Propagation depth for shared channel")
+    supra.add_argument("--ortho_alpha", type=float, default=1.0, help="Spectral orthogonalization strength (0=disable)")
+    supra.add_argument("--use_aux_loss", action="store_true", help="Enable auxiliary loss on each branch (C, Ut, Uv)")
 
     return parser
 

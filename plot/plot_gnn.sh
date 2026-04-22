@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Load centralized path config
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/path_config.sh"
+source "${SCRIPT_DIR}/../path_config.sh"
 
 # python test_plain_gnn.py \
 #   --graph_path "${DATA_ROOT}/Movies/MoviesGraph.pt" \

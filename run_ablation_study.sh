@@ -28,6 +28,37 @@ RESULT_CSV_ALL=${RESULT_CSV_ALL:-results_csv/ablation_all.csv}
 
 mkdir -p "$(dirname "${RESULT_CSV}")" "$(dirname "${RESULT_CSV_ALL}")"
 
+# =============================================================================
+# Parse arguments
+# =============================================================================
+show_help() {
+  cat << 'HELPEOF'
+Usage: run_ablation_study.sh [options]
+
+Options:
+  --gpu ID           GPU device ID (default: 0)
+  --datasets LIST    Space-separated list of datasets (default: Movies Grocery Toys Reddit-M)
+  --n_runs N         Number of runs per experiment (default: 3)
+  --output_dir DIR   Output log directory (default: logs_ablation)
+  --help             Show this help message
+
+Examples:
+  ./run_ablation_study.sh --gpu 1
+  ./run_ablation_study.sh --datasets "Movies Grocery" --n_runs 5
+HELPEOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --gpu) GPU_ID="$2"; shift 2 ;;
+    --datasets) DATASETS="$2"; shift 2 ;;
+    --n_runs) N_RUNS="$2"; shift 2 ;;
+    --output_dir) OUTPUT_DIR="$2"; shift 2 ;;
+    --help) show_help; exit 0 ;;
+    *) echo "Unknown option: $1"; show_help; exit 1 ;;
+  esac
+done
+
 N_EPOCHS=${N_EPOCHS:-1000}
 WARMUP_EPOCHS=${WARMUP_EPOCHS:-50}
 EVAL_STEPS=${EVAL_STEPS:-1}

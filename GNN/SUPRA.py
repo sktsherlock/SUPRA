@@ -483,7 +483,10 @@ def args_init():
 def main():
     parser = args_init()
     args = parser.parse_args()
-    if args.disable_wandb or wandb is None: os.environ["WANDB_DISABLED"] = "true"
+    if args.disable_wandb or wandb is None:
+        os.environ["WANDB_DISABLED"] = "true"
+    else:
+        wandb.init(config=args, reinit=True)
 
     device = th.device("cuda:%d" % args.gpu if th.cuda.is_available() and args.gpu != -1 else "cpu")
 
@@ -544,6 +547,9 @@ def main():
         val_results.append(best_val_result)
         test_results.append(final_test_result)
 
+        if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
+            wandb.log({f'Val_{args.metric}': best_val_result, f'Test_{args.metric}': final_test_result})
+
     def _mean_std(values): return float(np.mean(values)), float(np.std(values))
     def _fmt_pct(values):
         mean, std = _mean_std(values)
@@ -553,14 +559,20 @@ def main():
     print(f"Average val {args.metric}: {_fmt_pct(val_results)}")
     print(f"Average test {args.metric}: {_fmt_pct(test_results)}")
 
+    if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
+        wandb.log({f'Mean_Val_{args.metric}': float(np.mean(val_results)), f'Mean_Test_{args.metric}': float(np.mean(test_results))})
+
     # Save results to CSV if requested
-    if getattr(args, 'result_csv', None):
+    if getattr(args, 'result_csv', None) or getattr(args, 'result_csv_all', None):
         test_mean = float(np.mean(test_results))
         test_std = float(np.std(test_results))
         method_name = getattr(args, 'result_tag', None) or "SUPRA"
         row = build_result_row(args=args, method=method_name, full_metric=test_mean, extra={"full_std": test_std})
         key_fields = ["dataset", "method", "backbone", "metric", "single_modality", "inductive", "fewshots"]
-        update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
+        if getattr(args, 'result_csv', None):
+            update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
+        if getattr(args, 'result_csv_all', None):
+            append_result_csv(args.result_csv_all, row)
 
 if __name__ == "__main__":
     main()

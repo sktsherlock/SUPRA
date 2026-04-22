@@ -20,7 +20,7 @@ from GNN.GraphData import load_data, set_seed
 from GNN.Utils.LossFunction import cross_entropy, get_metric, EarlyStopping
 from GNN.Utils.NodeClassification import _as_scalar_float
 from GNN.Utils.model_config import add_common_args
-from GNN.Utils.result_logger import build_result_row, update_best_result_csv
+from GNN.Utils.result_logger import build_result_row, update_best_result_csv, append_result_csv
 
 class _LocalMyMLP(nn.Module):
     """Local fallback for MyMLP (prelu MLP with optional batch norm)."""
@@ -320,10 +320,13 @@ def main():
     test_std = float(np.std(test_results))
     print(f"Average test {args.metric}: {test_mean * 100.0:.3f} ± {test_std * 100.0:.3f}%")
 
-    if getattr(args, "result_csv", None):
+    if getattr(args, "result_csv", None) or getattr(args, "result_csv_all", None):
         row = build_result_row(args=args, method="MIG_GT", full_metric=test_mean, degrade_text=None, degrade_visual=None, extra={"full_std": test_std})
         key_fields = ["dataset", "method", "n_layers", "single_modality", "inductive", "fewshots", "metric"]
-        update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
+        if getattr(args, "result_csv", None):
+            update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
+        if getattr(args, "result_csv_all", None):
+            append_result_csv(args.result_csv_all, row)
 
 if __name__ == "__main__":
     main()

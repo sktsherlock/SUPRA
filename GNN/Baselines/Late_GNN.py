@@ -134,7 +134,10 @@ class LateFusionMAG(nn.Module):
             self.classifier.reset_parameters()
 
     def fuse_embeddings(self, text_h: th.Tensor, vis_h: th.Tensor) -> th.Tensor:
-        return 0.5 * (text_h + vis_h)
+        # Average fusion (consistent with MMGCN/MGAT original design for multimodal recommendation)
+        # For 2 modalities: (text_h + vis_h) / 2
+        # For 3 modalities (if extended): (v + a + t) / 3
+        return (text_h + vis_h) / 2
 
     def forward(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor) -> th.Tensor:
         text_h, vis_h = self.forward_branches(graph, text_feature, visual_feature)

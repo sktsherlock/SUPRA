@@ -20,6 +20,33 @@ def str2bool(v):
         return False
     raise argparse.ArgumentTypeError(f"Boolean value expected, got: {v}")
 
+
+def _parse_metric(metric_str):
+    """Parse metric string, supporting combined format like 'f1_macro'.
+
+    Returns (metric, average) tuple.
+    """
+    if metric_str is None:
+        return 'accuracy', 'macro'
+    metric_str = str(metric_str).strip().lower()
+    _compound_metrics = {'f1_macro', 'f1_micro', 'f1_weighted', 'precision_macro',
+                         'precision_micro', 'precision_weighted', 'recall_macro',
+                         'recall_micro', 'recall_weighted'}
+    if metric_str in _compound_metrics:
+        parts = metric_str.rsplit('_', 1)
+        return parts[0], parts[1]
+    return metric_str, None
+
+
+class _MetricAction(argparse.Action):
+    """Custom action for --metric: handles 'f1_macro' style as compound metric."""
+    def __call__(self, parser, namespace, values, option_string=None):
+        metric_val, avg_val = _parse_metric(values)
+        setattr(namespace, self.dest, metric_val)
+        # If metric was compound (e.g., f1_macro), also set average
+        if avg_val is not None:
+            setattr(namespace, 'average', avg_val)
+
 def add_common_args(argparser):
     argparser.add_argument("--gpu", type=int, default=0, help="GPU device ID.")
     argparser.add_argument(
@@ -103,8 +130,8 @@ def add_common_args(argparser):
         "--selfloop", type=str2bool, default=True, help="Whether to add self loop in the graph."
     )
     argparser.add_argument(
-        "--metric", type=str, default='accuracy', choices=['accuracy', 'precision', 'recall', 'f1'],
-        help="The metric to be used."
+        "--metric", type=str, default='accuracy', action=_MetricAction,
+        help="Metric to use (e.g., accuracy, f1, or compound like f1_macro)."
     )
     argparser.add_argument(
         "--average", type=str, default='macro', choices=['weighted', 'micro', 'macro', None]

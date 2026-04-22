@@ -8,6 +8,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks to actual path (handles /hyperai/home/SUPRA -> /output/SUPRA)
+SCRIPT_DIR="$(readlink -f "${SCRIPT_DIR}" 2>/dev/null || echo "${SCRIPT_DIR}")"
 cd "${SCRIPT_DIR}"
 source "${SCRIPT_DIR}/path_config.sh"
 export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH:-}"

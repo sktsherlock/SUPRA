@@ -467,7 +467,6 @@ def args_init():
     # SUPRA model arguments
     supra = parser.add_argument_group("SUPRA")
     supra.add_argument("--embed_dim", type=int, default=None, help="Embedding dimension for SUPRA channels")
-    supra.add_argument("--dropout", type=float, default=0.2, help="Dropout rate")
     supra.add_argument("--shared_depth", type=int, default=None, help="Propagation depth for shared channel")
     supra.add_argument("--ortho_alpha", type=float, default=1.0, help="Spectral orthogonalization strength (0=disable)")
     supra.add_argument("--use_aux_loss", action="store_true", help="Enable auxiliary loss on each branch (C, Ut, Uv)")

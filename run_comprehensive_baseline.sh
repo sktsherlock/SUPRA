@@ -6,8 +6,7 @@ set -euo pipefail
 # Runs ALL baselines across ALL datasets, ALL metrics, ALL feature groups
 #
 # Covers:
-#   - Early fusion GNNs (GCN, SAGE, GAT) via Early_GNN.py
-#   - Single-modality MLP
+#   - Early fusion GNNs (GCN, SAGE, GAT, GCNII, JKNet) via Early_GNN.py
 #   - Late fusion baselines: Late_GNN (MMGCN/MGAT-style via Late_GNN.py)
 #   - NTSFormer (via NTSFormer.py)
 #   - MIG-GT (via MIG_GT.py)
@@ -100,9 +99,13 @@ early_gnn_early_stop="50"
 GCN_LAYERS=${GCN_LAYERS:-"1 2"}
 SAGE_LAYERS=${SAGE_LAYERS:-"2 3 4"}
 GAT_LAYERS=${GAT_LAYERS:-"1 2"}
+GCNII_LAYERS=${GCNII_LAYERS:-"2 3 4"}
+JKNET_LAYERS=${JKNET_LAYERS:-"2 3 4"}
 read -r -a gcn_n_layers <<< "${GCN_LAYERS}"
 read -r -a sage_n_layers <<< "${SAGE_LAYERS}"
 read -r -a gat_n_layers <<< "${GAT_LAYERS}"
+read -r -a gcnii_n_layers <<< "${GCNII_LAYERS}"
+read -r -a jknet_n_layers <<< "${JKNET_LAYERS}"
 sage_aggregator="mean"
 gat_n_heads=4
 gat_attn_drop=0.0
@@ -275,17 +278,19 @@ for metric in "${METRIC_ARR[@]}"; do
       echo "  Visual: ${VIS_FEAT}"
 
       # ============================================
-      # 1. Early_GNN: GCN, SAGE, GAT
+      # 1. Early_GNN: GCN, SAGE, GAT, GCNII, JKNet
       # ============================================
-      for model_name in GCN SAGE GAT; do
+      for model_name in GCN SAGE GAT GCNII JKNet; do
         exp_count=$((exp_count + 1))
         echo ""
         echo "  [${exp_count}] Early_GNN/${model_name}"
 
         case "${model_name}" in
-          GCN) layers_array=("${gcn_n_layers[@]}"); SELFLOOP="true"; EXTRA_ARGS="--backend gnn --model_name GCN --early_fuse concat" ;;
-          SAGE) layers_array=("${sage_n_layers[@]}"); SELFLOOP="false"; EXTRA_ARGS="--backend gnn --model_name SAGE --early_fuse concat --aggregator ${sage_aggregator}" ;;
-          GAT) layers_array=("${gat_n_layers[@]}"); SELFLOOP="false"; EXTRA_ARGS="--backend gnn --model_name GAT --early_fuse concat --n-heads ${gat_n_heads} --attn-drop ${gat_attn_drop} --edge-drop ${gat_edge_drop}" ;;
+          GCN)   layers_array=("${gcn_n_layers[@]}");   SELFLOOP="true";  EXTRA_ARGS="--backend gnn --model_name GCN --early_fuse concat" ;;
+          SAGE)  layers_array=("${sage_n_layers[@]}");  SELFLOOP="false"; EXTRA_ARGS="--backend gnn --model_name SAGE --early_fuse concat --aggregator ${sage_aggregator}" ;;
+          GAT)   layers_array=("${gat_n_layers[@]}");   SELFLOOP="false"; EXTRA_ARGS="--backend gnn --model_name GAT --early_fuse concat --n-heads ${gat_n_heads} --attn-drop ${gat_attn_drop} --edge-drop ${gat_edge_drop}" ;;
+          GCNII) layers_array=("${gcnii_n_layers[@]}"); SELFLOOP="true";  EXTRA_ARGS="--backend gnn --model_name GCNII --early_fuse concat" ;;
+          JKNet) layers_array=("${jknet_n_layers[@]}"); SELFLOOP="true";  EXTRA_ARGS="--backend gnn --model_name JKNet --early_fuse concat" ;;
         esac
 
         for L in "${layers_array[@]}"; do

@@ -19,7 +19,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 source "${SCRIPT_DIR}/path_config.sh"
-export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH}"
+export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH:-}"
 
 # ---------------- User-editable: paths ----------------
 FEATURE_GROUPS=${FEATURE_GROUPS:-"clip_roberta"}

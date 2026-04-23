@@ -214,7 +214,6 @@ class ForwardOutputs:
     emb_C: Optional[th.Tensor] = None
     emb_Ut: Optional[th.Tensor] = None
     emb_Uv: Optional[th.Tensor] = None
-    gate_weights: Optional[th.Tensor] = None  # [N, 3] for Ut, Uv, C
 
 
 @dataclass
@@ -227,7 +226,6 @@ class ForwardMultiOutputs:
     emb_C_0: Optional[th.Tensor] = None
     emb_Ut_0: Optional[th.Tensor] = None
     emb_Uv_0: Optional[th.Tensor] = None
-    gate_weights_0: Optional[th.Tensor] = None
 
 
 def _build_gnn_backbone(args, in_dim: int, out_dim: int, device: th.device, *, n_layers_override: Optional[int] = None, n_hidden_override: Optional[int] = None):
@@ -262,60 +260,6 @@ def _build_gnn_backbone(args, in_dim: int, out_dim: int, device: th.device, *, n
         ).to(device)
 
     raise ValueError(f"Unsupported --model_name: {name}")
-
-
-class ChannelGate(nn.Module):
-    """
-    Learnable gate for adaptive channel fusion.
-
-    Takes logits from all three channels (Ut, Uv, C) and outputs
-    dynamic weights for each channel. This allows the model to
-    adaptively choose which channel to trust for each node.
-
-    Inspired by gating mechanisms in LLM literature (sparse, query-dependent).
-    """
-    def __init__(self, n_classes: int, hidden_dim: int = 64):
-        super().__init__()
-        # Gate input: 3 * n_classes (logits from each channel)
-        # + 3 (confidence from each channel)
-        # + 1 (Ut/Uv agreement)
-        self.fc = nn.Sequential(
-            nn.Linear(n_classes * 3 + 4, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(hidden_dim, 3),  # Output 3 weights
-        )
-
-    def forward(self, logits_Ut: th.Tensor, logits_Uv: th.Tensor, logits_C: th.Tensor) -> th.Tensor:
-        """
-        Returns: gate_weights [N, 3] softmax over channels (Ut, Uv, C)
-        """
-        # Confidence (max probability) for each channel
-        conf_Ut = logits_Ut.softmax(dim=-1).max(dim=-1)[0]  # [N]
-        conf_Uv = logits_Uv.softmax(dim=-1).max(dim=-1)[0]  # [N]
-        conf_C = logits_C.softmax(dim=-1).max(dim=-1)[0]   # [N]
-
-        # Agreement between Ut and Uv
-        pred_Ut = logits_Ut.argmax(dim=-1)
-        pred_Uv = logits_Uv.argmax(dim=-1)
-        agreement = (pred_Ut == pred_Uv).float().unsqueeze(1)  # [N, 1]
-
-        # Concatenate all signals
-        gate_input = th.cat([
-            logits_Ut, logits_Uv, logits_C,       # [N, 3*n_classes]
-            conf_Ut.unsqueeze(1),                  # [N, 1]
-            conf_Uv.unsqueeze(1),                  # [N, 1]
-            conf_C.unsqueeze(1),                   # [N, 1]
-            agreement,                             # [N, 1]
-        ], dim=-1)
-
-        # Compute gate weights (before softmax)
-        gate_logits = self.fc(gate_input)  # [N, 3]
-
-        # Softmax to get weights that sum to 1
-        gate_weights = F.softmax(gate_logits, dim=-1)
-
-        return gate_weights
 
 
 class SUPRA(nn.Module):
@@ -377,11 +321,6 @@ class SUPRA(nn.Module):
         self.head_Ut = nn.Linear(self.embed_dim, self.n_classes)
         self.head_Uv = nn.Linear(self.embed_dim, self.n_classes)
 
-        # Optional channel gate for adaptive fusion
-        self.use_gate = getattr(args, "use_gate", False)
-        if self.use_gate:
-            self.channel_gate = ChannelGate(n_classes=self.n_classes, hidden_dim=64)
-
         # Attach spectral orthogonalization hook to shared channel
         self.spectral_orthogonalizer = SpectralOrthogonalizer(ns_steps=5, alpha=getattr(args, "ortho_alpha", 1.0))
         self._register_spectral_hooks()
@@ -440,25 +379,13 @@ class SUPRA(nn.Module):
         logits_Ut = self.head_Ut(h_Ut)
         logits_Uv = self.head_Uv(h_Uv)
 
-        # Gate for adaptive fusion (if enabled)
-        gate_weights = None
-        if self.use_gate:
-            gate_weights = self.channel_gate(logits_Ut, logits_Uv, logits_C)  # [N, 3]
-            # Weighted fusion using gate
-            logits_final = (
-                gate_weights[:, 0:1] * logits_Ut +
-                gate_weights[:, 1:2] * logits_Uv +
-                gate_weights[:, 2:3] * logits_C
-            ).squeeze(1)
-        else:
-            # Default: average fusion
-            logits_final = (logits_C + logits_Ut + logits_Uv) / 3.0
+        # Average fusion of three channels
+        logits_final = (logits_C + logits_Ut + logits_Uv) / 3.0
 
         return ForwardOutputs(
             logits_final=logits_final,
             logits_C=logits_C, logits_Ut=logits_Ut, logits_Uv=logits_Uv,
             emb_C=h_C, emb_Ut=h_Ut, emb_Uv=h_Uv,
-            gate_weights=gate_weights,
         )
 
     def forward(self, graph, text_feat: th.Tensor, vis_feat: th.Tensor) -> th.Tensor:
@@ -476,7 +403,6 @@ class SUPRA(nn.Module):
             logits_final_0=out0.logits_final,
             logits_C_0=out0.logits_C, logits_Ut_0=out0.logits_Ut, logits_Uv_0=out0.logits_Uv,
             emb_C_0=out0.emb_C, emb_Ut_0=out0.emb_Ut, emb_Uv_0=out0.emb_Uv,
-            gate_weights_0=out0.gate_weights,
         )
 
 
@@ -492,18 +418,6 @@ def _compute_losses(*, out: ForwardMultiOutputs, labels: th.Tensor, train_idx: t
     logs = {
         "loss/task": float(total_task_loss.detach().cpu().item()),
     }
-
-    # Gate regularization: encourage sparse (extreme) gate weights
-    if getattr(args, "use_gate", False) and out.gate_weights_0 is not None:
-        gate_weights = out.gate_weights_0[idx]  # [N_train, 3]
-        # Encourage gate to be close to 0 or 1 (sparse), not uniform 1/3
-        # L2 distance from uniform distribution: sum((w - 1/3)^2)
-        gate_reg = ((gate_weights - 1.0/3.0) ** 2).sum(dim=1).mean()
-        gate_weight = 0.01  # regularization strength
-        total_task_loss = total_task_loss + gate_weight * gate_reg
-        logs.update({
-            "loss/gate_reg": float(gate_reg.detach().cpu().item()),
-        })
 
     # Auxiliary loss: each branch predicts independently
     if getattr(args, "use_aux_loss", False):

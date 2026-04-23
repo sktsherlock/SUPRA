@@ -409,7 +409,7 @@ for metric in "${METRIC_ARR[@]}"; do
           --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
           --inductive "${INDUCTIVE}" \
           --disable_wandb \
-          --local_log "${RESULT_CSV_ALL}"; then
+          --result_csv_all "${RESULT_CSV_ALL}"; then
           :
         else
           failed+=("NTSFormer@${ds}@${fg}@${metric}")
@@ -448,6 +448,8 @@ for metric in "${METRIC_ARR[@]}"; do
           --num_samples 10 \
           --tur_weight 1.0 \
           --tur_sample_edges 8000 \
+          --result_csv "${RESULT_CSV}" \
+          --result_csv_all "${RESULT_CSV_ALL}" \
           --disable_wandb; then
           :
         else

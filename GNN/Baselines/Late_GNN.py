@@ -134,10 +134,8 @@ class LateFusionMAG(nn.Module):
             self.classifier.reset_parameters()
 
     def fuse_embeddings(self, text_h: th.Tensor, vis_h: th.Tensor) -> th.Tensor:
-        # Average fusion (consistent with MMGCN/MGAT original design for multimodal recommendation)
-        # For 2 modalities: (text_h + vis_h) / 2
-        # For 3 modalities (if extended): (v + a + t) / 3
-        return (text_h + vis_h) / 2
+        # Concat fusion for fair comparison with Early Fusion baselines
+        return th.cat([text_h, vis_h], dim=1)
 
     def forward(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor) -> th.Tensor:
         text_h, vis_h = self.forward_branches(graph, text_feature, visual_feature)
@@ -290,7 +288,7 @@ def main():
         visual_encoder = mag_base.ModalityEncoder(int(vis_feat.shape[1]), proj_dim, float(args.dropout)).to(device)
         text_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
         vis_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
-        classifier = nn.Linear(embed_dim, n_classes).to(device)
+        classifier = nn.Linear(2 * embed_dim, n_classes).to(device)
         model = LateFusionMAG(
             text_encoder,
             visual_encoder,

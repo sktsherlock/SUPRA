@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# MAG baseline suite: per-modality encoders + concat -> GNN/MLP.
-# Runs: Text/Visual/Multimodal x (MLP, GCN, SAGE) by default.
+# =============================================================================
+# MAG Baseline Suite (Revised)
+# Runs: Plain (unimodal), Early Fusion, Late Fusion
+# =============================================================================
+# Usage:
+#   ./run_mag_baseline_suite.sh --datasets "Movies Toys Grocery Reddit-M" --feature_groups "clip_roberta default"
+#
+# Environment variables to override:
+#   DATA_ROOT       - Data root path (default: /hyperai/input/input0/MAGB_Dataset)
+#   GPU_ID          - GPU device ID (default: 0)
+#   N_RUNS          - Number of runs (default: 3)
+# =============================================================================
 
 export DGLBACKEND=${DGLBACKEND:-pytorch}
 
@@ -13,26 +23,10 @@ WANDB_RUN_MODE=${WANDB_RUN_MODE:-offline}  # disabled|offline|online
 DATA_ROOT=${DATA_ROOT:-/hyperai/input/input0/MAGB_Dataset}
 
 # ---------------- Feature group support ----------------
-FEATURE_GROUPS=${FEATURE_GROUPS:-"clip_roberta"}
+FEATURE_GROUPS=${FEATURE_GROUPS:-"clip_roberta default"}
 
 declare -A TEXT_FEATURE_BY_DS_GROUP
 declare -A VIS_FEATURE_BY_DS_GROUP
-
-# Default group (repo naming convention)
-TEXT_FEATURE_BY_DS_GROUP["Movies|default"]='TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy'
-VIS_FEATURE_BY_DS_GROUP["Movies|default"]='ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy'
-
-TEXT_FEATURE_BY_DS_GROUP["Grocery|default"]='TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy'
-VIS_FEATURE_BY_DS_GROUP["Grocery|default"]='ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy'
-
-TEXT_FEATURE_BY_DS_GROUP["Toys|default"]='TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy'
-VIS_FEATURE_BY_DS_GROUP["Toys|default"]='ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy'
-
-TEXT_FEATURE_BY_DS_GROUP["Reddit-M|default"]='TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy'
-VIS_FEATURE_BY_DS_GROUP["Reddit-M|default"]='ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy'
-
-TEXT_FEATURE_BY_DS_GROUP["Reddit-S|default"]='TextFeature/RedditS_Llama_3.2_11B_Vision_Instruct_100_mean.npy'
-VIS_FEATURE_BY_DS_GROUP["Reddit-S|default"]='ImageFeature/RedditS_Llama-3.2-11B-Vision-Instruct_visual.npy'
 
 # CLIP (image) + RoBERTa (text)
 TEXT_FEATURE_BY_DS_GROUP["Movies|clip_roberta"]='TextFeature/Movies_roberta_base_512_mean.npy'
@@ -47,37 +41,40 @@ VIS_FEATURE_BY_DS_GROUP["Toys|clip_roberta"]='ImageFeature/Toys_openai_clip-vit-
 TEXT_FEATURE_BY_DS_GROUP["Reddit-M|clip_roberta"]='TextFeature/RedditM_roberta_base_100_mean.npy'
 VIS_FEATURE_BY_DS_GROUP["Reddit-M|clip_roberta"]='ImageFeature/RedditM_openai_clip-vit-large-patch14.npy'
 
-TEXT_FEATURE_BY_DS_GROUP["Reddit-S|clip_roberta"]='TextFeature/RedditS_roberta_base_100_mean.npy'
-VIS_FEATURE_BY_DS_GROUP["Reddit-S|clip_roberta"]='ImageFeature/RedditS_openai_clip-vit-large-patch14.npy'
+# Default group (Llama3 vision features)
+TEXT_FEATURE_BY_DS_GROUP["Movies|default"]='TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy'
+VIS_FEATURE_BY_DS_GROUP["Movies|default"]='ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy'
+
+TEXT_FEATURE_BY_DS_GROUP["Grocery|default"]='TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy'
+VIS_FEATURE_BY_DS_GROUP["Grocery|default"]='ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy'
+
+TEXT_FEATURE_BY_DS_GROUP["Toys|default"]='TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy'
+VIS_FEATURE_BY_DS_GROUP["Toys|default"]='ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy'
+
+TEXT_FEATURE_BY_DS_GROUP["Reddit-M|default"]='TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy'
+VIS_FEATURE_BY_DS_GROUP["Reddit-M|default"]='ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy'
 
 # ---------------- Datasets ----------------
-DEFAULT_DATASETS="Movies Grocery Reddit-M Reddit-S Toys"
+DEFAULT_DATASETS="Movies Grocery Reddit-M Toys"
 DATASETS=${DATASETS:-"${DEFAULT_DATASETS}"}
 read -r -a DATASETS_ARR <<< "${DATASETS}"
 read -r -a FEATURE_GROUPS_ARR <<< "${FEATURE_GROUPS}"
 
 # ---------------- Experiment grid ----------------
-EXPERIMENTS=${EXPERIMENTS:-"plain baseline late ogm"}        # plain|baseline|late|tri|ogm
-# Plain_GNN: by default only run unimodal (text/visual). To include concat, set MODALITIES="text visual none".
-MODALITIES=${MODALITIES:-"text visual"}             # text|visual|none (plain)
+# Supported experiments: plain baseline late nts mig
+EXPERIMENTS=${EXPERIMENTS:-"plain baseline late nts mig"}
+MODALITIES=${MODALITIES:-"text visual"}             # text|visual (plain only)
 EARLY_LATE_MODALITIES=${EARLY_LATE_MODALITIES:-"none"}   # usually "none"
 BACKENDS=${BACKENDS:-"mlp gnn"}                          # mlp|gnn (baseline)
 PLAIN_BACKENDS=${PLAIN_BACKENDS:-"mlp gnn"}             # mlp|gnn (plain)
-OGM_BACKENDS=${OGM_BACKENDS:-"gnn"}                     # gnn|mlp (ogm)
-# ModDrop is optional for baselines; keep it opt-in by default.
-BASELINE_VARIANTS=${BASELINE_VARIANTS:-"base"} # base|drop (baseline/EF)
-LATE_VARIANTS=${LATE_VARIANTS:-"base"}         # base|drop (late/tri)
 EARLY_FUSE_MODES=${EARLY_FUSE_MODES:-"concat"}      # concat|sum (baseline/EF)
-GNN_MODELS=${GNN_MODELS:-"GCN SAGE GAT"}                 # GNN backbones
+GNN_MODELS=${GNN_MODELS:-"GCN SAGE GAT GCNII JKNet NTSFormer MIGGT"}  # GNN backbones
 
 read -r -a EXPERIMENTS_ARR <<< "${EXPERIMENTS}"
 read -r -a MODALITIES_ARR <<< "${MODALITIES}"
 read -r -a EARLY_LATE_MODALITIES_ARR <<< "${EARLY_LATE_MODALITIES}"
 read -r -a BACKENDS_ARR <<< "${BACKENDS}"
 read -r -a PLAIN_BACKENDS_ARR <<< "${PLAIN_BACKENDS}"
-read -r -a OGM_BACKENDS_ARR <<< "${OGM_BACKENDS}"
-read -r -a BASELINE_VARIANTS_ARR <<< "${BASELINE_VARIANTS}"
-read -r -a LATE_VARIANTS_ARR <<< "${LATE_VARIANTS}"
 read -r -a EARLY_FUSE_MODES_ARR <<< "${EARLY_FUSE_MODES}"
 read -r -a GNN_MODELS_ARR <<< "${GNN_MODELS}"
 
@@ -93,11 +90,6 @@ REPORT_DROP_MODALITY=${REPORT_DROP_MODALITY:-false}
 REPORT_DROP_MODE=${REPORT_DROP_MODE:-best}
 RESULT_CSV=${RESULT_CSV:-}
 RESULT_CSV_ALL=${RESULT_CSV_ALL:-}
-EARLY_MODALITY_DROPOUT=${EARLY_MODALITY_DROPOUT:-0.0}
-# By default, keep Early/Late ModDrop ratios aligned unless explicitly overridden.
-LATE_MODALITY_DROPOUT=${LATE_MODALITY_DROPOUT:-${EARLY_MODALITY_DROPOUT}}
-KD_WEIGHT=${KD_WEIGHT:-0.0}
-KD_TEMPERATURE=${KD_TEMPERATURE:-1.0}
 DEGRADE_ALPHA=${DEGRADE_ALPHA:-1.0}
 DEGRADE_TARGET=${DEGRADE_TARGET:-both}
 DEGRADE_ALPHAS=${DEGRADE_ALPHAS:-}
@@ -111,27 +103,26 @@ INDUCTIVE=${INDUCTIVE:-false}
 # Optional per-dataset split ratios (override defaults above)
 declare -A TRAIN_RATIO_BY_DS
 declare -A VAL_RATIO_BY_DS
-# Reddit-S: 2:2:6 split
-TRAIN_RATIO_BY_DS["Reddit-S"]=${TRAIN_RATIO_BY_DS["Reddit-S"]:-0.2}
-VAL_RATIO_BY_DS["Reddit-S"]=${VAL_RATIO_BY_DS["Reddit-S"]:-0.2}
+# Reddit-S: 2:2:6 split (if needed in future)
+# TRAIN_RATIO_BY_DS["Reddit-S"]=${TRAIN_RATIO_BY_DS["Reddit-S"]:-0.2}
+# VAL_RATIO_BY_DS["Reddit-S"]=${VAL_RATIO_BY_DS["Reddit-S"]:-0.2}
 
 MM_PROJ_DIM=${MM_PROJ_DIM:-}
 
 # ---------------- Sweep (grid search) ----------------
-# Per-backbone grids (edit manually like run_imok_new.sh)
 # ---------------- MLP sweep ----------------
-mlp_dropouts=("0.2")
+mlp_dropouts=("0.3")
 mlp_lrs=("0.0005" "0.001")
-mlp_wds=("0.0")
+mlp_wds=("1e-4")
 mlp_n_hidden=("256")
 mlp_n_layers=("2" "3")
 mlp_label_smoothing="0.1"
 mlp_early_stop_patience="50"
 
 # ---------------- GCN sweep ----------------
-gcn_dropouts=("0.2")
+gcn_dropouts=("0.3")
 gcn_lrs=("0.0005" "0.001")
-gcn_wds=("0.0")
+gcn_wds=("1e-4")
 gcn_n_hidden=("256")
 GCN_LAYERS=${GCN_LAYERS:-"1 2"}
 read -r -a gcn_n_layers <<< "${GCN_LAYERS}"
@@ -139,36 +130,80 @@ gcn_label_smoothing="0.1"
 gcn_early_stop_patience="50"
 
 # ---------------- GraphSAGE sweep ----------------
-sage_dropouts=("0.2")
+sage_dropouts=("0.3")
 sage_lrs=("0.0005" "0.001")
-sage_wds=("0.0")
+sage_wds=("1e-4")
 sage_n_hidden=("256")
-SAGE_LAYERS=${SAGE_LAYERS:-"3"}
+SAGE_LAYERS=${SAGE_LAYERS:-"2 3 4"}
 read -r -a sage_n_layers <<< "${SAGE_LAYERS}"
 sage_label_smoothing="0.1"
 sage_early_stop_patience="50"
 sage_aggregator="mean"
 
 # ---------------- GAT sweep ----------------
-gat_dropouts=("0.2")
+gat_dropouts=("0.3")
 gat_lrs=("0.0005" "0.001")
-gat_wds=("0.0")
+gat_wds=("1e-4")
 gat_n_hidden=("256")
 GAT_LAYERS=${GAT_LAYERS:-"1 2"}
 read -r -a gat_n_layers <<< "${GAT_LAYERS}"
 gat_label_smoothing="0.1"
 gat_early_stop_patience="25"
-gat_n_heads=3
+gat_n_heads=4
 gat_attn_drop=0.0
 gat_edge_drop=0.0
 gat_no_attn_dst=true
 
-# ---------------- OGM sweep ----------------
-ogm_modulations=("OGM_GE")
-ogm_projection_dims=("256" "512")
-ogm_modulation_starts=("0")
-ogm_modulation_ends=("100")
-ogm_alphas=("1.0")
+# ---------------- GCNII sweep ----------------
+gcnii_dropouts=("0.3")
+gcnii_lrs=("0.0005" "0.001")
+gcnii_wds=("1e-4")
+gcnii_n_hidden=("256")
+GCNII_LAYERS=${GCNII_LAYERS:-"2 3 4"}
+read -r -a gcnii_n_layers <<< "${GCNII_LAYERS}"
+gcnii_label_smoothing="0.1"
+gcnii_early_stop_patience="50"
+gcnii_lamda="0.5"
+gcnii_alpha="0.5"
+gcnii_variant=false
+
+# ---------------- JKNet sweep ----------------
+jknet_dropouts=("0.3")
+jknet_lrs=("0.0005" "0.001")
+jknet_wds=("1e-4")
+jknet_n_hidden=("256")
+JKNET_LAYERS=${JKNET_LAYERS:-"2 3 4"}
+read -r -a jknet_n_layers <<< "${JKNET_LAYERS}"
+jknet_label_smoothing="0.1"
+jknet_early_stop_patience="50"
+jknet_aggr="concat"
+
+# ---------------- NTSFormer sweep ----------------
+nts_dropouts=("0.3")
+nts_lrs=("0.005" "0.001" "0.0005")
+nts_wds=("1e-4")
+nts_n_hidden=("256")
+NTS_LAYERS=${NTS_LAYERS:-"2 3"}
+read -r -a nts_n_layers <<< "${NTS_LAYERS}"
+nts_label_smoothing="0.1"
+nts_early_stop_patience="50"
+nts_num_tf_layers=("2" "3")
+nts_num_heads=("2")
+nts_sign_k=("2" "3")
+nts_sign_alpha=("0.0")
+
+# ---------------- MIG-GT sweep ----------------
+mig_dropouts=("0.3")
+mig_lrs=("0.005" "0.001" "0.0005")
+mig_wds=("1e-4")
+mig_n_hidden=("256")
+mig_label_smoothing="0.1"
+mig_early_stop_patience="50"
+mig_k_t_kv=("3,2" "2,3")
+mig_mgdcf_alpha="0.1"
+mig_mgdcf_beta="0.9"
+mig_num_samples="10"
+mig_tur_weight="1.0"
 
 # ---------------- Logging ----------------
 RESUME_FROM=${RESUME_FROM:-}
@@ -384,6 +419,20 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       hiddens=("${gat_n_hidden[@]}")
                       layers=("${gat_n_layers[@]}")
                       ;;
+                    "GCNII")
+                      dropouts=("${gcnii_dropouts[@]}")
+                      lrs=("${gcnii_lrs[@]}")
+                      wds=("${gcnii_wds[@]}")
+                      hiddens=("${gcnii_n_hidden[@]}")
+                      layers=("${gcnii_n_layers[@]}")
+                      ;;
+                    "JKNet")
+                      dropouts=("${jknet_dropouts[@]}")
+                      lrs=("${jknet_lrs[@]}")
+                      wds=("${jknet_wds[@]}")
+                      hiddens=("${jknet_n_hidden[@]}")
+                      layers=("${jknet_n_layers[@]}")
+                      ;;
                     *)
                       echo "[Error] Unsupported gnn_model: ${gnn}" >&2
                       exit 1
@@ -413,97 +462,107 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           ;;
         "baseline")
           modality="none"
-          for variant in "${BASELINE_VARIANTS_ARR[@]}"; do
-            variant_suffix=""
-            case "${variant}" in
-              base)
+          for early_fuse in "${EARLY_FUSE_MODES_ARR[@]}"; do
+            fuse_suffix=""
+            case "${early_fuse}" in
+              concat)
                 ;;
-              drop)
-                variant_suffix="-ModDrop"
+              sum)
+                fuse_suffix="-sum"
                 ;;
               *)
-                echo "[Error] Unknown baseline variant: ${variant}" >&2
+                echo "[Error] Unknown EARLY_FUSE_MODES entry: ${early_fuse} (use concat|sum)" >&2
                 exit 1
                 ;;
             esac
-            for early_fuse in "${EARLY_FUSE_MODES_ARR[@]}"; do
-              fuse_suffix=""
-              case "${early_fuse}" in
-                concat)
-                  ;;
-                sum)
-                  fuse_suffix="-sum"
-                  ;;
-                *)
-                  echo "[Error] Unknown EARLY_FUSE_MODES entry: ${early_fuse} (use concat|sum)" >&2
-                  exit 1
-                  ;;
-              esac
-              for backend in "${BACKENDS_ARR[@]}"; do
-                  if [[ "${backend}" == "mlp" ]]; then
-                    for do in "${mlp_dropouts[@]}"; do
-                      for lr in "${mlp_lrs[@]}"; do
-                        for wd in "${mlp_wds[@]}"; do
-                          for h in "${mlp_n_hidden[@]}"; do
-                            for L in "${mlp_n_layers[@]}"; do
-                              model_label="MLP"
-                              run_label="${modality^}-${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${variant_suffix}${fuse_suffix}"
-                              log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
-                              count_job "${log_file}"
-                            done
+            for backend in "${BACKENDS_ARR[@]}"; do
+              if [[ "${backend}" == "mlp" ]]; then
+                for do in "${mlp_dropouts[@]}"; do
+                  for lr in "${mlp_lrs[@]}"; do
+                    for wd in "${mlp_wds[@]}"; do
+                      for h in "${mlp_n_hidden[@]}"; do
+                        for L in "${mlp_n_layers[@]}"; do
+                          model_label="MLP"
+                          run_label="${modality^}-${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${fuse_suffix}"
+                          log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
+                          count_job "${log_file}"
+                        done
+                      done
+                    done
+                  done
+                done
+              elif [[ "${backend}" == "gnn" ]]; then
+                for gnn in "${GNN_MODELS_ARR[@]}"; do
+                  case "${gnn}" in
+                    "GCN")
+                      dropouts=("${gcn_dropouts[@]}")
+                      lrs=("${gcn_lrs[@]}")
+                      wds=("${gcn_wds[@]}")
+                      hiddens=("${gcn_n_hidden[@]}")
+                      layers=("${gcn_n_layers[@]}")
+                      label_smoothing="${gcn_label_smoothing}"
+                      early_stop_patience="${gcn_early_stop_patience}"
+                      ;;
+                    "SAGE")
+                      dropouts=("${sage_dropouts[@]}")
+                      lrs=("${sage_lrs[@]}")
+                      wds=("${sage_wds[@]}")
+                      hiddens=("${sage_n_hidden[@]}")
+                      layers=("${sage_n_layers[@]}")
+                      label_smoothing="${sage_label_smoothing}"
+                      early_stop_patience="${sage_early_stop_patience}"
+                      ;;
+                    "GAT")
+                      dropouts=("${gat_dropouts[@]}")
+                      lrs=("${gat_lrs[@]}")
+                      wds=("${gat_wds[@]}")
+                      hiddens=("${gat_n_hidden[@]}")
+                      layers=("${gat_n_layers[@]}")
+                      label_smoothing="${gat_label_smoothing}"
+                      early_stop_patience="${gat_early_stop_patience}"
+                      ;;
+                    "GCNII")
+                      dropouts=("${gcnii_dropouts[@]}")
+                      lrs=("${gcnii_lrs[@]}")
+                      wds=("${gcnii_wds[@]}")
+                      hiddens=("${gcnii_n_hidden[@]}")
+                      layers=("${gcnii_n_layers[@]}")
+                      label_smoothing="${gcnii_label_smoothing}"
+                      early_stop_patience="${gcnii_early_stop_patience}"
+                      ;;
+                    "JKNet")
+                      dropouts=("${jknet_dropouts[@]}")
+                      lrs=("${jknet_lrs[@]}")
+                      wds=("${jknet_wds[@]}")
+                      hiddens=("${jknet_n_hidden[@]}")
+                      layers=("${jknet_n_layers[@]}")
+                      label_smoothing="${jknet_label_smoothing}"
+                      early_stop_patience="${jknet_early_stop_patience}"
+                      ;;
+                    *)
+                      echo "[Error] Unsupported gnn_model: ${gnn}" >&2
+                      exit 1
+                      ;;
+                  esac
+                  for do in "${dropouts[@]}"; do
+                    for lr in "${lrs[@]}"; do
+                      for wd in "${wds[@]}"; do
+                        for h in "${hiddens[@]}"; do
+                          for L in "${layers[@]}"; do
+                            model_label="${gnn}"
+                            run_label="${modality^}-${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${fuse_suffix}"
+                            log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
+                            count_job "${log_file}"
                           done
                         done
                       done
                     done
-                  elif [[ "${backend}" == "gnn" ]]; then
-                    for gnn in "${GNN_MODELS_ARR[@]}"; do
-                      case "${gnn}" in
-                        "GCN")
-                          dropouts=("${gcn_dropouts[@]}")
-                          lrs=("${gcn_lrs[@]}")
-                          wds=("${gcn_wds[@]}")
-                          hiddens=("${gcn_n_hidden[@]}")
-                          layers=("${gcn_n_layers[@]}")
-                          ;;
-                        "SAGE")
-                          dropouts=("${sage_dropouts[@]}")
-                          lrs=("${sage_lrs[@]}")
-                          wds=("${sage_wds[@]}")
-                          hiddens=("${sage_n_hidden[@]}")
-                          layers=("${sage_n_layers[@]}")
-                          ;;
-                        "GAT")
-                          dropouts=("${gat_dropouts[@]}")
-                          lrs=("${gat_lrs[@]}")
-                          wds=("${gat_wds[@]}")
-                          hiddens=("${gat_n_hidden[@]}")
-                          layers=("${gat_n_layers[@]}")
-                          ;;
-                        *)
-                          echo "[Error] Unsupported gnn_model: ${gnn}" >&2
-                          exit 1
-                          ;;
-                      esac
-                      for do in "${dropouts[@]}"; do
-                        for lr in "${lrs[@]}"; do
-                          for wd in "${wds[@]}"; do
-                            for h in "${hiddens[@]}"; do
-                              for L in "${layers[@]}"; do
-                                model_label="${gnn}"
-                                run_label="${modality^}-${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${variant_suffix}${fuse_suffix}"
-                                log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
-                                count_job "${log_file}"
-                              done
-                            done
-                          done
-                        done
-                      done
-                    done
-                  else
-                    echo "[Error] Unknown backend: ${backend}" >&2
-                    exit 1
-                  fi
-              done
+                  done
+                done
+              else
+                echo "[Error] Unknown backend: ${backend}" >&2
+                exit 1
+              fi
             done
           done
           ;;
@@ -513,56 +572,110 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
               echo "[Error] Late only supports modality=none (got ${modality})." >&2
               exit 1
             fi
-            for variant in "${LATE_VARIANTS_ARR[@]}"; do
-              variant_suffix=""
-              case "${variant}" in
-                base)
+            for gnn in "${GNN_MODELS_ARR[@]}"; do
+              case "${gnn}" in
+                "GCN")
+                  dropouts=("${gcn_dropouts[@]}")
+                  lrs=("${gcn_lrs[@]}")
+                  wds=("${gcn_wds[@]}")
+                  hiddens=("${gcn_n_hidden[@]}")
+                  layers=("${gcn_n_layers[@]}")
+                  label_smoothing="${gcn_label_smoothing}"
+                  early_stop_patience="${gcn_early_stop_patience}"
                   ;;
-                drop)
-                  variant_suffix="-ModDrop"
+                "SAGE")
+                  dropouts=("${sage_dropouts[@]}")
+                  lrs=("${sage_lrs[@]}")
+                  wds=("${sage_wds[@]}")
+                  hiddens=("${sage_n_hidden[@]}")
+                  layers=("${sage_n_layers[@]}")
+                  label_smoothing="${sage_label_smoothing}"
+                  early_stop_patience="${sage_early_stop_patience}"
+                  ;;
+                "GAT")
+                  dropouts=("${gat_dropouts[@]}")
+                  lrs=("${gat_lrs[@]}")
+                  wds=("${gat_wds[@]}")
+                  hiddens=("${gat_n_hidden[@]}")
+                  layers=("${gat_n_layers[@]}")
+                  label_smoothing="${gat_label_smoothing}"
+                  early_stop_patience="${gat_early_stop_patience}"
+                  ;;
+                "GCNII")
+                  dropouts=("${gcnii_dropouts[@]}")
+                  lrs=("${gcnii_lrs[@]}")
+                  wds=("${gcnii_wds[@]}")
+                  hiddens=("${gcnii_n_hidden[@]}")
+                  layers=("${gcnii_n_layers[@]}")
+                  label_smoothing="${gcnii_label_smoothing}"
+                  early_stop_patience="${gcnii_early_stop_patience}"
+                  ;;
+                "JKNet")
+                  dropouts=("${jknet_dropouts[@]}")
+                  lrs=("${jknet_lrs[@]}")
+                  wds=("${jknet_wds[@]}")
+                  hiddens=("${jknet_n_hidden[@]}")
+                  layers=("${jknet_n_layers[@]}")
+                  label_smoothing="${jknet_label_smoothing}"
+                  early_stop_patience="${jknet_early_stop_patience}"
+                  ;;
+                "NTSFormer")
+                  dropouts=("${nts_dropouts[@]}")
+                  lrs=("${nts_lrs[@]}")
+                  wds=("${nts_wds[@]}")
+                  hiddens=("${nts_n_hidden[@]}")
+                  layers=("${nts_n_layers[@]}")
+                  label_smoothing="${nts_label_smoothing}"
+                  early_stop_patience="${nts_early_stop_patience}"
+                  ;;
+                "MIGGT")
+                  dropouts=("${mig_dropouts[@]}")
+                  lrs=("${mig_lrs[@]}")
+                  wds=("${mig_wds[@]}")
+                  hiddens=("${mig_n_hidden[@]}")
+                  layers=("${mig_n_layers[@]}")
+                  label_smoothing="${mig_label_smoothing}"
+                  early_stop_patience="${mig_early_stop_patience}"
                   ;;
                 *)
-                  echo "[Error] Unknown late variant: ${variant}" >&2
+                  echo "[Error] Unsupported gnn_model: ${gnn}" >&2
                   exit 1
                   ;;
               esac
-              for gnn in "${GNN_MODELS_ARR[@]}"; do
-                case "${gnn}" in
-                  "GCN")
-                    dropouts=("${gcn_dropouts[@]}")
-                    lrs=("${gcn_lrs[@]}")
-                    wds=("${gcn_wds[@]}")
-                    hiddens=("${gcn_n_hidden[@]}")
-                    layers=("${gcn_n_layers[@]}")
-                    ;;
-                  "SAGE")
-                    dropouts=("${sage_dropouts[@]}")
-                    lrs=("${sage_lrs[@]}")
-                    wds=("${sage_wds[@]}")
-                    hiddens=("${sage_n_hidden[@]}")
-                    layers=("${sage_n_layers[@]}")
-                    ;;
-                  "GAT")
-                    dropouts=("${gat_dropouts[@]}")
-                    lrs=("${gat_lrs[@]}")
-                    wds=("${gat_wds[@]}")
-                    hiddens=("${gat_n_hidden[@]}")
-                    layers=("${gat_n_layers[@]}")
-                    ;;
-                  *)
-                    echo "[Error] Unsupported gnn_model: ${gnn}" >&2
-                    exit 1
-                    ;;
-                esac
-                for do in "${dropouts[@]}"; do
-                  for lr in "${lrs[@]}"; do
-                    for wd in "${wds[@]}"; do
-                      for h in "${hiddens[@]}"; do
-                        for L in "${layers[@]}"; do
-                          model_label="Late-${gnn}"
-                          run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${variant_suffix}"
-                          log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
-                          count_job "${log_file}"
+              for do in "${dropouts[@]}"; do
+                for lr in "${lrs[@]}"; do
+                  for wd in "${wds[@]}"; do
+                    for h in "${hiddens[@]}"; do
+                      for L in "${layers[@]}"; do
+                        model_label="Late-${gnn}"
+                        run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}"
+                        log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
+                        count_job "${log_file}"
+                      done
+                    done
+                  done
+                done
+              done
+            done
+          done
+          ;;
+        "nts")
+          for gnn in "NTSFormer"; do
+            for do in "${nts_dropouts[@]}"; do
+              for lr in "${nts_lrs[@]}"; do
+                for wd in "${nts_wds[@]}"; do
+                  for h in "${nts_n_hidden[@]}"; do
+                    for L in "${nts_n_layers[@]}"; do
+                      for num_tf in "${nts_num_tf_layers[@]}"; do
+                        for num_head in "${nts_num_heads[@]}"; do
+                          for sign_k_val in "${nts_sign_k[@]}"; do
+                            for sign_alpha_val in "${nts_sign_alpha[@]}"; do
+                              model_label="NTSFormer"
+                              run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${do}"
+                              log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
+                              count_job "${log_file}"
+                            done
+                          done
                         done
                       done
                     done
@@ -572,155 +685,23 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
             done
           done
           ;;
-        "tri")
-          for modality in "${EARLY_LATE_MODALITIES_ARR[@]}"; do
-            if [[ "${modality}" != "none" ]]; then
-              echo "[Error] Tri only supports modality=none (got ${modality})." >&2
-              exit 1
-            fi
-            for variant in "${LATE_VARIANTS_ARR[@]}"; do
-              variant_suffix=""
-              case "${variant}" in
-                base)
-                  ;;
-                drop)
-                  variant_suffix="-ModDrop"
-                  ;;
-                *)
-                  echo "[Error] Unknown tri variant: ${variant}" >&2
-                  exit 1
-                  ;;
-              esac
-              for gnn in "${GNN_MODELS_ARR[@]}"; do
-                case "${gnn}" in
-                  "GCN")
-                    dropouts=("${gcn_dropouts[@]}")
-                    lrs=("${gcn_lrs[@]}")
-                    wds=("${gcn_wds[@]}")
-                    hiddens=("${gcn_n_hidden[@]}")
-                    layers=("${gcn_n_layers[@]}")
-                    ;;
-                  "SAGE")
-                    dropouts=("${sage_dropouts[@]}")
-                    lrs=("${sage_lrs[@]}")
-                    wds=("${sage_wds[@]}")
-                    hiddens=("${sage_n_hidden[@]}")
-                    layers=("${sage_n_layers[@]}")
-                    ;;
-                  "GAT")
-                    dropouts=("${gat_dropouts[@]}")
-                    lrs=("${gat_lrs[@]}")
-                    wds=("${gat_wds[@]}")
-                    hiddens=("${gat_n_hidden[@]}")
-                    layers=("${gat_n_layers[@]}")
-                    ;;
-                  *)
-                    echo "[Error] Unsupported gnn_model: ${gnn}" >&2
-                    exit 1
-                    ;;
-                esac
-                for do in "${dropouts[@]}"; do
-                  for lr in "${lrs[@]}"; do
-                    for wd in "${wds[@]}"; do
-                      for h in "${hiddens[@]}"; do
-                        for L in "${layers[@]}"; do
-                          model_label="Tri-${gnn}"
-                          run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${variant_suffix}"
-                          log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
-                          count_job "${log_file}"
-                        done
-                      done
+        "mig")
+          for gnn in "MIGGT"; do
+            for do in "${mig_dropouts[@]}"; do
+              for lr in "${mig_lrs[@]}"; do
+                for wd in "${mig_wds[@]}"; do
+                  for h in "${mig_n_hidden[@]}"; do
+                    for kt_kv in "${mig_k_t_kv[@]}"; do
+                      IFS=',' read -r k_t k_v <<< "${kt_kv}"
+                      model_label="MIGGT"
+                      run_label="${model_label}-lr${lr}-wd${wd}-h${h}-kt${k_t}-kv${k_v}-do${do}"
+                      log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
+                      count_job "${log_file}"
                     done
                   done
                 done
               done
             done
-          done
-          ;;
-        "ogm")
-          for backend in "${OGM_BACKENDS_ARR[@]}"; do
-            if [[ "${backend}" == "mlp" ]]; then
-              for do in "${mlp_dropouts[@]}"; do
-                for lr in "${mlp_lrs[@]}"; do
-                  for wd in "${mlp_wds[@]}"; do
-                    for h in "${mlp_n_hidden[@]}"; do
-                      for L in "${mlp_n_layers[@]}"; do
-                        for om in "${ogm_modulations[@]}"; do
-                          for opd in "${ogm_projection_dims[@]}"; do
-                            for os in "${ogm_modulation_starts[@]}"; do
-                              for oe in "${ogm_modulation_ends[@]}"; do
-                                for oa in "${ogm_alphas[@]}"; do
-                                  model_label="MLP"
-                                  run_label="OGMMLP-lr${lr}-wd${wd}-h${h}-L${L}-do${do}-mod${om}-p${opd}-ms${os}-me${oe}-a${oa}"
-                                  log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
-                                  count_job "${log_file}"
-                                done
-                              done
-                            done
-                          done
-                        done
-                      done
-                    done
-                  done
-                done
-              done
-            elif [[ "${backend}" == "gnn" ]]; then
-              for gnn in "${GNN_MODELS_ARR[@]}"; do
-                case "${gnn}" in
-                  "GCN")
-                    dropouts=("${gcn_dropouts[@]}")
-                    lrs=("${gcn_lrs[@]}")
-                    wds=("${gcn_wds[@]}")
-                    hiddens=("${gcn_n_hidden[@]}")
-                    layers=("${gcn_n_layers[@]}")
-                    ;;
-                  "SAGE")
-                    dropouts=("${sage_dropouts[@]}")
-                    lrs=("${sage_lrs[@]}")
-                    wds=("${sage_wds[@]}")
-                    hiddens=("${sage_n_hidden[@]}")
-                    layers=("${sage_n_layers[@]}")
-                    ;;
-                  "GAT")
-                    dropouts=("${gat_dropouts[@]}")
-                    lrs=("${gat_lrs[@]}")
-                    wds=("${gat_wds[@]}")
-                    hiddens=("${gat_n_hidden[@]}")
-                    layers=("${gat_n_layers[@]}")
-                    ;;
-                  *)
-                    echo "[Error] Unsupported gnn_model: ${gnn}" >&2
-                    exit 1
-                    ;;
-                esac
-                for do in "${dropouts[@]}"; do
-                  for lr in "${lrs[@]}"; do
-                    for wd in "${wds[@]}"; do
-                      for h in "${hiddens[@]}"; do
-                        for L in "${layers[@]}"; do
-                          for om in "${ogm_modulations[@]}"; do
-                            for opd in "${ogm_projection_dims[@]}"; do
-                              for os in "${ogm_modulation_starts[@]}"; do
-                                for oe in "${ogm_modulation_ends[@]}"; do
-                                  for oa in "${ogm_alphas[@]}"; do
-                                    run_label="OGMGNN-${gnn}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}-mod${om}-p${opd}-ms${os}-me${oe}-a${oa}"
-                                    log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
-                                    count_job "${log_file}"
-                                  done
-                                done
-                              done
-                            done
-                          done
-                        done
-                      done
-                    done
-                  done
-                done
-              done
-            else
-              echo "[Error] Unknown backend: ${backend}" >&2
-              exit 1
-            fi
           done
           ;;
         *)
@@ -785,7 +766,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                             env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
                               WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/plain" \
                               WANDB_TAGS="exp=plain,ds=${ds},fg=${FEATURE_GROUP},backend=mlp,model=MLP,modality=${modality}" \
-                              python GNN/Library/MAG/Plain_GNN.py \
+                              python -m GNN.Baselines.Early_GNN \
                                 --data_name "${ds}" \
                                 --graph_path "${GRAPH_PATH[$ds]}" \
                                 --text_feature "${TEXT_FEAT[$ds]}" \
@@ -848,6 +829,26 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       early_stop_patience="${gat_early_stop_patience}"
                       extra_args=(--n-heads "${gat_n_heads}" --attn-drop "${gat_attn_drop}" --edge-drop "${gat_edge_drop}" --no-attn-dst "${gat_no_attn_dst}")
                       ;;
+                    "GCNII")
+                      dropouts=("${gcnii_dropouts[@]}")
+                      lrs=("${gcnii_lrs[@]}")
+                      wds=("${gcnii_wds[@]}")
+                      hiddens=("${gcnii_n_hidden[@]}")
+                      layers=("${gcnii_n_layers[@]}")
+                      label_smoothing="${gcnii_label_smoothing}"
+                      early_stop_patience="${gcnii_early_stop_patience}"
+                      extra_args=(--gcnii-lamda "${gcnii_lamda}" --gcnii-alpha "${gcnii_alpha}" --gcnii-variant "${gcnii_variant}")
+                      ;;
+                    "JKNet")
+                      dropouts=("${jknet_dropouts[@]}")
+                      lrs=("${jknet_lrs[@]}")
+                      wds=("${jknet_wds[@]}")
+                      hiddens=("${jknet_n_hidden[@]}")
+                      layers=("${jknet_n_layers[@]}")
+                      label_smoothing="${jknet_label_smoothing}"
+                      early_stop_patience="${jknet_early_stop_patience}"
+                      extra_args=(--jknet-aggr "${jknet_aggr}")
+                      ;;
                     *)
                       echo "[Error] Unsupported gnn_model: ${gnn}" >&2
                       exit 1
@@ -873,7 +874,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                               env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
                                 WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/plain" \
                                 WANDB_TAGS="exp=plain,ds=${ds},fg=${FEATURE_GROUP},backend=gnn,model=${gnn},modality=${modality}" \
-                                python GNN/Library/MAG/Plain_GNN.py \
+                                python -m GNN.Baselines.Early_GNN \
                                   --data_name "${ds}" \
                                   --graph_path "${GRAPH_PATH[$ds]}" \
                                   --text_feature "${TEXT_FEAT[$ds]}" \
@@ -898,6 +899,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                   "${DEGRADE_ALPHAS_ARG[@]}" \
                                   --backend "gnn" --model_name "${gnn}" \
                                   --single_modality "${modality}" \
+                                  --separate_classifier \
                                   "${extra_args[@]}"
                           done
                         done
@@ -914,55 +916,148 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           ;;
         "baseline")
           modality="none"
-          for variant in "${BASELINE_VARIANTS_ARR[@]}"; do
-              variant_drop=0.0
-              variant_suffix=""
-              case "${variant}" in
-                base)
-                  ;;
-                drop)
-                  variant_drop="${EARLY_MODALITY_DROPOUT}"
-                  variant_suffix="-ModDrop"
-                  ;;
-                *)
-                  echo "[Error] Unknown baseline variant: ${variant}" >&2
-                  exit 1
-                  ;;
-              esac
+          for early_fuse in "${EARLY_FUSE_MODES_ARR[@]}"; do
+            fuse_suffix=""
+            fuse_tag_suffix=""
+            case "${early_fuse}" in
+              concat)
+                ;;
+              sum)
+                fuse_suffix="-sum"
+                fuse_tag_suffix="-sum"
+                ;;
+              *)
+                echo "[Error] Unknown EARLY_FUSE_MODES entry: ${early_fuse} (use concat|sum)" >&2
+                exit 1
+                ;;
+            esac
 
-              for early_fuse in "${EARLY_FUSE_MODES_ARR[@]}"; do
-                fuse_suffix=""
-                fuse_tag_suffix=""
-                case "${early_fuse}" in
-                  concat)
-                    ;;
-                  sum)
-                    fuse_suffix="-sum"
-                    fuse_tag_suffix="-sum"
-                    ;;
-                  *)
-                    echo "[Error] Unknown EARLY_FUSE_MODES entry: ${early_fuse} (use concat|sum)" >&2
-                    exit 1
-                    ;;
-                esac
-
-              for backend in "${BACKENDS_ARR[@]}"; do
-                if [[ "${backend}" == "mlp" ]]; then
-                  variant_tag="EF-MLP${fuse_tag_suffix}"
-                  case "${variant}" in
-                    base) ;;
-                    drop) variant_tag="${variant_tag}+ModDrop" ;;
+            for backend in "${BACKENDS_ARR[@]}"; do
+              if [[ "${backend}" == "mlp" ]]; then
+                variant_tag="EF-MLP${fuse_tag_suffix}"
+                for do in "${mlp_dropouts[@]}"; do
+                  for lr in "${mlp_lrs[@]}"; do
+                    for wd in "${mlp_wds[@]}"; do
+                      for h in "${mlp_n_hidden[@]}"; do
+                        for L in "${mlp_n_layers[@]}"; do
+                          model_label="MLP"
+                          run_label="${modality^}-${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${fuse_suffix}"
+                          log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
+                          if [[ "${DRY_RUN}" == "true" ]]; then
+                            echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=baseline early_fuse=${early_fuse} backend=mlp model=MLP lr=${lr} wd=${wd} h=${h} L=${L} do=${do}"
+                            continue
+                          fi
+                          if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
+                            echo "[SKIP] ${run_label} (done) | ${log_file}"
+                            continue
+                          fi
+                          run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
+                            env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
+                              WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/baseline" \
+                              WANDB_TAGS="exp=baseline,early_fuse=${early_fuse},ds=${ds},fg=${FEATURE_GROUP},backend=mlp,model=MLP" \
+                              python -m GNN.Baselines.Early_GNN \
+                                --data_name "${ds}" \
+                                --graph_path "${GRAPH_PATH[$ds]}" \
+                                --text_feature "${TEXT_FEAT[$ds]}" \
+                                --visual_feature "${VIS_FEAT[$ds]}" \
+                                --gpu "${GPU_ID}" \
+                                --inductive "${INDUCTIVE}" \
+                                --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
+                                --metric "${METRIC}" --average "${AVERAGE}" \
+                                "${RESULT_CSV_ARG[@]}" \
+                                "${RESULT_CSV_ALL_ARG[@]}" \
+                                --report_drop_modality "${REPORT_DROP_MODALITY}" \
+                                --report_drop_mode "${REPORT_DROP_MODE}" \
+                                --degrade_alpha "${DEGRADE_ALPHA}" \
+                                --result_tag "${variant_tag}" \
+                                --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
+                                --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
+                                --early_stop_patience "${mlp_early_stop_patience}" \
+                                --lr "${lr}" --wd "${wd}" \
+                                --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
+                                --label-smoothing "${mlp_label_smoothing}" \
+                                --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
+                                --backend "mlp" --model_name "MLP" \
+                                --early_fuse "${early_fuse}" \
+                                --kd_weight "${KD_WEIGHT:-0.0}" \
+                                --kd_temperature "${KD_TEMPERATURE:-1.0}" \
+                                "${DEGRADE_TARGET_ARG[@]}" \
+                                "${DEGRADE_ALPHAS_ARG[@]}" \
+                                ${MM_PROJ_DIM:+--mm_proj_dim "${MM_PROJ_DIM}"}
+                        done
+                      done
+                    done
+                  done
+                done
+              elif [[ "${backend}" == "gnn" ]]; then
+                variant_tag="EF-GNN${fuse_tag_suffix}"
+                for gnn in "${GNN_MODELS_ARR[@]}"; do
+                  extra_args=()
+                  case "${gnn}" in
+                    "GCN")
+                      dropouts=("${gcn_dropouts[@]}")
+                      lrs=("${gcn_lrs[@]}")
+                      wds=("${gcn_wds[@]}")
+                      hiddens=("${gcn_n_hidden[@]}")
+                      layers=("${gcn_n_layers[@]}")
+                      label_smoothing="${gcn_label_smoothing}"
+                      early_stop_patience="${gcn_early_stop_patience}"
+                      ;;
+                    "SAGE")
+                      dropouts=("${sage_dropouts[@]}")
+                      lrs=("${sage_lrs[@]}")
+                      wds=("${sage_wds[@]}")
+                      hiddens=("${sage_n_hidden[@]}")
+                      layers=("${sage_n_layers[@]}")
+                      label_smoothing="${sage_label_smoothing}"
+                      early_stop_patience="${sage_early_stop_patience}"
+                      extra_args=(--aggregator "${sage_aggregator}")
+                      ;;
+                    "GAT")
+                      dropouts=("${gat_dropouts[@]}")
+                      lrs=("${gat_lrs[@]}")
+                      wds=("${gat_wds[@]}")
+                      hiddens=("${gat_n_hidden[@]}")
+                      layers=("${gat_n_layers[@]}")
+                      label_smoothing="${gat_label_smoothing}"
+                      early_stop_patience="${gat_early_stop_patience}"
+                      extra_args=(--n-heads "${gat_n_heads}" --attn-drop "${gat_attn_drop}" --edge-drop "${gat_edge_drop}" --no-attn-dst "${gat_no_attn_dst}")
+                      ;;
+                    "GCNII")
+                      dropouts=("${gcnii_dropouts[@]}")
+                      lrs=("${gcnii_lrs[@]}")
+                      wds=("${gcnii_wds[@]}")
+                      hiddens=("${gcnii_n_hidden[@]}")
+                      layers=("${gcnii_n_layers[@]}")
+                      label_smoothing="${gcnii_label_smoothing}"
+                      early_stop_patience="${gcnii_early_stop_patience}"
+                      extra_args=(--gcnii-lamda "${gcnii_lamda}" --gcnii-alpha "${gcnii_alpha}" --gcnii-variant "${gcnii_variant}")
+                      ;;
+                    "JKNet")
+                      dropouts=("${jknet_dropouts[@]}")
+                      lrs=("${jknet_lrs[@]}")
+                      wds=("${jknet_wds[@]}")
+                      hiddens=("${jknet_n_hidden[@]}")
+                      layers=("${jknet_n_layers[@]}")
+                      label_smoothing="${jknet_label_smoothing}"
+                      early_stop_patience="${jknet_early_stop_patience}"
+                      extra_args=(--jknet-aggr "${jknet_aggr}")
+                      ;;
+                    *)
+                      echo "[Error] Unsupported gnn_model: ${gnn}" >&2
+                      exit 1
+                      ;;
                   esac
-                  for do in "${mlp_dropouts[@]}"; do
-                    for lr in "${mlp_lrs[@]}"; do
-                      for wd in "${mlp_wds[@]}"; do
-                        for h in "${mlp_n_hidden[@]}"; do
-                          for L in "${mlp_n_layers[@]}"; do
-                            model_label="MLP"
-                            run_label="${modality^}-${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${variant_suffix}${fuse_suffix}"
+                  for do in "${dropouts[@]}"; do
+                    for lr in "${lrs[@]}"; do
+                      for wd in "${wds[@]}"; do
+                        for h in "${hiddens[@]}"; do
+                          for L in "${layers[@]}"; do
+                            model_label="${gnn}"
+                            run_label="${modality^}-${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${fuse_suffix}"
                             log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
                             if [[ "${DRY_RUN}" == "true" ]]; then
-                              echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=baseline variant=${variant} early_fuse=${early_fuse} backend=mlp model=MLP lr=${lr} wd=${wd} h=${h} L=${L} do=${do}"
+                              echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=baseline early_fuse=${early_fuse} backend=gnn model=${gnn} lr=${lr} wd=${wd} h=${h} L=${L} do=${do}"
                               continue
                             fi
                             if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
@@ -972,8 +1067,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                             run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
                               env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
                                 WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/baseline" \
-                                WANDB_TAGS="exp=baseline,variant=${variant},early_fuse=${early_fuse},ds=${ds},fg=${FEATURE_GROUP},backend=mlp,model=MLP" \
-                                python GNN/Library/MAG/Early_GNN.py \
+                                WANDB_TAGS="exp=baseline,early_fuse=${early_fuse},ds=${ds},fg=${FEATURE_GROUP},backend=gnn,model=${gnn}" \
+                                python -m GNN.Baselines.Early_GNN \
                                   --data_name "${ds}" \
                                   --graph_path "${GRAPH_PATH[$ds]}" \
                                   --text_feature "${TEXT_FEAT[$ds]}" \
@@ -990,77 +1085,187 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                   --result_tag "${variant_tag}" \
                                   --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
                                   --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
-                                  --early_stop_patience "${mlp_early_stop_patience}" \
+                                  --early_stop_patience "${early_stop_patience}" \
                                   --lr "${lr}" --wd "${wd}" \
                                   --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
-                                  --label-smoothing "${mlp_label_smoothing}" \
+                                  --label-smoothing "${label_smoothing}" \
                                   --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
-                                  --backend "mlp" --model_name "MLP" \
+                                  --backend "gnn" --model_name "${gnn}" \
                                   --early_fuse "${early_fuse}" \
-                                  --modality_dropout "${variant_drop}" \
-                                  --kd_weight "${KD_WEIGHT}" \
-                                  --kd_temperature "${KD_TEMPERATURE}" \
+                                  --separate_classifier \
+                                  --kd_weight "${KD_WEIGHT:-0.0}" \
+                                  --kd_temperature "${KD_TEMPERATURE:-1.0}" \
                                   "${DEGRADE_TARGET_ARG[@]}" \
                                   "${DEGRADE_ALPHAS_ARG[@]}" \
+                                  "${extra_args[@]}" \
                                   ${MM_PROJ_DIM:+--mm_proj_dim "${MM_PROJ_DIM}"}
                           done
                         done
                       done
                     done
                   done
-                elif [[ "${backend}" == "gnn" ]]; then
-                  variant_tag="EF-GNN${fuse_tag_suffix}"
-                  case "${variant}" in
-                    base) ;;
-                    drop) variant_tag="${variant_tag}+ModDrop" ;;
-                  esac
-                  for gnn in "${GNN_MODELS_ARR[@]}"; do
-                    extra_args=()
-                    case "${gnn}" in
-                      "GCN")
-                        dropouts=("${gcn_dropouts[@]}")
-                        lrs=("${gcn_lrs[@]}")
-                        wds=("${gcn_wds[@]}")
-                        hiddens=("${gcn_n_hidden[@]}")
-                        layers=("${gcn_n_layers[@]}")
-                        label_smoothing="${gcn_label_smoothing}"
-                        early_stop_patience="${gcn_early_stop_patience}"
-                        ;;
-                      "SAGE")
-                        dropouts=("${sage_dropouts[@]}")
-                        lrs=("${sage_lrs[@]}")
-                        wds=("${sage_wds[@]}")
-                        hiddens=("${sage_n_hidden[@]}")
-                        layers=("${sage_n_layers[@]}")
-                        label_smoothing="${sage_label_smoothing}"
-                        early_stop_patience="${sage_early_stop_patience}"
-                        extra_args=(--aggregator "${sage_aggregator}")
-                        ;;
-                      "GAT")
-                        dropouts=("${gat_dropouts[@]}")
-                        lrs=("${gat_lrs[@]}")
-                        wds=("${gat_wds[@]}")
-                        hiddens=("${gat_n_hidden[@]}")
-                        layers=("${gat_n_layers[@]}")
-                        label_smoothing="${gat_label_smoothing}"
-                        early_stop_patience="${gat_early_stop_patience}"
-                        extra_args=(--n-heads "${gat_n_heads}" --attn-drop "${gat_attn_drop}" --edge-drop "${gat_edge_drop}" --no-attn-dst "${gat_no_attn_dst}")
-                        ;;
-                      *)
-                        echo "[Error] Unsupported gnn_model: ${gnn}" >&2
-                        exit 1
-                        ;;
-                    esac
-                    for do in "${dropouts[@]}"; do
-                      for lr in "${lrs[@]}"; do
-                        for wd in "${wds[@]}"; do
-                          for h in "${hiddens[@]}"; do
-                            for L in "${layers[@]}"; do
-                              model_label="${gnn}"
-                              run_label="${modality^}-${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${variant_suffix}${fuse_suffix}"
+                done
+              else
+                echo "[Error] Unknown backend: ${backend}" >&2
+                exit 1
+              fi
+            done
+          done
+          ;;
+        "late")
+          for modality in "${EARLY_LATE_MODALITIES_ARR[@]}"; do
+            if [[ "${modality}" != "none" ]]; then
+              echo "[Error] Late only supports modality=none (got ${modality})." >&2
+              exit 1
+            fi
+            variant_tag="LF-GNN"
+            for gnn in "${GNN_MODELS_ARR[@]}"; do
+              extra_args=()
+              case "${gnn}" in
+                "GCN")
+                  dropouts=("${gcn_dropouts[@]}")
+                  lrs=("${gcn_lrs[@]}")
+                  wds=("${gcn_wds[@]}")
+                  hiddens=("${gcn_n_hidden[@]}")
+                  layers=("${gcn_n_layers[@]}")
+                  label_smoothing="${gcn_label_smoothing}"
+                  early_stop_patience="${gcn_early_stop_patience}"
+                  ;;
+                "SAGE")
+                  dropouts=("${sage_dropouts[@]}")
+                  lrs=("${sage_lrs[@]}")
+                  wds=("${sage_wds[@]}")
+                  hiddens=("${sage_n_hidden[@]}")
+                  layers=("${sage_n_layers[@]}")
+                  label_smoothing="${sage_label_smoothing}"
+                  early_stop_patience="${sage_early_stop_patience}"
+                  extra_args=(--aggregator "${sage_aggregator}")
+                  ;;
+                "GAT")
+                  dropouts=("${gat_dropouts[@]}")
+                  lrs=("${gat_lrs[@]}")
+                  wds=("${gat_wds[@]}")
+                  hiddens=("${gat_n_hidden[@]}")
+                  layers=("${gat_n_layers[@]}")
+                  label_smoothing="${gat_label_smoothing}"
+                  early_stop_patience="${gat_early_stop_patience}"
+                  extra_args=(--n-heads "${gat_n_heads}" --attn-drop "${gat_attn_drop}" --edge-drop "${gat_edge_drop}" --no-attn-dst "${gat_no_attn_dst}")
+                  ;;
+                "GCNII")
+                  dropouts=("${gcnii_dropouts[@]}")
+                  lrs=("${gcnii_lrs[@]}")
+                  wds=("${gcnii_wds[@]}")
+                  hiddens=("${gcnii_n_hidden[@]}")
+                  layers=("${gcnii_n_layers[@]}")
+                  label_smoothing="${gcnii_label_smoothing}"
+                  early_stop_patience="${gcnii_early_stop_patience}"
+                  extra_args=(--gcnii-lamda "${gcnii_lamda}" --gcnii-alpha "${gcnii_alpha}" --gcnii-variant "${gcnii_variant}")
+                  ;;
+                "JKNet")
+                  dropouts=("${jknet_dropouts[@]}")
+                  lrs=("${jknet_lrs[@]}")
+                  wds=("${jknet_wds[@]}")
+                  hiddens=("${jknet_n_hidden[@]}")
+                  layers=("${jknet_n_layers[@]}")
+                  label_smoothing="${jknet_label_smoothing}"
+                  early_stop_patience="${jknet_early_stop_patience}"
+                  extra_args=(--jknet-aggr "${jknet_aggr}")
+                  ;;
+                "NTSFormer")
+                  dropouts=("${nts_dropouts[@]}")
+                  lrs=("${nts_lrs[@]}")
+                  wds=("${nts_wds[@]}")
+                  hiddens=("${nts_n_hidden[@]}")
+                  layers=("${nts_n_layers[@]}")
+                  label_smoothing="${nts_label_smoothing}"
+                  early_stop_patience="${nts_early_stop_patience}"
+                  ;;
+                "MIGGT")
+                  dropouts=("${mig_dropouts[@]}")
+                  lrs=("${mig_lrs[@]}")
+                  wds=("${mig_wds[@]}")
+                  hiddens=("${mig_n_hidden[@]}")
+                  layers=("${mig_n_layers[@]}")
+                  label_smoothing="${mig_label_smoothing}"
+                  early_stop_patience="${mig_early_stop_patience}"
+                  ;;
+                *)
+                  echo "[Error] Unsupported gnn_model: ${gnn}" >&2
+                  exit 1
+                  ;;
+              esac
+              for do in "${dropouts[@]}"; do
+                for lr in "${lrs[@]}"; do
+                  for wd in "${wds[@]}"; do
+                    for h in "${hiddens[@]}"; do
+                      for L in "${layers[@]}"; do
+                        model_label="Late-${gnn}"
+                        run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}"
+                        log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
+                        if [[ "${DRY_RUN}" == "true" ]]; then
+                          echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=late model=${gnn} lr=${lr} wd=${wd} h=${h} L=${L} do=${do}"
+                          continue
+                        fi
+                        if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
+                          echo "[SKIP] ${run_label} (done) | ${log_file}"
+                          continue
+                        fi
+                        run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
+                          env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
+                            WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/late" \
+                            WANDB_TAGS="exp=late,ds=${ds},fg=${FEATURE_GROUP},model=${gnn},modality=${modality}" \
+                            python -m GNN.Baselines.Late_GNN \
+                              --data_name "${ds}" \
+                              --graph_path "${GRAPH_PATH[$ds]}" \
+                              --text_feature "${TEXT_FEAT[$ds]}" \
+                              --visual_feature "${VIS_FEAT[$ds]}" \
+                              --gpu "${GPU_ID}" \
+                              --inductive "${INDUCTIVE}" \
+                              --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
+                              --metric "${METRIC}" --average "${AVERAGE}" \
+                              "${RESULT_CSV_ARG[@]}" \
+                              "${RESULT_CSV_ALL_ARG[@]}" \
+                              --report_drop_modality "${REPORT_DROP_MODALITY}" \
+                              --report_drop_mode "${REPORT_DROP_MODE}" \
+                              --degrade_alpha "${DEGRADE_ALPHA}" \
+                              --result_tag "${variant_tag}" \
+                              --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
+                              --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
+                              --early_stop_patience "${early_stop_patience}" \
+                              --lr "${lr}" --wd "${wd}" \
+                              --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
+                              --label-smoothing "${label_smoothing}" \
+                              --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
+                              --model_name "${gnn}" \
+                              --kd_weight "${KD_WEIGHT:-0.0}" \
+                              --kd_temperature "${KD_TEMPERATURE:-1.0}" \
+                              "${DEGRADE_TARGET_ARG[@]}" \
+                              "${DEGRADE_ALPHAS_ARG[@]}" \
+                              "${extra_args[@]}"
+                      done
+                    done
+                  done
+                done
+              done
+            done
+          done
+          ;;
+        "nts")
+          for gnn in "NTSFormer"; do
+            for do in "${nts_dropouts[@]}"; do
+              for lr in "${nts_lrs[@]}"; do
+                for wd in "${nts_wds[@]}"; do
+                  for h in "${nts_n_hidden[@]}"; do
+                    for L in "${nts_n_layers[@]}"; do
+                      for num_tf in "${nts_num_tf_layers[@]}"; do
+                        for num_head in "${nts_num_heads[@]}"; do
+                          for sign_k_val in "${nts_sign_k[@]}"; do
+                            for sign_alpha_val in "${nts_sign_alpha[@]}"; do
+                              model_label="NTSFormer"
+                              run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${do}"
                               log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
                               if [[ "${DRY_RUN}" == "true" ]]; then
-                                echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=baseline variant=${variant} early_fuse=${early_fuse} backend=gnn model=${gnn} lr=${lr} wd=${wd} h=${h} L=${L} do=${do}"
+                                echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=nts model=NTSFormer lr=${lr} wd=${wd} h=${h} L=${L} tf=${num_tf} head=${num_head} k=${sign_k_val} alpha=${sign_alpha_val} do=${do}"
                                 continue
                               fi
                               if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
@@ -1069,9 +1274,9 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                               fi
                               run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
                                 env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
-                                  WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/baseline" \
-                                  WANDB_TAGS="exp=baseline,variant=${variant},early_fuse=${early_fuse},ds=${ds},fg=${FEATURE_GROUP},backend=gnn,model=${gnn}" \
-                                  python GNN/Library/MAG/Early_GNN.py \
+                                  WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/nts" \
+                                  WANDB_TAGS="exp=nts,ds=${ds},fg=${FEATURE_GROUP},model=NTSFormer" \
+                                  python -m GNN.Baselines.NTSFormer \
                                     --data_name "${ds}" \
                                     --graph_path "${GRAPH_PATH[$ds]}" \
                                     --text_feature "${TEXT_FEAT[$ds]}" \
@@ -1082,151 +1287,19 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                     --metric "${METRIC}" --average "${AVERAGE}" \
                                     "${RESULT_CSV_ARG[@]}" \
                                     "${RESULT_CSV_ALL_ARG[@]}" \
-                                    --report_drop_modality "${REPORT_DROP_MODALITY}" \
-                                    --report_drop_mode "${REPORT_DROP_MODE}" \
-                                    --degrade_alpha "${DEGRADE_ALPHA}" \
-                                    --result_tag "${variant_tag}" \
                                     --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
                                     --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
-                                    --early_stop_patience "${early_stop_patience}" \
+                                    --early_stop_patience "${nts_early_stop_patience}" \
                                     --lr "${lr}" --wd "${wd}" \
                                     --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
-                                    --label-smoothing "${label_smoothing}" \
+                                    --label-smoothing "${nts_label_smoothing}" \
                                     --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
-                                    --backend "gnn" --model_name "${gnn}" \
-                                    --early_fuse "${early_fuse}" \
-                                    --modality_dropout "${variant_drop}" \
-                                    --kd_weight "${KD_WEIGHT}" \
-                                    --kd_temperature "${KD_TEMPERATURE}" \
-                                    "${DEGRADE_TARGET_ARG[@]}" \
-                                    "${DEGRADE_ALPHAS_ARG[@]}" \
-                                    "${extra_args[@]}" \
-                                    ${MM_PROJ_DIM:+--mm_proj_dim "${MM_PROJ_DIM}"}
+                                    --nts_num_tf_layers "${num_tf}" \
+                                    --nts_num_heads "${num_head}" \
+                                    --nts_sign_k "${sign_k_val}" \
+                                    --nts_sign_alpha "${sign_alpha_val}"
                             done
                           done
-                        done
-                      done
-                    done
-                  done
-                else
-                  echo "[Error] Unknown backend: ${backend}" >&2
-                  exit 1
-                fi
-            done
-            done
-          done
-          ;;
-        "late")
-          for modality in "${EARLY_LATE_MODALITIES_ARR[@]}"; do
-            if [[ "${modality}" != "none" ]]; then
-              echo "[Error] Late only supports modality=none (got ${modality})." >&2
-              exit 1
-            fi
-            for variant in "${LATE_VARIANTS_ARR[@]}"; do
-              variant_drop=0.0
-              variant_suffix=""
-              case "${variant}" in
-                base)
-                  ;;
-                drop)
-                  variant_drop="${LATE_MODALITY_DROPOUT}"
-                  variant_suffix="-ModDrop"
-                  ;;
-                *)
-                  echo "[Error] Unknown late variant: ${variant}" >&2
-                  exit 1
-                  ;;
-              esac
-              case "${variant}" in
-                base) variant_tag="LF-GNN" ;;
-                drop) variant_tag="LF-GNN+ModDrop" ;;
-              esac
-              for gnn in "${GNN_MODELS_ARR[@]}"; do
-                extra_args=()
-                case "${gnn}" in
-                  "GCN")
-                    dropouts=("${gcn_dropouts[@]}")
-                    lrs=("${gcn_lrs[@]}")
-                    wds=("${gcn_wds[@]}")
-                    hiddens=("${gcn_n_hidden[@]}")
-                    layers=("${gcn_n_layers[@]}")
-                    label_smoothing="${gcn_label_smoothing}"
-                    early_stop_patience="${gcn_early_stop_patience}"
-                    ;;
-                  "SAGE")
-                    dropouts=("${sage_dropouts[@]}")
-                    lrs=("${sage_lrs[@]}")
-                    wds=("${sage_wds[@]}")
-                    hiddens=("${sage_n_hidden[@]}")
-                    layers=("${sage_n_layers[@]}")
-                    label_smoothing="${sage_label_smoothing}"
-                    early_stop_patience="${sage_early_stop_patience}"
-                    extra_args=(--aggregator "${sage_aggregator}")
-                    ;;
-                  "GAT")
-                    dropouts=("${gat_dropouts[@]}")
-                    lrs=("${gat_lrs[@]}")
-                    wds=("${gat_wds[@]}")
-                    hiddens=("${gat_n_hidden[@]}")
-                    layers=("${gat_n_layers[@]}")
-                    label_smoothing="${gat_label_smoothing}"
-                    early_stop_patience="${gat_early_stop_patience}"
-                    extra_args=(--n-heads "${gat_n_heads}" --attn-drop "${gat_attn_drop}" --edge-drop "${gat_edge_drop}" --no-attn-dst "${gat_no_attn_dst}")
-                    ;;
-                  *)
-                    echo "[Error] Unsupported gnn_model: ${gnn}" >&2
-                    exit 1
-                    ;;
-                esac
-                for do in "${dropouts[@]}"; do
-                  for lr in "${lrs[@]}"; do
-                    for wd in "${wds[@]}"; do
-                      for h in "${hiddens[@]}"; do
-                        for L in "${layers[@]}"; do
-                          model_label="Late-${gnn}"
-                          run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${variant_suffix}"
-                          log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
-                          if [[ "${DRY_RUN}" == "true" ]]; then
-                            echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=late variant=${variant} model=${gnn} lr=${lr} wd=${wd} h=${h} L=${L} do=${do}"
-                            continue
-                          fi
-                          if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
-                            echo "[SKIP] ${run_label} (done) | ${log_file}"
-                            continue
-                          fi
-                          run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
-                            env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
-                              WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/late" \
-                              WANDB_TAGS="exp=late,variant=${variant},ds=${ds},fg=${FEATURE_GROUP},model=${gnn},modality=${modality}" \
-                              python GNN/Library/MAG/Late_GNN.py \
-                                --data_name "${ds}" \
-                                --graph_path "${GRAPH_PATH[$ds]}" \
-                                --text_feature "${TEXT_FEAT[$ds]}" \
-                                --visual_feature "${VIS_FEAT[$ds]}" \
-                                --gpu "${GPU_ID}" \
-                                --inductive "${INDUCTIVE}" \
-                                --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
-                                --metric "${METRIC}" --average "${AVERAGE}" \
-                                "${RESULT_CSV_ARG[@]}" \
-                                "${RESULT_CSV_ALL_ARG[@]}" \
-                                --report_drop_modality "${REPORT_DROP_MODALITY}" \
-                                --report_drop_mode "${REPORT_DROP_MODE}" \
-                                --degrade_alpha "${DEGRADE_ALPHA}" \
-                                --result_tag "${variant_tag}" \
-                                --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
-                                --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
-                                --early_stop_patience "${early_stop_patience}" \
-                                --lr "${lr}" --wd "${wd}" \
-                                --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
-                                --label-smoothing "${label_smoothing}" \
-                                --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
-                                --model_name "${gnn}" \
-                                --modality_dropout "${variant_drop}" \
-                                --kd_weight "${KD_WEIGHT}" \
-                                --kd_temperature "${KD_TEMPERATURE}" \
-                                "${DEGRADE_TARGET_ARG[@]}" \
-                                "${DEGRADE_ALPHAS_ARG[@]}" \
-                                "${extra_args[@]}"
                         done
                       done
                     done
@@ -1236,300 +1309,56 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
             done
           done
           ;;
-        "tri")
-          for modality in "${EARLY_LATE_MODALITIES_ARR[@]}"; do
-            if [[ "${modality}" != "none" ]]; then
-              echo "[Error] Tri only supports modality=none (got ${modality})." >&2
-              exit 1
-            fi
-            for variant in "${LATE_VARIANTS_ARR[@]}"; do
-              variant_drop=0.0
-              variant_suffix=""
-              case "${variant}" in
-                base)
-                  ;;
-                drop)
-                  variant_drop="${LATE_MODALITY_DROPOUT}"
-                  variant_suffix="-ModDrop"
-                  ;;
-                *)
-                  echo "[Error] Unknown tri variant: ${variant}" >&2
-                  exit 1
-                  ;;
-              esac
-              case "${variant}" in
-                base) variant_tag="Tri-GNN" ;;
-                drop) variant_tag="Tri-GNN+ModDrop" ;;
-              esac
-              for gnn in "${GNN_MODELS_ARR[@]}"; do
-                extra_args=()
-                case "${gnn}" in
-                  "GCN")
-                    dropouts=("${gcn_dropouts[@]}")
-                    lrs=("${gcn_lrs[@]}")
-                    wds=("${gcn_wds[@]}")
-                    hiddens=("${gcn_n_hidden[@]}")
-                    layers=("${gcn_n_layers[@]}")
-                    label_smoothing="${gcn_label_smoothing}"
-                    early_stop_patience="${gcn_early_stop_patience}"
-                    ;;
-                  "SAGE")
-                    dropouts=("${sage_dropouts[@]}")
-                    lrs=("${sage_lrs[@]}")
-                    wds=("${sage_wds[@]}")
-                    hiddens=("${sage_n_hidden[@]}")
-                    layers=("${sage_n_layers[@]}")
-                    label_smoothing="${sage_label_smoothing}"
-                    early_stop_patience="${sage_early_stop_patience}"
-                    extra_args=(--aggregator "${sage_aggregator}")
-                    ;;
-                  "GAT")
-                    dropouts=("${gat_dropouts[@]}")
-                    lrs=("${gat_lrs[@]}")
-                    wds=("${gat_wds[@]}")
-                    hiddens=("${gat_n_hidden[@]}")
-                    layers=("${gat_n_layers[@]}")
-                    label_smoothing="${gat_label_smoothing}"
-                    early_stop_patience="${gat_early_stop_patience}"
-                    extra_args=(--n-heads "${gat_n_heads}" --attn-drop "${gat_attn_drop}" --edge-drop "${gat_edge_drop}" --no-attn-dst "${gat_no_attn_dst}")
-                    ;;
-                  *)
-                    echo "[Error] Unsupported gnn_model: ${gnn}" >&2
-                    exit 1
-                    ;;
-                esac
-                for do in "${dropouts[@]}"; do
-                  for lr in "${lrs[@]}"; do
-                    for wd in "${wds[@]}"; do
-                      for h in "${hiddens[@]}"; do
-                        for L in "${layers[@]}"; do
-                          model_label="Tri-${gnn}"
-                          run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}${variant_suffix}"
-                          log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
-                          if [[ "${DRY_RUN}" == "true" ]]; then
-                            echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=tri variant=${variant} model=${gnn} lr=${lr} wd=${wd} h=${h} L=${L} do=${do}"
-                            continue
-                          fi
-                          if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
-                            echo "[SKIP] ${run_label} (done) | ${log_file}"
-                            continue
-                          fi
-                          run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
-                            env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
-                              WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/tri" \
-                              WANDB_TAGS="exp=tri,variant=${variant},ds=${ds},fg=${FEATURE_GROUP},model=${gnn},modality=${modality}" \
-                              python GNN/Library/MAG/Tri_GNN.py \
-                                --data_name "${ds}" \
-                                --graph_path "${GRAPH_PATH[$ds]}" \
-                                --text_feature "${TEXT_FEAT[$ds]}" \
-                                --visual_feature "${VIS_FEAT[$ds]}" \
-                                --gpu "${GPU_ID}" \
-                                --inductive "${INDUCTIVE}" \
-                                --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
-                                --metric "${METRIC}" --average "${AVERAGE}" \
-                                "${RESULT_CSV_ARG[@]}" \
-                                "${RESULT_CSV_ALL_ARG[@]}" \
-                                --report_drop_modality "${REPORT_DROP_MODALITY}" \
-                                --report_drop_mode "${REPORT_DROP_MODE}" \
-                                --degrade_alpha "${DEGRADE_ALPHA}" \
-                                --result_tag "${variant_tag}" \
-                                --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
-                                --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
-                                --early_stop_patience "${early_stop_patience}" \
-                                --lr "${lr}" --wd "${wd}" \
-                                --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
-                                --label-smoothing "${label_smoothing}" \
-                                --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
-                                --model_name "${gnn}" \
-                                --modality_dropout "${variant_drop}" \
-                                --kd_weight "${KD_WEIGHT}" \
-                                --kd_temperature "${KD_TEMPERATURE}" \
-                                "${DEGRADE_TARGET_ARG[@]}" \
-                                "${DEGRADE_ALPHAS_ARG[@]}" \
-                                "${extra_args[@]}"
-                        done
-                      done
+        "mig")
+          for gnn in "MIGGT"; do
+            for do in "${mig_dropouts[@]}"; do
+              for lr in "${mig_lrs[@]}"; do
+                for wd in "${mig_wds[@]}"; do
+                  for h in "${mig_n_hidden[@]}"; do
+                    for kt_kv in "${mig_k_t_kv[@]}"; do
+                      IFS=',' read -r k_t k_v <<< "${kt_kv}"
+                      model_label="MIGGT"
+                      run_label="${model_label}-lr${lr}-wd${wd}-h${h}-kt${k_t}-kv${k_v}-do${do}"
+                      log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
+                      if [[ "${DRY_RUN}" == "true" ]]; then
+                        echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=mig model=MIGGT lr=${lr} wd=${wd} h=${h} k_t=${k_t} k_v=${k_v} do=${do}"
+                        continue
+                      fi
+                      if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
+                        echo "[SKIP] ${run_label} (done) | ${log_file}"
+                        continue
+                      fi
+                      run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
+                        env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
+                          WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/mig" \
+                          WANDB_TAGS="exp=mig,ds=${ds},fg=${FEATURE_GROUP},model=MIGGT" \
+                          python -m GNN.Baselines.MIG_GT \
+                            --data_name "${ds}" \
+                            --graph_path "${GRAPH_PATH[$ds]}" \
+                            --text_feature "${TEXT_FEAT[$ds]}" \
+                            --visual_feature "${VIS_FEAT[$ds]}" \
+                            --gpu "${GPU_ID}" \
+                            --inductive "${INDUCTIVE}" \
+                            --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
+                            --metric "${METRIC}" --average "${AVERAGE}" \
+                            "${RESULT_CSV_ARG[@]}" \
+                            "${RESULT_CSV_ALL_ARG[@]}" \
+                            --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
+                            --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
+                            --early_stop_patience "${mig_early_stop_patience}" \
+                            --lr "${lr}" --wd "${wd}" \
+                            --n-layers "1" --n-hidden "${h}" --dropout "${do}" \
+                            --label-smoothing "${mig_label_smoothing}" \
+                            --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
+                            --k_t "${k_t}" --k_v "${k_v}" \
+                            --mgdcf_alpha "${mig_mgdcf_alpha}" --mgdcf_beta "${mig_mgdcf_beta}" \
+                            --num_samples "${mig_num_samples}" \
+                            --tur_weight "${mig_tur_weight}"
                     done
                   done
                 done
               done
             done
-          done
-          ;;
-        "ogm")
-          for backend in "${OGM_BACKENDS_ARR[@]}"; do
-            if [[ "${backend}" == "mlp" ]]; then
-              for do in "${mlp_dropouts[@]}"; do
-                for lr in "${mlp_lrs[@]}"; do
-                  for wd in "${mlp_wds[@]}"; do
-                    for h in "${mlp_n_hidden[@]}"; do
-                      for L in "${mlp_n_layers[@]}"; do
-                        for om in "${ogm_modulations[@]}"; do
-                          for opd in "${ogm_projection_dims[@]}"; do
-                            for os in "${ogm_modulation_starts[@]}"; do
-                              for oe in "${ogm_modulation_ends[@]}"; do
-                                for oa in "${ogm_alphas[@]}"; do
-                                  model_label="MLP"
-                                  run_label="OGMMLP-lr${lr}-wd${wd}-h${h}-L${L}-do${do}-mod${om}-p${opd}-ms${os}-me${oe}-a${oa}"
-                                  log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
-                                  if [[ "${DRY_RUN}" == "true" ]]; then
-                                    echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=ogm backend=mlp model=MLP lr=${lr} wd=${wd} h=${h} L=${L} do=${do} mod=${om} p=${opd} ms=${os} me=${oe} a=${oa}"
-                                    continue
-                                  fi
-                                  if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
-                                    echo "[SKIP] ${run_label} (done) | ${log_file}"
-                                    continue
-                                  fi
-                                  run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
-                                    env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
-                                      WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/ogm" \
-                                      WANDB_TAGS="exp=ogm,ds=${ds},fg=${FEATURE_GROUP},backend=mlp,model=MLP" \
-                                      python GNN/Library/MAG/OGM_GNN.py \
-                                        --data_name "${ds}" \
-                                        --graph_path "${GRAPH_PATH[$ds]}" \
-                                        --text_feature "${TEXT_FEAT[$ds]}" \
-                                        --visual_feature "${VIS_FEAT[$ds]}" \
-                                        --gpu "${GPU_ID}" \
-                                        --inductive "${INDUCTIVE}" \
-                                        --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
-                                        --metric "${METRIC}" --average "${AVERAGE}" \
-                                        "${RESULT_CSV_ARG[@]}" \
-                                        "${RESULT_CSV_ALL_ARG[@]}" \
-                                      --report_drop_modality "${REPORT_DROP_MODALITY}" \
-                                      --report_drop_mode "${REPORT_DROP_MODE}" \
-                                      --degrade_alpha "${DEGRADE_ALPHA}" \
-                                      --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
-                                        --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
-                                        --early_stop_patience "${mlp_early_stop_patience}" \
-                                        --lr "${lr}" --wd "${wd}" \
-                                        --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
-                                        --label-smoothing "${mlp_label_smoothing}" \
-                                        --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
-                                        --backend "mlp" --model_name "MLP" \
-                                        --result_tag "OGM-MLP" \
-                                        --ogm_modulation "${om}" \
-                                        --ogm_projection_dim "${opd}" \
-                                        --ogm_modulation_starts "${os}" \
-                                        --ogm_modulation_ends "${oe}" \
-                                        --ogm_alpha "${oa}"
-                                done
-                              done
-                            done
-                          done
-                        done
-                      done
-                    done
-                  done
-                done
-              done
-            elif [[ "${backend}" == "gnn" ]]; then
-              for gnn in "${GNN_MODELS_ARR[@]}"; do
-                extra_args=()
-                case "${gnn}" in
-                  "GCN")
-                    dropouts=("${gcn_dropouts[@]}")
-                    lrs=("${gcn_lrs[@]}")
-                    wds=("${gcn_wds[@]}")
-                    hiddens=("${gcn_n_hidden[@]}")
-                    layers=("${gcn_n_layers[@]}")
-                    label_smoothing="${gcn_label_smoothing}"
-                    early_stop_patience="${gcn_early_stop_patience}"
-                    ;;
-                  "SAGE")
-                    dropouts=("${sage_dropouts[@]}")
-                    lrs=("${sage_lrs[@]}")
-                    wds=("${sage_wds[@]}")
-                    hiddens=("${sage_n_hidden[@]}")
-                    layers=("${sage_n_layers[@]}")
-                    label_smoothing="${sage_label_smoothing}"
-                    early_stop_patience="${sage_early_stop_patience}"
-                    extra_args=(--aggregator "${sage_aggregator}")
-                    ;;
-                  "GAT")
-                    dropouts=("${gat_dropouts[@]}")
-                    lrs=("${gat_lrs[@]}")
-                    wds=("${gat_wds[@]}")
-                    hiddens=("${gat_n_hidden[@]}")
-                    layers=("${gat_n_layers[@]}")
-                    label_smoothing="${gat_label_smoothing}"
-                    early_stop_patience="${gat_early_stop_patience}"
-                    extra_args=(--n-heads "${gat_n_heads}" --attn-drop "${gat_attn_drop}" --edge-drop "${gat_edge_drop}" --no-attn-dst "${gat_no_attn_dst}")
-                    ;;
-                  *)
-                    echo "[Error] Unsupported gnn_model: ${gnn}" >&2
-                    exit 1
-                    ;;
-                esac
-                for do in "${dropouts[@]}"; do
-                  for lr in "${lrs[@]}"; do
-                    for wd in "${wds[@]}"; do
-                      for h in "${hiddens[@]}"; do
-                        for L in "${layers[@]}"; do
-                          for om in "${ogm_modulations[@]}"; do
-                            for opd in "${ogm_projection_dims[@]}"; do
-                              for os in "${ogm_modulation_starts[@]}"; do
-                                for oe in "${ogm_modulation_ends[@]}"; do
-                                  for oa in "${ogm_alphas[@]}"; do
-                                    run_label="OGMGNN-${gnn}-lr${lr}-wd${wd}-h${h}-L${L}-do${do}-mod${om}-p${opd}-ms${os}-me${oe}-a${oa}"
-                                    log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
-                                    if [[ "${DRY_RUN}" == "true" ]]; then
-                                      echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=ogm backend=gnn model=${gnn} lr=${lr} wd=${wd} h=${h} L=${L} do=${do} mod=${om} p=${opd} ms=${os} me=${oe} a=${oa}"
-                                      continue
-                                    fi
-                                    if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
-                                      echo "[SKIP] ${run_label} (done) | ${log_file}"
-                                      continue
-                                    fi
-                                    run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
-                                      env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
-                                        WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/ogm" \
-                                        WANDB_TAGS="exp=ogm,ds=${ds},fg=${FEATURE_GROUP},backend=gnn,model=${gnn}" \
-                                        python GNN/Library/MAG/OGM_GNN.py \
-                                          --data_name "${ds}" \
-                                          --graph_path "${GRAPH_PATH[$ds]}" \
-                                          --text_feature "${TEXT_FEAT[$ds]}" \
-                                          --visual_feature "${VIS_FEAT[$ds]}" \
-                                          --gpu "${GPU_ID}" \
-                                          --inductive "${INDUCTIVE}" \
-                                          --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
-                                          --metric "${METRIC}" --average "${AVERAGE}" \
-                                          "${RESULT_CSV_ARG[@]}" \
-                                          "${RESULT_CSV_ALL_ARG[@]}" \
-                                          --report_drop_modality "${REPORT_DROP_MODALITY}" \
-                                          --report_drop_mode "${REPORT_DROP_MODE}" \
-                                          --degrade_alpha "${DEGRADE_ALPHA}" \
-                                          --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
-                                          --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
-                                          --early_stop_patience "${early_stop_patience}" \
-                                          --lr "${lr}" --wd "${wd}" \
-                                          --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
-                                          --label-smoothing "${label_smoothing}" \
-                                          --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
-                                          --backend "gnn" --model_name "${gnn}" \
-                                          --result_tag "OGM-GNN" \
-                                          --ogm_modulation "${om}" \
-                                          --ogm_projection_dim "${opd}" \
-                                          --ogm_modulation_starts "${os}" \
-                                          --ogm_modulation_ends "${oe}" \
-                                          --ogm_alpha "${oa}" \
-                                          "${DEGRADE_TARGET_ARG[@]}" \
-                                          "${DEGRADE_ALPHAS_ARG[@]}" \
-                                          "${extra_args[@]}"
-                                  done
-                                done
-                              done
-                            done
-                          done
-                        done
-                      done
-                    done
-                  done
-                done
-              done
-            else
-              echo "[Error] Unknown backend: ${backend}" >&2
-              exit 1
-            fi
           done
           ;;
         *)

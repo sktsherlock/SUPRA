@@ -575,37 +575,38 @@ def main():
                 per_alpha_extra[f"degrade_visual_a{tag}"] = round(v_mean * 100.0, 3)
                 per_alpha_extra[f"degrade_visual_a{tag}_std"] = round(v_std * 100.0, 3)
                 per_alpha_extra[f"degrade_visual_a{tag}_pm"] = f"{v_mean * 100.0:.2f} ± {v_std * 100.0:.2f}"
-        row = build_result_row(
-            args=args,
-            method=method,
-            full_metric=test_mean,
-            degrade_text=degrade_text_mean,
-            degrade_visual=degrade_visual_mean,
-            extra={
-                "full_std": test_std,
-                "degrade_text_std": degrade_text_std,
-                "degrade_visual_std": degrade_visual_std,
-                **per_alpha_extra,
-            },
-        )
-        key_fields = [
-            "dataset",
-            "method",
-            "backbone",
-            "n_layers",
-            "single_modality",
-            "inductive",
-            "fewshots",
-            "metric",
-            "text_feature",
-            "visual_feature",
-        ]
-        if bool(getattr(args, "best_ignore_layers", True)):
-            key_fields = [k for k in key_fields if k != "n_layers"]
-        if getattr(args, "result_csv", None):
-            update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
-        if getattr(args, "result_csv_all", None):
-            append_result_csv(args.result_csv_all, row)
+        if test_mean is not None:
+            row = build_result_row(
+                args=args,
+                method=method,
+                full_metric=test_mean,
+                degrade_text=degrade_text_mean,
+                degrade_visual=degrade_visual_mean,
+                extra={
+                    "full_std": test_std,
+                    "degrade_text_std": degrade_text_std,
+                    "degrade_visual_std": degrade_visual_std,
+                    **per_alpha_extra,
+                },
+            )
+            key_fields = [
+                "dataset",
+                "method",
+                "backbone",
+                "n_layers",
+                "single_modality",
+                "inductive",
+                "fewshots",
+                "metric",
+                "text_feature",
+                "visual_feature",
+            ]
+            if bool(getattr(args, "best_ignore_layers", True)):
+                key_fields = [k for k in key_fields if k != "n_layers"]
+            if getattr(args, "result_csv", None):
+                update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
+            if getattr(args, "result_csv_all", None):
+                append_result_csv(args.result_csv_all, row)
 
 
 if __name__ == "__main__":

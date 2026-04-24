@@ -354,6 +354,13 @@ def args_init():
              "This produces an analysis-friendly representation space (early/h).",
     )
     parser.add_argument("--mm_proj_dim", type=int, default=None, help="Per-modality encoder output dim")
+    parser.add_argument(
+        "--single_modality",
+        type=str,
+        default=None,
+        choices=["text", "visual"],
+        help="If set, only use the specified modality (for plain/unimodal experiments).",
+    )
     parser.add_argument("--mmcl_weight", type=float, default=0.0, help="Weight for modality contrastive loss")
     parser.add_argument("--mmcl_temperature", type=float, default=0.1, help="Temperature for modality contrastive loss")
     parser.add_argument("--mmcl_max_pairs", type=int, default=2048, help="Max train nodes for contrastive loss")

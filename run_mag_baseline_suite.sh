@@ -841,7 +841,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       layers=("${jknet_n_layers[@]}")
                       label_smoothing="${jknet_label_smoothing}"
                       early_stop_patience="${jknet_early_stop_patience}"
-                      extra_args=(--jknet-aggr "${jknet_aggr}")
+                      extra_args=(--jknet_aggr "${jknet_aggr}")
                       ;;
                     *)
                       echo "[Error] Unsupported gnn_model: ${gnn}" >&2
@@ -1039,7 +1039,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       layers=("${jknet_n_layers[@]}")
                       label_smoothing="${jknet_label_smoothing}"
                       early_stop_patience="${jknet_early_stop_patience}"
-                      extra_args=(--jknet-aggr "${jknet_aggr}")
+                      extra_args=(--jknet_aggr "${jknet_aggr}")
                       ;;
                     *)
                       echo "[Error] Unsupported gnn_model: ${gnn}" >&2
@@ -1173,7 +1173,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   layers=("${jknet_n_layers[@]}")
                   label_smoothing="${jknet_label_smoothing}"
                   early_stop_patience="${jknet_early_stop_patience}"
-                  extra_args=(--jknet-aggr "${jknet_aggr}")
+                  extra_args=(--jknet_aggr "${jknet_aggr}")
                   ;;
                 *)
                   echo "[Error] Unsupported gnn_model: ${gnn}" >&2

@@ -262,6 +262,7 @@ def main():
 
     device = th.device("cuda:%d" % args.gpu if th.cuda.is_available() and args.gpu != -1 else "cpu")
 
+    t0 = time.time()
     (
         graph,
         observe_graph,
@@ -273,6 +274,7 @@ def main():
         vis_feat,
         n_classes,
     ) = _load_mag_context(args, device)
+    t_load_data = time.time()
 
     val_results = []
     test_results = []
@@ -543,6 +545,8 @@ def main():
     print(f"Runned {args.n_runs} times")
     print(f"Average val {args.metric}: {_fmt_pct(val_results)}")
     print(f"Average test {args.metric}: {_fmt_pct(test_results)}")
+    t_end = time.time()
+    print(f"[TIME] total: {t_end - t0:.1f}s | setup: {t_load_data - t0:.1f}s | train: {t_end - t_load_data:.1f}s (excl. module import)")
     if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
         val_mean, val_std = _mean_std(val_results)
         test_mean, test_std = _mean_std(test_results)

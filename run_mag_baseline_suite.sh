@@ -182,13 +182,11 @@ nts_dropouts=("0.3")
 nts_lrs=("0.005" "0.001" "0.0005")
 nts_wds=("1e-4")
 nts_n_hidden=("256")
-NTS_LAYERS=${NTS_LAYERS:-"2 3"}
-read -r -a nts_n_layers <<< "${NTS_LAYERS}"
 nts_label_smoothing="0.1"
 nts_early_stop_patience="50"
 nts_num_tf_layers=("2" "3")
 nts_num_heads=("2")
-nts_sign_k=("2" "3")
+nts_sign_k=("2")
 nts_sign_alpha=("0.0")
 
 # ---------------- MIG-GT sweep ----------------
@@ -664,13 +662,12 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
-                    for L in "${nts_n_layers[@]}"; do
                       for num_tf in "${nts_num_tf_layers[@]}"; do
                         for num_head in "${nts_num_heads[@]}"; do
                           for sign_k_val in "${nts_sign_k[@]}"; do
                             for sign_alpha_val in "${nts_sign_alpha[@]}"; do
                               model_label="NTSFormer"
-                              run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${do}"
+                              run_label="${model_label}-lr${lr}-wd${wd}-h${h}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${do}"
                               log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
                               count_job "${log_file}"
                             done
@@ -1255,16 +1252,15 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
-                    for L in "${nts_n_layers[@]}"; do
                       for num_tf in "${nts_num_tf_layers[@]}"; do
                         for num_head in "${nts_num_heads[@]}"; do
                           for sign_k_val in "${nts_sign_k[@]}"; do
                             for sign_alpha_val in "${nts_sign_alpha[@]}"; do
                               model_label="NTSFormer"
-                              run_label="${model_label}-lr${lr}-wd${wd}-h${h}-L${L}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${do}"
+                              run_label="${model_label}-lr${lr}-wd${wd}-h${h}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${do}"
                               log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
                               if [[ "${DRY_RUN}" == "true" ]]; then
-                                echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=nts model=NTSFormer lr=${lr} wd=${wd} h=${h} L=${L} tf=${num_tf} head=${num_head} k=${sign_k_val} alpha=${sign_alpha_val} do=${do}"
+                                echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=nts model=NTSFormer lr=${lr} wd=${wd} h=${h} tf=${num_tf} head=${num_head} k=${sign_k_val} alpha=${sign_alpha_val} do=${do}"
                                 continue
                               fi
                               if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
@@ -1290,7 +1286,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                     --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
                                     --early_stop_patience "${nts_early_stop_patience}" \
                                     --lr "${lr}" --wd "${wd}" \
-                                    --n-layers "${L}" --n-hidden "${h}" --dropout "${do}" \
+                                    --n-layers "1" --n-hidden "${h}" --dropout "${do}" \
                                     --label-smoothing "${nts_label_smoothing}" \
                                     --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
                                     --nts_num_tf_layers "${num_tf}" \

@@ -208,6 +208,10 @@ def args_init():
     add_sgc_args(parser)
     add_appnp_args(parser)
 
+    parser.add_argument("--gcnii_lamda", type=float, default=0.5, help="GCNII lamda (initial residual strength)")
+    parser.add_argument("--gcnii_alpha", type=float, default=0.5, help="GCNII alpha (residual coefficient)")
+    parser.add_argument("--gcnii_variant", action="store_true", help="GCNII variant (concatenate initial features)")
+
     parser.add_argument("--disable_wandb", action="store_true", help="Disable wandb logging for offline runs")
     parser.add_argument(
         "--late_embed_dim",

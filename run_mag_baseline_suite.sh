@@ -836,7 +836,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       layers=("${gcnii_n_layers[@]}")
                       label_smoothing="${gcnii_label_smoothing}"
                       early_stop_patience="${gcnii_early_stop_patience}"
-                      extra_args=(--gcnii-lamda "${gcnii_lamda}" --gcnii-alpha "${gcnii_alpha}" --gcnii-variant)
+                      extra_args=(--gcnii_lamda "${gcnii_lamda}" --gcnii_alpha "${gcnii_alpha}" --gcnii-variant)
                       ;;
                     "JKNet")
                       dropouts=("${jknet_dropouts[@]}")
@@ -1030,7 +1030,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       layers=("${gcnii_n_layers[@]}")
                       label_smoothing="${gcnii_label_smoothing}"
                       early_stop_patience="${gcnii_early_stop_patience}"
-                      extra_args=(--gcnii-lamda "${gcnii_lamda}" --gcnii-alpha "${gcnii_alpha}" --gcnii-variant)
+                      extra_args=(--gcnii_lamda "${gcnii_lamda}" --gcnii_alpha "${gcnii_alpha}" --gcnii-variant)
                       ;;
                     "JKNet")
                       dropouts=("${jknet_dropouts[@]}")
@@ -1158,7 +1158,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   layers=("${gcnii_n_layers[@]}")
                   label_smoothing="${gcnii_label_smoothing}"
                   early_stop_patience="${gcnii_early_stop_patience}"
-                  extra_args=(--gcnii-lamda "${gcnii_lamda}" --gcnii-alpha "${gcnii_alpha}" --gcnii-variant)
+                  extra_args=(--gcnii_lamda "${gcnii_lamda}" --gcnii_alpha "${gcnii_alpha}" --gcnii-variant)
                   ;;
                 "JKNet")
                   dropouts=("${jknet_dropouts[@]}")

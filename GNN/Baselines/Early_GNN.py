@@ -688,6 +688,7 @@ def main():
 
     device = th.device("cuda:%d" % args.gpu if th.cuda.is_available() and args.gpu != -1 else "cpu")
 
+    t0 = time.time()
     graph, labels, train_idx, val_idx, test_idx = load_data(
         args.graph_path,
         train_ratio=args.train_ratio,
@@ -695,6 +696,7 @@ def main():
         name=args.data_name,
         fewshots=args.fewshots,
     )
+    t_load_data = time.time()
 
     if args.undirected:
         print("The Graph change to the undirected graph")
@@ -711,8 +713,11 @@ def main():
         print(f"Total edges after adding self-loop {graph.number_of_edges()}")
         observe_graph = observe_graph.remove_self_loop().add_self_loop()
 
+    t_graph_setup = time.time()
+
     text_feature = th.from_numpy(np.load(args.text_feature).astype(np.float32)).to(device)
     visual_feature = th.from_numpy(np.load(args.visual_feature).astype(np.float32)).to(device)
+    t_numpy_load = time.time()
     n_classes = int((labels.max() + 1).item())
     print(
         f"Number of classes {n_classes}, "
@@ -727,6 +732,9 @@ def main():
     labels = labels.to(device)
     graph = graph.to(device)
     observe_graph = observe_graph.to(device)
+    t_tensor_transfer = time.time()
+
+    print(f"[TIME] load_data: {t_load_data - t0:.1f}s | graph_setup: {t_graph_setup - t_load_data:.1f}s | numpy_load: {t_numpy_load - t_graph_setup:.1f}s | tensor_transfer: {t_tensor_transfer - t_numpy_load:.1f}s")
 
     proj_dim = int(args.mm_proj_dim) if args.mm_proj_dim is not None else int(args.n_hidden)
     early_fuse = str(getattr(args, "early_fuse", "concat")).lower().strip()
@@ -741,6 +749,7 @@ def main():
     degrade_text_results_map = {}
     degrade_visual_results_map = {}
 
+    t_train_start = time.time()
     for run in range(args.n_runs):
         set_seed(args.seed + run)
 
@@ -853,6 +862,8 @@ def main():
     print(f"Runned {args.n_runs} times")
     print(f"Average val {args.metric}: {_fmt_pct(val_results)}")
     print(f"Average test {args.metric}: {_fmt_pct(test_results)}")
+    t_end = time.time()
+    print(f"[TIME] total: {t_end - t0:.1f}s | setup: {t_train_start - t0:.1f}s | train({args.n_runs} runs): {t_end - t_train_start:.1f}s (excl. module import)")
 
     if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
         val_mean, val_std = _mean_std(val_results)

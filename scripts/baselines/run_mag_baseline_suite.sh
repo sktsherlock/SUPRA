@@ -378,7 +378,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           for modality in "${MODALITIES_ARR[@]}"; do
             for backend in "${PLAIN_BACKENDS_ARR[@]}"; do
               if [[ "${backend}" == "mlp" ]]; then
-                for do in "${mlp_dropouts[@]}"; do
+                for drop in "${mlp_dropouts[@]}"; do
+                  do="${drop}"
                   for lr in "${mlp_lrs[@]}"; do
                     for wd in "${mlp_wds[@]}"; do
                       for h in "${mlp_n_hidden[@]}"; do
@@ -435,7 +436,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       exit 1
                       ;;
                   esac
-                  for do in "${dropouts[@]}"; do
+                  for drop in "${dropouts[@]}"; do
+                    do="${drop}"
                     for lr in "${lrs[@]}"; do
                       for wd in "${wds[@]}"; do
                         for h in "${hiddens[@]}"; do
@@ -474,7 +476,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
             esac
             for backend in "${BACKENDS_ARR[@]}"; do
               if [[ "${backend}" == "mlp" ]]; then
-                for do in "${mlp_dropouts[@]}"; do
+                for drop in "${mlp_dropouts[@]}"; do
+                  do="${drop}"
                   for lr in "${mlp_lrs[@]}"; do
                     for wd in "${mlp_wds[@]}"; do
                       for h in "${mlp_n_hidden[@]}"; do
@@ -541,7 +544,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       exit 1
                       ;;
                   esac
-                  for do in "${dropouts[@]}"; do
+                  for drop in "${dropouts[@]}"; do
+                    do="${drop}"
                     for lr in "${lrs[@]}"; do
                       for wd in "${wds[@]}"; do
                         for h in "${hiddens[@]}"; do
@@ -625,7 +629,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   exit 1
                   ;;
               esac
-              for do in "${dropouts[@]}"; do
+              for drop in "${dropouts[@]}"; do
+                do="${drop}"
                 for lr in "${lrs[@]}"; do
                   for wd in "${wds[@]}"; do
                     for h in "${hiddens[@]}"; do
@@ -644,7 +649,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           ;;
         "nts")
           for gnn in "NTSFormer"; do
-            for do in "${nts_dropouts[@]}"; do
+            for drop in "${nts_dropouts[@]}"; do
+              do="${drop}"
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
@@ -669,7 +675,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           ;;
         "mig")
           for gnn in "MIGGT"; do
-            for do in "${mig_dropouts[@]}"; do
+            for drop in "${mig_dropouts[@]}"; do
+              do="${drop}"
               for lr in "${mig_lrs[@]}"; do
                 for wd in "${mig_wds[@]}"; do
                   for h in "${mig_n_hidden[@]}"; do
@@ -728,7 +735,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           for modality in "${MODALITIES_ARR[@]}"; do
             for backend in "${PLAIN_BACKENDS_ARR[@]}"; do
               if [[ "${backend}" == "mlp" ]]; then
-                for do in "${mlp_dropouts[@]}"; do
+                for drop in "${mlp_dropouts[@]}"; do
+                  do="${drop}"
                   for lr in "${mlp_lrs[@]}"; do
                     for wd in "${mlp_wds[@]}"; do
                       for h in "${mlp_n_hidden[@]}"; do
@@ -836,7 +844,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       exit 1
                       ;;
                   esac
-                  for do in "${dropouts[@]}"; do
+                  for drop in "${dropouts[@]}"; do
+                    do="${drop}"
                     for lr in "${lrs[@]}"; do
                       for wd in "${wds[@]}"; do
                         for h in "${hiddens[@]}"; do
@@ -917,7 +926,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
             for backend in "${BACKENDS_ARR[@]}"; do
               if [[ "${backend}" == "mlp" ]]; then
                 variant_tag="EF-MLP${fuse_tag_suffix}"
-                for do in "${mlp_dropouts[@]}"; do
+                for drop in "${mlp_dropouts[@]}"; do
+                  do="${drop}"
                   for lr in "${mlp_lrs[@]}"; do
                     for wd in "${mlp_wds[@]}"; do
                       for h in "${mlp_n_hidden[@]}"; do
@@ -1030,7 +1040,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       exit 1
                       ;;
                   esac
-                  for do in "${dropouts[@]}"; do
+                  for drop in "${dropouts[@]}"; do
+                    do="${drop}"
                     for lr in "${lrs[@]}"; do
                       for wd in "${wds[@]}"; do
                         for h in "${hiddens[@]}"; do
@@ -1162,7 +1173,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   exit 1
                   ;;
               esac
-              for do in "${dropouts[@]}"; do
+              for drop in "${dropouts[@]}"; do
+                do="${drop}"
                 for lr in "${lrs[@]}"; do
                   for wd in "${wds[@]}"; do
                     for h in "${hiddens[@]}"; do
@@ -1220,7 +1232,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           ;;
         "nts")
           for gnn in "NTSFormer"; do
-            for do in "${nts_dropouts[@]}"; do
+            for drop in "${nts_dropouts[@]}"; do
+              do="${drop}"
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
@@ -1278,7 +1291,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           ;;
         "mig")
           for gnn in "MIGGT"; do
-            for do in "${mig_dropouts[@]}"; do
+            for drop in "${mig_dropouts[@]}"; do
+              do="${drop}"
               for lr in "${mig_lrs[@]}"; do
                 for wd in "${mig_wds[@]}"; do
                   for h in "${mig_n_hidden[@]}"; do

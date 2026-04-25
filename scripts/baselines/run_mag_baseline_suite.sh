@@ -218,6 +218,7 @@ WANDB_ENTITY=${WANDB_ENTITY:-}
 case "${WANDB_RUN_MODE}" in
   disabled)
     export WANDB_DISABLED=true
+    export WANDB_MODE=disabled
     ;;
   offline)
     unset WANDB_DISABLED || true
@@ -232,6 +233,11 @@ case "${WANDB_RUN_MODE}" in
     exit 1
     ;;
 esac
+
+DISABLE_WANDB_ARG=()
+if [[ "${WANDB_RUN_MODE}" == "disabled" ]]; then
+  DISABLE_WANDB_ARG=(--disable_wandb)
+fi
 
 # ---------------- Utilities ----------------
 _ts() { date '+%F %T'; }
@@ -754,6 +760,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                               WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/plain" \
                               WANDB_TAGS="exp=plain,ds=${ds},fg=${FEATURE_GROUP},backend=mlp,model=MLP,modality=${modality}" \
                               python -m GNN.Baselines.Early_GNN \
+                                "${DISABLE_WANDB_ARG[@]}" \
                                 --data_name "${ds}" \
                                 --graph_path "${GRAPH_PATH[$ds]}" \
                                 --text_feature "${TEXT_FEAT[$ds]}" \
@@ -863,6 +870,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                 WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/plain" \
                                 WANDB_TAGS="exp=plain,ds=${ds},fg=${FEATURE_GROUP},backend=gnn,model=${gnn},modality=${modality}" \
                                 python -m GNN.Baselines.Early_GNN \
+                                  "${DISABLE_WANDB_ARG[@]}" \
                                   --data_name "${ds}" \
                                   --graph_path "${GRAPH_PATH[$ds]}" \
                                   --text_feature "${TEXT_FEAT[$ds]}" \
@@ -945,6 +953,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                               WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/baseline" \
                               WANDB_TAGS="exp=baseline,early_fuse=${early_fuse},ds=${ds},fg=${FEATURE_GROUP},backend=mlp,model=MLP" \
                               python -m GNN.Baselines.Early_GNN \
+                                "${DISABLE_WANDB_ARG[@]}" \
                                 --data_name "${ds}" \
                                 --graph_path "${GRAPH_PATH[$ds]}" \
                                 --text_feature "${TEXT_FEAT[$ds]}" \
@@ -1059,6 +1068,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                 WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/baseline" \
                                 WANDB_TAGS="exp=baseline,early_fuse=${early_fuse},ds=${ds},fg=${FEATURE_GROUP},backend=gnn,model=${gnn}" \
                                 python -m GNN.Baselines.Early_GNN \
+                                  "${DISABLE_WANDB_ARG[@]}" \
                                   --data_name "${ds}" \
                                   --graph_path "${GRAPH_PATH[$ds]}" \
                                   --text_feature "${TEXT_FEAT[$ds]}" \
@@ -1192,6 +1202,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                             WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/late" \
                             WANDB_TAGS="exp=late,ds=${ds},fg=${FEATURE_GROUP},model=${gnn},modality=${modality}" \
                             python -m GNN.Baselines.Late_GNN \
+                              "${DISABLE_WANDB_ARG[@]}" \
                               --data_name "${ds}" \
                               --graph_path "${GRAPH_PATH[$ds]}" \
                               --text_feature "${TEXT_FEAT[$ds]}" \
@@ -1253,6 +1264,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                 WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/nts" \
                                 WANDB_TAGS="exp=nts,ds=${ds},fg=${FEATURE_GROUP},model=NTSFormer" \
                                 python -m GNN.Baselines.NTSFormer \
+                                    "${DISABLE_WANDB_ARG[@]}" \
                                   --data_name "${ds}" \
                                   --graph_path "${GRAPH_PATH[$ds]}" \
                                   --text_feature "${TEXT_FEAT[$ds]}" \
@@ -1308,6 +1320,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                           WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/mig" \
                           WANDB_TAGS="exp=mig,ds=${ds},fg=${FEATURE_GROUP},model=MIGGT" \
                           python -m GNN.Baselines.MIG_GT \
+                            "${DISABLE_WANDB_ARG[@]}" \
                             --data_name "${ds}" \
                             --graph_path "${GRAPH_PATH[$ds]}" \
                             --text_feature "${TEXT_FEAT[$ds]}" \

@@ -66,7 +66,7 @@ EXPERIMENTS=${EXPERIMENTS:-"plain baseline late nts mig"}
 MODALITIES=${MODALITIES:-"text visual"}             # text|visual (plain only)
 EARLY_LATE_MODALITIES=${EARLY_LATE_MODALITIES:-"none"}   # usually "none"
 BACKENDS=${BACKENDS:-"mlp gnn"}                          # mlp|gnn (baseline)
-PLAIN_BACKENDS=${PLAIN_BACKENDS:-"mlp gnn"}             # mlp|gnn (plain)
+PLAIN_BACKENDS=${PLAIN_BACKENDS:-"mlp"}             # mlp|gnn (plain)
 EARLY_FUSE_MODES=${EARLY_FUSE_MODES:-"concat"}      # concat|sum (baseline/EF)
 GNN_MODELS=${GNN_MODELS:-"GCN SAGE GAT GCNII JKNet NTSFormer MIGGT"}  # GNN backbones
 

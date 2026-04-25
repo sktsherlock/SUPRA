@@ -175,7 +175,7 @@ JKNET_LAYERS=${JKNET_LAYERS:-"2 3 4"}
 read -r -a jknet_n_layers <<< "${JKNET_LAYERS}"
 jknet_label_smoothing="0.1"
 jknet_early_stop_patience="40"
-jknet_aggr="mean"
+jknet_aggr="last"
 
 # ---------------- NTSFormer sweep ----------------
 nts_dropouts=("0.3")

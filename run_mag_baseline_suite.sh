@@ -650,19 +650,17 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
         "nts")
           for gnn in "NTSFormer"; do
             for drop in "${nts_dropouts[@]}"; do
-              do="${drop}"
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
-                      for num_tf in "${nts_num_tf_layers[@]}"; do
-                        for num_head in "${nts_num_heads[@]}"; do
-                          for sign_k_val in "${nts_sign_k[@]}"; do
-                            for sign_alpha_val in "${nts_sign_alpha[@]}"; do
-                              model_label="NTSFormer"
-                              run_label="${model_label}-lr${lr}-wd${wd}-h${h}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${do}"
-                              log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
-                              count_job "${log_file}"
-                            done
+                    for num_tf in "${nts_num_tf_layers[@]}"; do
+                      for num_head in "${nts_num_heads[@]}"; do
+                        for sign_k_val in "${nts_sign_k[@]}"; do
+                          for sign_alpha_val in "${nts_sign_alpha[@]}"; do
+                            model_label="NTSFormer"
+                            run_label="${model_label}-lr${lr}-wd${wd}-h${h}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${drop}"
+                            log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
+                            count_job "${log_file}"
                           done
                         done
                       done
@@ -676,14 +674,13 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
         "mig")
           for gnn in "MIGGT"; do
             for drop in "${mig_dropouts[@]}"; do
-              do="${drop}"
               for lr in "${mig_lrs[@]}"; do
                 for wd in "${mig_wds[@]}"; do
                   for h in "${mig_n_hidden[@]}"; do
                     for kt_kv in "${mig_k_t_kv[@]}"; do
                       IFS=',' read -r k_t k_v <<< "${kt_kv}"
                       model_label="MIGGT"
-                      run_label="${model_label}-lr${lr}-wd${wd}-h${h}-kt${k_t}-kv${k_v}-do${do}"
+                      run_label="${model_label}-lr${lr}-wd${wd}-h${h}-kt${k_t}-kv${k_v}-do${drop}"
                       log_file="${LOG_ROOT}/fg_${fg}/${ds}/${run_label}.log"
                       count_job "${log_file}"
                     done
@@ -1233,52 +1230,50 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
         "nts")
           for gnn in "NTSFormer"; do
             for drop in "${nts_dropouts[@]}"; do
-              do="${drop}"
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
-                      for num_tf in "${nts_num_tf_layers[@]}"; do
-                        for num_head in "${nts_num_heads[@]}"; do
-                          for sign_k_val in "${nts_sign_k[@]}"; do
-                            for sign_alpha_val in "${nts_sign_alpha[@]}"; do
-                              model_label="NTSFormer"
-                              run_label="${model_label}-lr${lr}-wd${wd}-h${h}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${do}"
-                              log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
-                              if [[ "${DRY_RUN}" == "true" ]]; then
-                                echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=nts model=NTSFormer lr=${lr} wd=${wd} h=${h} tf=${num_tf} head=${num_head} k=${sign_k_val} alpha=${sign_alpha_val} do=${do}"
-                                continue
-                              fi
-                              if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
-                                echo "[SKIP] ${run_label} (done) | ${log_file}"
-                                continue
-                              fi
-                              run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
-                                env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
-                                  WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/nts" \
-                                  WANDB_TAGS="exp=nts,ds=${ds},fg=${FEATURE_GROUP},model=NTSFormer" \
-                                  python -m GNN.Baselines.NTSFormer \
-                                    --data_name "${ds}" \
-                                    --graph_path "${GRAPH_PATH[$ds]}" \
-                                    --text_feature "${TEXT_FEAT[$ds]}" \
-                                    --visual_feature "${VIS_FEAT[$ds]}" \
-                                    --gpu "${GPU_ID}" \
-                                    --inductive "${INDUCTIVE}" \
-                                    --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
-                                    --metric "${METRIC}" --average "${AVERAGE}" \
-                                    "${RESULT_CSV_ARG[@]}" \
-                                    "${RESULT_CSV_ALL_ARG[@]}" \
-                                    --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
-                                    --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
-                                    --early_stop_patience "${nts_early_stop_patience}" \
-                                    --lr "${lr}" --wd "${wd}" \
-                                    --n-layers "1" --n-hidden "${h}" --dropout "${do}" \
-                                    --label-smoothing "${nts_label_smoothing}" \
-                                    --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
-                                    --nts_num_tf_layers "${num_tf}" \
-                                    --nts_num_heads "${num_head}" \
-                                    --nts_sign_k "${sign_k_val}" \
-                                    --nts_sign_alpha "${sign_alpha_val}"
-                            done
+                    for num_tf in "${nts_num_tf_layers[@]}"; do
+                      for num_head in "${nts_num_heads[@]}"; do
+                        for sign_k_val in "${nts_sign_k[@]}"; do
+                          for sign_alpha_val in "${nts_sign_alpha[@]}"; do
+                            model_label="NTSFormer"
+                            run_label="${model_label}-lr${lr}-wd${wd}-h${h}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${drop}"
+                            log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
+                            if [[ "${DRY_RUN}" == "true" ]]; then
+                              echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=nts model=NTSFormer lr=${lr} wd=${wd} h=${h} tf=${num_tf} head=${num_head} k=${sign_k_val} alpha=${sign_alpha_val} do=${drop}"
+                              continue
+                            fi
+                            if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
+                              echo "[SKIP] ${run_label} (done) | ${log_file}"
+                              continue
+                            fi
+                            run_cmd "${log_file}" "fg=${FEATURE_GROUP} ds=${ds} ${run_label}" \
+                              env WANDB_NAME="${run_label}-${ds}-${FEATURE_GROUP}" \
+                                WANDB_GROUP="MAG/${ds}/${FEATURE_GROUP}/nts" \
+                                WANDB_TAGS="exp=nts,ds=${ds},fg=${FEATURE_GROUP},model=NTSFormer" \
+                                python -m GNN.Baselines.NTSFormer \
+                                  --data_name "${ds}" \
+                                  --graph_path "${GRAPH_PATH[$ds]}" \
+                                  --text_feature "${TEXT_FEAT[$ds]}" \
+                                  --visual_feature "${VIS_FEAT[$ds]}" \
+                                  --gpu "${GPU_ID}" \
+                                  --inductive "${INDUCTIVE}" \
+                                  --undirected "${UNDIRECTED}" --selfloop "${SELFLOOP}" \
+                                  --metric "${METRIC}" --average "${AVERAGE}" \
+                                  "${RESULT_CSV_ARG[@]}" \
+                                  "${RESULT_CSV_ALL_ARG[@]}" \
+                                  --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
+                                  --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
+                                  --early_stop_patience "${nts_early_stop_patience}" \
+                                  --lr "${lr}" --wd "${wd}" \
+                                  --n-layers "1" --n-hidden "${h}" --dropout "${drop}" \
+                                  --label-smoothing "${nts_label_smoothing}" \
+                                  --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
+                                  --nts_num_tf_layers "${num_tf}" \
+                                  --nts_num_heads "${num_head}" \
+                                  --nts_sign_k "${sign_k_val}" \
+                                  --nts_sign_alpha "${sign_alpha_val}"
                           done
                         done
                       done
@@ -1292,17 +1287,16 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
         "mig")
           for gnn in "MIGGT"; do
             for drop in "${mig_dropouts[@]}"; do
-              do="${drop}"
               for lr in "${mig_lrs[@]}"; do
                 for wd in "${mig_wds[@]}"; do
                   for h in "${mig_n_hidden[@]}"; do
                     for kt_kv in "${mig_k_t_kv[@]}"; do
                       IFS=',' read -r k_t k_v <<< "${kt_kv}"
                       model_label="MIGGT"
-                      run_label="${model_label}-lr${lr}-wd${wd}-h${h}-kt${k_t}-kv${k_v}-do${do}"
+                      run_label="${model_label}-lr${lr}-wd${wd}-h${h}-kt${k_t}-kv${k_v}-do${drop}"
                       log_file="${LOG_ROOT}/fg_${FEATURE_GROUP}/${ds}/${run_label}.log"
                       if [[ "${DRY_RUN}" == "true" ]]; then
-                        echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=mig model=MIGGT lr=${lr} wd=${wd} h=${h} k_t=${k_t} k_v=${k_v} do=${do}"
+                        echo "[DRY_RUN] fg=${FEATURE_GROUP} ds=${ds} exp=mig model=MIGGT lr=${lr} wd=${wd} h=${h} k_t=${k_t} k_v=${k_v} do=${drop}"
                         continue
                       fi
                       if [[ "${SKIP_DONE}" == "true" && -f "${log_file}.done" ]]; then
@@ -1328,7 +1322,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                             --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
                             --early_stop_patience "${mig_early_stop_patience}" \
                             --lr "${lr}" --wd "${wd}" \
-                            --n-layers "1" --n-hidden "${h}" --dropout "${do}" \
+                            --n-layers "1" --n-hidden "${h}" --dropout "${drop}" \
                             --label-smoothing "${mig_label_smoothing}" \
                             --train_ratio "${TRAIN_RATIO_BY_DS[${ds}]:-${TRAIN_RATIO}}" --val_ratio "${VAL_RATIO_BY_DS[${ds}]:-${VAL_RATIO}}" \
                             --k_t "${k_t}" --k_v "${k_v}" \

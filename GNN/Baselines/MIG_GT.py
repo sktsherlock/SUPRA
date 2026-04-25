@@ -289,9 +289,11 @@ def main():
 
                 val_pred = th.argmax(logits_e[val_idx], dim=1)
                 test_pred = th.argmax(logits_e[test_idx], dim=1)
-                
+
                 val_score = get_metric(val_pred, labels[val_idx], args.metric)
                 test_score = get_metric(test_pred, labels[test_idx], args.metric)
+                val_score = float(val_score)
+                test_score = float(test_score)
 
                 if (wandb is not None) and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
                     wandb.log({

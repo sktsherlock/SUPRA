@@ -570,11 +570,11 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
               exit 1
             fi
             for gnn in "${GNN_MODELS_ARR[@]}"; do
+              if [[ "${gnn}" == "NTSFormer" || "${gnn}" == "MIGGT" ]]; then
+                # NTSFormer/MIGGT are standalone multimodal graph models, not LateFusion GNN backbones.
+                continue
+              fi
               case "${gnn}" in
-                "NTSFormer"|"MIGGT")
-                  # NTSFormer/MIGGT are standalone multimodal graph models, not LateFusion GNN backbones.
-                  continue
-                  ;;
                 "GCN")
                   dropouts=("${gcn_dropouts[@]}")
                   lrs=("${gcn_lrs[@]}")
@@ -1102,12 +1102,12 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
             fi
             variant_tag="LF-GNN"
             for gnn in "${GNN_MODELS_ARR[@]}"; do
+              if [[ "${gnn}" == "NTSFormer" || "${gnn}" == "MIGGT" ]]; then
+                # NTSFormer/MIGGT are standalone multimodal graph models, not LateFusion GNN backbones.
+                continue
+              fi
               extra_args=()
               case "${gnn}" in
-                "NTSFormer"|"MIGGT")
-                  # NTSFormer/MIGGT are standalone multimodal graph models, not LateFusion GNN backbones.
-                  continue
-                  ;;
                 "GCN")
                   dropouts=("${gcn_dropouts[@]}")
                   lrs=("${gcn_lrs[@]}")

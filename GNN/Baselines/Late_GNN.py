@@ -211,6 +211,7 @@ def args_init():
     parser.add_argument("--gcnii_lamda", type=float, default=0.5, help="GCNII lamda (initial residual strength)")
     parser.add_argument("--gcnii_alpha", type=float, default=0.5, help="GCNII alpha (residual coefficient)")
     parser.add_argument("--gcnii_variant", action="store_true", help="GCNII variant (concatenate initial features)")
+    parser.add_argument("--jknet_aggr", type=str, default="last", choices=["concat", "max", "last"], help="JKNet aggregation mode")
 
     parser.add_argument("--disable_wandb", action="store_true", help="Disable wandb logging for offline runs")
     parser.add_argument(

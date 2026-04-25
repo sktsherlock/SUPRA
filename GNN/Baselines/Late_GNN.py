@@ -145,8 +145,13 @@ class LateFusionMAG(nn.Module):
     def forward_branches(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor):
         text_z = self.text_encoder(text_feature)
         vis_z = self.visual_encoder(visual_feature)
-        text_h = self.text_gnn(graph, text_z)
-        vis_h = self.visual_gnn(graph, vis_z)
+        # GCNII uses forward(x, adj) signature - swap args for GCNII only
+        if type(self.text_gnn).__name__ == "GCNII":
+            text_h = self.text_gnn(text_z, graph)
+            vis_h = self.visual_gnn(vis_z, graph)
+        else:
+            text_h = self.text_gnn(graph, text_z)
+            vis_h = self.visual_gnn(graph, vis_z)
         return text_h, vis_h
 
 

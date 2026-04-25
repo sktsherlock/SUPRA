@@ -571,6 +571,10 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
             fi
             for gnn in "${GNN_MODELS_ARR[@]}"; do
               case "${gnn}" in
+                "NTSFormer"|"MIGGT")
+                  # NTSFormer/MIGGT are standalone multimodal graph models, not LateFusion GNN backbones.
+                  continue
+                  ;;
                 "GCN")
                   dropouts=("${gcn_dropouts[@]}")
                   lrs=("${gcn_lrs[@]}")
@@ -615,24 +619,6 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   layers=("${jknet_n_layers[@]}")
                   label_smoothing="${jknet_label_smoothing}"
                   early_stop_patience="${jknet_early_stop_patience}"
-                  ;;
-                "NTSFormer")
-                  dropouts=("${nts_dropouts[@]}")
-                  lrs=("${nts_lrs[@]}")
-                  wds=("${nts_wds[@]}")
-                  hiddens=("${nts_n_hidden[@]}")
-                  layers=("${nts_n_layers[@]}")
-                  label_smoothing="${nts_label_smoothing}"
-                  early_stop_patience="${nts_early_stop_patience}"
-                  ;;
-                "MIGGT")
-                  dropouts=("${mig_dropouts[@]}")
-                  lrs=("${mig_lrs[@]}")
-                  wds=("${mig_wds[@]}")
-                  hiddens=("${mig_n_hidden[@]}")
-                  layers=("${mig_n_layers[@]}")
-                  label_smoothing="${mig_label_smoothing}"
-                  early_stop_patience="${mig_early_stop_patience}"
                   ;;
                 *)
                   echo "[Error] Unsupported gnn_model: ${gnn}" >&2
@@ -1118,6 +1104,10 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
             for gnn in "${GNN_MODELS_ARR[@]}"; do
               extra_args=()
               case "${gnn}" in
+                "NTSFormer"|"MIGGT")
+                  # NTSFormer/MIGGT are standalone multimodal graph models, not LateFusion GNN backbones.
+                  continue
+                  ;;
                 "GCN")
                   dropouts=("${gcn_dropouts[@]}")
                   lrs=("${gcn_lrs[@]}")
@@ -1166,24 +1156,6 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   label_smoothing="${jknet_label_smoothing}"
                   early_stop_patience="${jknet_early_stop_patience}"
                   extra_args=(--jknet-aggr "${jknet_aggr}")
-                  ;;
-                "NTSFormer")
-                  dropouts=("${nts_dropouts[@]}")
-                  lrs=("${nts_lrs[@]}")
-                  wds=("${nts_wds[@]}")
-                  hiddens=("${nts_n_hidden[@]}")
-                  layers=("${nts_n_layers[@]}")
-                  label_smoothing="${nts_label_smoothing}"
-                  early_stop_patience="${nts_early_stop_patience}"
-                  ;;
-                "MIGGT")
-                  dropouts=("${mig_dropouts[@]}")
-                  lrs=("${mig_lrs[@]}")
-                  wds=("${mig_wds[@]}")
-                  hiddens=("${mig_n_hidden[@]}")
-                  layers=("${mig_n_layers[@]}")
-                  label_smoothing="${mig_label_smoothing}"
-                  early_stop_patience="${mig_early_stop_patience}"
                   ;;
                 *)
                   echo "[Error] Unsupported gnn_model: ${gnn}" >&2

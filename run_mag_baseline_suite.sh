@@ -111,6 +111,10 @@ declare -A VAL_RATIO_BY_DS
 declare -A NTS_SIGN_K_BY_DS
 NTS_SIGN_K_BY_DS["Reddit-M"]="1"
 
+# Per-dataset NTSFormer num_tf_layers override (Reddit-M: 3 layers OOM, use 2)
+declare -A NTS_NUM_TF_LAYERS_BY_DS
+NTS_NUM_TF_LAYERS_BY_DS["Reddit-M"]="2"
+
 # Per-dataset NTSFormer eval_steps override (Reddit-M trains fast, eval more frequently)
 declare -A NTS_EVAL_STEPS_BY_DS
 NTS_EVAL_STEPS_BY_DS["Reddit-M"]="5"
@@ -673,12 +677,19 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           else
             _nts_sign_k_arr=("${nts_sign_k[@]}")
           fi
+          # Resolve per-dataset num_tf_layers override (Reddit-M: 3 layers OOM, use 2)
+          _nts_tf_layers_arr=()
+          if [[ -n "${NTS_NUM_TF_LAYERS_BY_DS["${ds}"]:-}" ]]; then
+            read -r -a _nts_tf_layers_arr <<< "${NTS_NUM_TF_LAYERS_BY_DS[${ds}]}"
+          else
+            _nts_tf_layers_arr=("${nts_num_tf_layers[@]}")
+          fi
           for gnn in "NTSFormer"; do
             for drop in "${nts_dropouts[@]}"; do
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
-                    for num_tf in "${nts_num_tf_layers[@]}"; do
+                    for num_tf in "${_nts_tf_layers_arr[@]}"; do
                       for num_head in "${nts_num_heads[@]}"; do
                         for sign_k_val in "${_nts_sign_k_arr[@]}"; do
                           for sign_alpha_val in "${nts_sign_alpha[@]}"; do
@@ -1265,6 +1276,13 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           else
             _nts_sign_k_arr=("${nts_sign_k[@]}")
           fi
+          # Resolve per-dataset num_tf_layers override (Reddit-M: 3 layers OOM, use 2)
+          _nts_tf_layers_arr=()
+          if [[ -n "${NTS_NUM_TF_LAYERS_BY_DS["${ds}"]:-}" ]]; then
+            read -r -a _nts_tf_layers_arr <<< "${NTS_NUM_TF_LAYERS_BY_DS[${ds}]}"
+          else
+            _nts_tf_layers_arr=("${nts_num_tf_layers[@]}")
+          fi
           # Resolve per-dataset eval_steps override (Reddit-M: eval every 5 epochs)
           _nts_eval_steps="${NTS_EVAL_STEPS_BY_DS["${ds}"]:-${EVAL_STEPS}}"
           # Resolve per-dataset early_stop override (Reddit-M: patience=20)
@@ -1274,7 +1292,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
-                    for num_tf in "${nts_num_tf_layers[@]}"; do
+                    for num_tf in "${_nts_tf_layers_arr[@]}"; do
                       for num_head in "${nts_num_heads[@]}"; do
                         for sign_k_val in "${_nts_sign_k_arr[@]}"; do
                           for sign_alpha_val in "${nts_sign_alpha[@]}"; do

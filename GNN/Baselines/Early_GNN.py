@@ -3,6 +3,7 @@ import copy
 import os
 import sys
 import time
+from typing import Optional
 
 import numpy as np
 import torch as th
@@ -94,12 +95,14 @@ class SimpleMAGGNN(nn.Module):
         visual_encoder: nn.Module,
         gnn: nn.Module,
         early_fuse: str = "concat",
+        single_modality: Optional[str] = None,
     ):
         super().__init__()
         self.text_encoder = text_encoder
         self.visual_encoder = visual_encoder
         self.gnn = gnn
         self.early_fuse = str(early_fuse).lower().strip() if early_fuse is not None else "concat"
+        self.single_modality = single_modality
 
     def reset_parameters(self):
         if hasattr(self.text_encoder, "reset_parameters"):
@@ -110,12 +113,17 @@ class SimpleMAGGNN(nn.Module):
             self.gnn.reset_parameters()
 
     def forward(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor) -> th.Tensor:
-        text_h = self.text_encoder(text_feature)
-        vis_h = self.visual_encoder(visual_feature)
-        if self.early_fuse == "sum":
-            feat = text_h + vis_h
+        if self.single_modality == "text":
+            feat = self.text_encoder(text_feature)
+        elif self.single_modality == "visual":
+            feat = self.visual_encoder(visual_feature)
         else:
-            feat = th.cat([text_h, vis_h], dim=1)
+            text_h = self.text_encoder(text_feature)
+            vis_h = self.visual_encoder(visual_feature)
+            if self.early_fuse == "sum":
+                feat = text_h + vis_h
+            else:
+                feat = th.cat([text_h, vis_h], dim=1)
         gnn_name = type(self.gnn).__name__
         if gnn_name == "GCNII":
             return self.gnn(feat, graph)
@@ -129,12 +137,14 @@ class SimpleMAGMLP(nn.Module):
         visual_encoder: nn.Module,
         mlp: nn.Module,
         early_fuse: str = "concat",
+        single_modality: Optional[str] = None,
     ):
         super().__init__()
         self.text_encoder = text_encoder
         self.visual_encoder = visual_encoder
         self.mlp = mlp
         self.early_fuse = str(early_fuse).lower().strip() if early_fuse is not None else "concat"
+        self.single_modality = single_modality
 
     def reset_parameters(self):
         if hasattr(self.text_encoder, "reset_parameters"):
@@ -145,12 +155,17 @@ class SimpleMAGMLP(nn.Module):
             self.mlp.reset_parameters()
 
     def forward(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor) -> th.Tensor:
-        text_h = self.text_encoder(text_feature)
-        vis_h = self.visual_encoder(visual_feature)
-        if self.early_fuse == "sum":
-            feat = text_h + vis_h
+        if self.single_modality == "text":
+            feat = self.text_encoder(text_feature)
+        elif self.single_modality == "visual":
+            feat = self.visual_encoder(visual_feature)
         else:
-            feat = th.cat([text_h, vis_h], dim=1)
+            text_h = self.text_encoder(text_feature)
+            vis_h = self.visual_encoder(visual_feature)
+            if self.early_fuse == "sum":
+                feat = text_h + vis_h
+            else:
+                feat = th.cat([text_h, vis_h], dim=1)
         return self.mlp(feat)
 
 
@@ -741,6 +756,9 @@ def main():
     if early_fuse not in ("concat", "sum"):
         raise ValueError(f"Unsupported --early_fuse: {early_fuse}")
     downstream_in_dim = proj_dim if early_fuse == "sum" else 2 * proj_dim
+    single_modality = getattr(args, "single_modality", None)
+    if single_modality in ("text", "visual"):
+        downstream_in_dim = proj_dim
 
     val_results = []
     test_results = []
@@ -769,6 +787,7 @@ def main():
                 visual_encoder,
                 mlp,
                 early_fuse=early_fuse,
+                single_modality=single_modality,
             )
         else:
             out_dim = embed_dim if separate_head else n_classes
@@ -778,6 +797,7 @@ def main():
                 visual_encoder,
                 gnn,
                 early_fuse=early_fuse,
+                single_modality=single_modality,
             )
 
         if separate_head:

@@ -18,7 +18,7 @@ sys.path.append(os.path.dirname(_ROOT))
 
 from GNN.GraphData import load_data, set_seed
 from GNN.Utils.LossFunction import cross_entropy, get_metric, EarlyStopping
-from GNN.Utils.NodeClassification import _as_scalar_float
+from GNN.Utils.NodeClassification import _as_scalar_float, _compute_degrade_metrics_mag
 from GNN.Utils.model_config import add_common_args
 from GNN.Utils.result_logger import build_result_row, update_best_result_csv, append_result_csv
 
@@ -199,6 +199,16 @@ def args_init():
                         help="Number of edges to sample for TUR loss (Aligned with original batch_size).")
     
     parser.add_argument("--disable_wandb", action="store_true", help="Disable wandb logging")
+
+    # Degrade metrics
+    parser.add_argument("--report_drop_modality", action="store_true", default=False,
+                        help="Compute modality degradation metrics at best epoch")
+    parser.add_argument("--degrade_target", type=str, default="both",
+                        choices=["text", "visual", "both"],
+                        help="Which modality to degrade for metric computation")
+    parser.add_argument("--degrade_alphas", type=str, default="1.0",
+                        help="Comma-separated alpha values for Gaussian noise degrade")
+
     return parser
 
 def main():
@@ -209,6 +219,20 @@ def main():
         os.environ["WANDB_DISABLED"] = "true"
     else:
         wandb.init(config=args, reinit=True, entity="tiant-wang")
+
+    # Auto-enable degrade metrics when result CSV is requested
+    report_drop = bool(getattr(args, "report_drop_modality", False))
+    if report_drop or getattr(args, "result_csv", None) or getattr(args, "result_csv_all", None):
+        report_drop = True
+
+    # Parse degrade alphas
+    degrade_alphas = []
+    for a in str(getattr(args, "degrade_alphas", "1.0")).split(","):
+        try:
+            degrade_alphas.append(float(a.strip()))
+        except ValueError:
+            degrade_alphas.append(1.0)
+    degrade_target = str(getattr(args, "degrade_target", "both")).lower()
 
     device = th.device("cuda:%d" % args.gpu if th.cuda.is_available() and args.gpu != -1 else "cpu")
 
@@ -234,15 +258,20 @@ def main():
     n_classes = int((labels.max() + 1).item())
 
     val_results, test_results = [], []
+    run_degrade_text_results = []
+    run_degrade_visual_results = []
 
     for run in range(args.n_runs):
         set_seed(args.seed + run)
-        
+
         model = MIGGT_NodeClassifier(args, text_feature.shape[1], visual_feature.shape[1], n_classes).to(device)
         optimizer = th.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
         stopper = EarlyStopping(patience=args.early_stop_patience) if args.early_stop_patience else None
 
         best_val_score, best_val_result, final_test_result = -1.0, 0.0, 0.0
+        best_test_degrade = None
+        if report_drop:
+            best_test_degrade = {alpha: (None, None) for alpha in degrade_alphas}
         total_time = 0
 
         for epoch in range(1, args.n_epochs + 1):
@@ -310,20 +339,48 @@ def main():
                     best_val_score = float(val_score)
                     best_val_result = float(val_score)
                     final_test_result = float(test_score)
+                    best_test_degrade = None
+                    if report_drop:
+                        def forward_for_degrade(text_f, vis_f):
+                            logits_d, _, _ = model(graph, text_f, vis_f)
+                            return logits_d
+                        best_test_degrade = {}
+                        for alpha in degrade_alphas:
+                            dt, dv = _compute_degrade_metrics_mag(
+                                forward_for_degrade, graph, text_feature, visual_feature,
+                                labels, test_idx, args.metric, average=args.average,
+                                train_idx=train_idx, degrade_alpha=alpha,
+                                degrade_target=degrade_target
+                            )
+                            best_test_degrade[alpha] = (float(dt) if dt is not None else None,
+                                                        float(dv) if dv is not None else None)
 
                 if stopper and stopper.step(val_score):
                     break
 
         print(f"Run: {run+1}/{args.n_runs} | Best Val {args.metric}: {best_val_result:.4f} | Final Test: {final_test_result:.4f}")
+        if report_drop and best_test_degrade:
+            alpha0 = degrade_alphas[0]
+            dt, dv = best_test_degrade[alpha0]
+            print(f"  Degrade (alpha={alpha0}): degrade_text={dt}, degrade_visual={dv}")
+            run_degrade_text_results.append(dt)
+            run_degrade_visual_results.append(dv)
         val_results.append(best_val_result)
         test_results.append(final_test_result)
 
     test_mean = float(np.mean(test_results))
     test_std = float(np.std(test_results))
     print(f"Average test {args.metric}: {test_mean * 100.0:.3f} ± {test_std * 100.0:.3f}%")
+    if report_drop:
+        alpha0 = degrade_alphas[0]
+        print(f"Best test degrade (alpha={alpha0}): text={np.mean(run_degrade_text_results):.4f}, visual={np.mean(run_degrade_visual_results):.4f}")
 
     if getattr(args, "result_csv", None) or getattr(args, "result_csv_all", None):
-        row = build_result_row(args=args, method="MIG_GT", full_metric=test_mean, degrade_text=None, degrade_visual=None, extra={"full_std": test_std})
+        degrade_text = float(np.mean(run_degrade_text_results)) if run_degrade_text_results else None
+        degrade_visual = float(np.mean(run_degrade_visual_results)) if run_degrade_visual_results else None
+        row = build_result_row(args=args, method="MIG_GT", full_metric=test_mean,
+                               degrade_text=degrade_text, degrade_visual=degrade_visual,
+                               extra={"full_std": test_std})
         key_fields = ["dataset", "method", "n_layers", "single_modality", "inductive", "fewshots", "metric"]
         if getattr(args, "result_csv", None):
             update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")

@@ -437,17 +437,14 @@ def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache
     Results are cached to ~/.cache/supra_nts_sign/ to avoid recomputing
     when running the same dataset+features across different hyperparams.
     """
-    import hashlib, os
+    import os
 
     t0 = time.time()
 
     # Build cache path from args if not provided
     if cache_key is None:
-        text_bn = os.path.basename(getattr(args, 'text_feature', '') or 'unknown')
-        vis_bn = os.path.basename(getattr(args, 'visual_feature', '') or 'unknown')
-        ds_name = getattr(args, 'data_name', 'unknown')
-        key_str = f"{ds_name}_{text_bn}_{vis_bn}_k{sign_k}"
-        cache_key = hashlib.md5(key_str.encode()).hexdigest()[:12]
+        # caller must provide cache_key; this branch is only for backwards compat
+        raise ValueError("cache_key must be provided")
 
     cache_dir = os.path.expanduser("~/.cache/supra_nts_sign")
     cache_file = os.path.join(cache_dir, f"sign_{cache_key}.pt")
@@ -633,9 +630,15 @@ def main():
 
     # Pre-compute SIGN features
     sign_k = getattr(args, 'nts_sign_k', 3)
+    # Build cache key from dataset + feature paths + sign_k
+    import hashlib, os as _os
+    text_bn = _os.path.basename(args.text_feature or 'unknown')
+    vis_bn = _os.path.basename(args.visual_feature or 'unknown')
+    key_str = f"{args.data_name}_{text_bn}_{vis_bn}_k{sign_k}"
+    sign_cache_key = hashlib.md5(key_str.encode()).hexdigest()[:12]
     t_precompute = time.time()
     text_h_list, vis_h_list = _pre_compute_sign_features(
-        observe_graph, text_feat, vis_feat, sign_k, device
+        observe_graph, text_feat, vis_feat, sign_k, device, cache_key=sign_cache_key
     )
     t_precompute = time.time() - t_precompute
     print(f"[TIME] data_loading={t_load:.2f}s  sign_precompute={t_precompute:.2f}s")

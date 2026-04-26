@@ -547,15 +547,6 @@ def args_init():
     parser.add_argument("--disable_wandb", action="store_true", help="Disable wandb logging")
     parser.add_argument("--local_log", type=str, default=None, help="Optional CSV file to upsert local results")
 
-    # Degrade metrics
-    parser.add_argument("--report_drop_modality", action="store_true", default=False,
-                        help="Compute modality degradation metrics at best epoch")
-    parser.add_argument("--degrade_target", type=str, default="both",
-                        choices=["text", "visual", "both"],
-                        help="Which modality to degrade for metric computation")
-    parser.add_argument("--degrade_alphas", type=str, default="1.0",
-                        help="Comma-separated alpha values for Gaussian noise degrade")
-
     return parser
 
 
@@ -578,12 +569,15 @@ def main():
         report_drop = True
 
     # Parse degrade alphas
+    raw_alphas = str(getattr(args, "degrade_alphas", "") or "1.0")
     degrade_alphas = []
-    for a in str(getattr(args, "degrade_alphas", "1.0")).split(","):
+    for a in raw_alphas.split(","):
         try:
             degrade_alphas.append(float(a.strip()))
         except ValueError:
             degrade_alphas.append(1.0)
+    if not degrade_alphas:
+        degrade_alphas = [1.0]
     degrade_target = str(getattr(args, "degrade_target", "both")).lower()
 
     device = th.device("cuda:%d" % args.gpu if th.cuda.is_available() and args.gpu != -1 else "cpu")

@@ -25,53 +25,106 @@ visual ──► enc_v ┘   │
 
 ## Running Experiments
 
+### Data Path Configuration
+
+**IMPORTANT**: `run_mag_baseline_suite.sh` does NOT use `path_config.sh`. It reads the `DATA_ROOT` environment variable directly:
+
 ```bash
-# 激活环境
-conda activate MAG
+DATA_ROOT=/your/data/path ./run_mag_baseline_suite.sh
+```
 
-# 配置数据路径 (编辑 path_config.sh)
-DATA_ROOT="/path/to/MAGB_Dataset"
+To set permanently: `echo 'export DATA_ROOT=/your/path' >> ~/.bashrc && source ~/.bashrc`
 
-# SUPRA 完整实验
-./run_supra.sh --data_name Movies --model_name GCN --embed_dim 256 --shared_depth 2 --ortho_alpha 1.0
+For other scripts that use `path_config.sh` (e.g., `run_supra.sh`, `run_baseline.sh`), edit `path_config.sh` directly.
 
-# 4路消融实验
+### Main Experiment Scripts
+
+```bash
+# Comprehensive baseline suite (main script for all baselines)
+# Sets DATA_ROOT env var - does NOT use path_config.sh
+DATA_ROOT=/mnt/input/MAGB_Dataset ./run_mag_baseline_suite.sh
+
+# SUPRA + ablation experiments (use path_config.sh)
+./run_supra.sh --data_name Movies --model_name GCN
 ./run_ablation_study.sh
 
-# 基线对比
+# Baseline experiments (use path_config.sh)
 ./run_baseline.sh --model GCN --data_name Movies
-
-# 综合基线 (包含 NTSFormer, MIG-GT 等)
 ./run_comprehensive_baseline.sh
 ```
 
-## Key Parameters
+### Single Model Run Examples
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--data_name` | 数据集 (Movies, Grocery, Toys, Reddit-M) | 必需 |
-| `--model_name` | GNN backbone (GCN, SAGE, GAT, RevGAT) | GCN |
-| `--embed_dim` | embedding 维度 | 256 |
-| `--shared_depth` | C通道 GNN层数 | 2 |
-| `--ortho_alpha` | 正交化强度 (0=关闭, 1=开启) | 1.0 |
-| `--use_aux_loss` | 启用辅助损失 | off |
-| `--use_gate` | 启用通道门控 (已移除, 不推荐) | off |
+```bash
+# NTSFormer
+python -m GNN.Baselines.NTSFormer --data_name Movies --metric accuracy \
+  --text_feature /path/Movies_roberta_base_512_mean.npy \
+  --visual_feature /path/Movies_openai_clip-vit-large-patch14.npy \
+  --graph_path /path/MoviesGraph.pt --result_csv Results/best.csv --result_csv_all Results/all.csv
+
+# MIG_GT
+python -m GNN.Baselines.MIG_GT --data_name Movies --metric accuracy \
+  --text_feature /path/Movies_roberta_base_512_mean.npy \
+  --visual_feature /path/Movies_openai_clip-vit-large-patch14.npy \
+  --graph_path /path/MoviesGraph.pt --result_csv Results/best.csv --result_csv_all Results/all.csv
+
+# Early_GNN (single modality: --single_modality text|visual)
+python -m GNN.Baselines.Early_GNN --data_name Movies --backend mlp --model_name MLP \
+  --single_modality text --result_csv Results/best.csv
+```
 
 ## Code Structure
 
 - `GNN/SUPRA.py` - 主模型, 包含三通道架构和谱正交化
-- `GNN/Baselines/Early_GNN.py` - 早期融合基线 (concat → GNN)
+- `GNN/Baselines/Early_GNN.py` - 早期融合基线 (concat → GNN); 支持 `--single_modality text|visual` 单模态实验
 - `GNN/Baselines/Late_GNN.py` - 晚期融合基线 (各模态独立GNN → 融合)
-- `GNN/Library/` - 基础 GNN 实现 (GCN, GAT, SAGE, GCNII 等)
-- `GNN/Utils/model_config.py` - 通用参数定义 (add_common_args)
-- `GNN/Utils/result_logger.py` - CSV 结果保存接口
-- `path_config.sh` - 数据路径配置
+- `GNN/Baselines/NTSFormer.py` - 多模态图Transformer (SIGN pre-compute + Transformer)
+- `GNN/Baselines/MIG_GT.py` - Multi-hop GDCF + Transformer
+- `GNN/Library/` - 基础 GNN 实现 (GCN, GAT, SAGE, GCNII, JKNet, SGC, APPNP 等)
+- `GNN/Utils/model_config.py` - 通用参数 (add_common_args); 所有 baseline 共享
+- `GNN/Utils/NodeClassification.py` - 训练循环、degrade 指标计算 (`_compute_degrade_metrics_mag`)
+- `GNN/Utils/result_logger.py` - CSV 结果保存 (`build_result_row`, `update_best_result_csv`)
+- `path_config.sh` - 数据路径配置 (被 run_supra.sh 等使用, 但 NOT run_mag_baseline_suite.sh)
+- `scripts/baselines/run_mag_baseline_suite.sh` - 综合基线实验主脚本
+
+## Key Parameters
+
+| 参数 | 说明 | 适用模型 |
+|------|------|---------|
+| `--data_name` | 数据集 (Movies, Grocery, Toys, Reddit-M) | 全部 |
+| `--single_modality` | 单模态模式: `text` 或 `visual` | Early_GNN (MLP/GNN) |
+| `--backend` | `mlp` 或 `gnn` | Early_GNN |
+| `--model_name` | GNN backbone (GCN, SAGE, GAT, GCNII, JKNet) | Early_GNN |
+| `--nts_num_tf_layers` | NTSFormer Transformer层数 | NTSFormer |
+| `--nts_sign_k` | SIGN pre-compute 的跳数 | NTSFormer |
+| `--k_t`, `--k_v` | MGDCF 文本/视觉模态的接收域 hops | MIG_GT |
+| `--num_samples` | SGT 全局采样数 C | MIG_GT |
+| `--report_drop_modality` | 计算模态降级指标 | 全部 |
+| `--degrade_target` | 降级哪个模态: `text`, `visual`, `both` | 全部 |
+| `--degrade_alphas` | 噪声强度, 如 `0.2,0.4,0.6,0.8,1.0` | 全部 |
+| `--result_csv` | Best 结果写入路径 | NTSFormer/MIG_GT |
+| `--result_csv_all` | All runs 结果写入路径 | NTSFormer/MIG_GT |
 
 ## Common Issues
 
-1. **CSV结果不保存**: NTSFormer/MIG-GT 需要 `--result_csv` 和 `--result_csv_all` 参数
-2. **CUDA版本**: requirements.yaml 指定 CUDA 12.1, 需匹配 PyTorch 版本
-3. **DGL版本**: 依赖特定 DGL 版本, 勿随意升级
+1. **模态降级指标三者相同 (full=degrade_text=degrade_visual)**
+   - Early_GNN: 检查 `--single_modality` 是否正确传递给了模型
+   - NTSFormer: `_compute_degrade_metrics_mag` 对 NTSFormer 无效, 因为 `text_h_list` 来自闭包捕获的原始特征; 需要在 degrade 计算时重新 `sign_pre_compute`
+   - 确认 `--degrade_alphas` 非空 (默认 `""` 在 `add_common_args` 中, 需要显式设置如 `--degrade_alphas 1.0`)
+
+2. **CSV 结果不保存**: NTSFormer/MIG_GT 必须同时指定 `--result_csv` 和 `--result_csv_all`
+
+3. **bash `for do` 语法错误**: `do` 是 bash 保留关键字, 循环变量不能用 `do`, 应改为其他名如 `drop`
+
+4. **argparse 参数重复定义**: `add_common_args` 已定义 `--report_drop_modality`, `--degrade_target`, `--degrade_alphas`, 不要在各个 baseline 里重复 `parser.add_argument`
+
+5. **JKNet `--jknet_aggr` 无效值**: 有效值为 `concat`, `max`, `last`, 不是 `mean`
+
+6. **DGL 自连接: `graph.remove_self_loop().add_self_loop()`** 必须在 `graph.create_formats_()` 之前调用
+
+7. **`get_metric` 返回数组**: `f1` 等 metric 在 `average!=None` 时返回 per-class 数组, 必须用 `float(np.asarray(score).mean())` 转为标量再比较
+
+8. **MIG_GT `val_score > best_val_score` 类型错误**: `get_metric` 返回 numpy 数组时直接比较会报错, 需要先转为 float
 
 ## 研究背景
 

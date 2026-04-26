@@ -133,6 +133,61 @@ def sign_pre_compute(g, x, k, include_input=True, alpha=0.0, norm="both",
     return h_list
 
 
+def sign_pre_compute_batched(g, feat_list, k, include_input=True, alpha=0.0,
+                              norm="both", remove_self_loop=False, device=None):
+    """Pre-compute multi-hop SIGN for multiple modalities at once.
+
+    Runs ONE graph propagation pass that updates ALL modality features
+    simultaneously, then splits results back. This is the key optimization
+    that matches the official coldgnn behavior.
+
+    Args:
+        g: DGL graph
+        feat_list: List of feature tensors [(N, d1), (N, d2), ...]
+        k: Number of hops
+        include_input: Include h^(0) = x in output
+        alpha: Residual coefficient
+        norm: GCN normalization mode
+        remove_self_loop: Remove self loops
+        device: Target device
+
+    Returns:
+        List of lists: [[h0^0, h0^1, ...], [h1^0, h1^1, ...], ...]
+    """
+    if remove_self_loop:
+        g = dgl.remove_self_loop(g)
+
+    # Stack all features: [N, sum(d_i)]
+    stacked = th.cat(feat_list, dim=-1)
+    gcn_weight = compute_gcn_weight(g, norm=norm).to(stacked.dtype)
+    g.edata['gcn_weight'] = gcn_weight
+
+    # Split point dimensions
+    split_dims = [f.shape[-1] for f in feat_list]
+
+    h_list_per_modality = [[] for _ in feat_list]
+    h = stacked
+
+    for k_ in range(k):
+        g.ndata['h'] = h
+        g.update_all(fn.u_mul_e('h', 'gcn_weight', 'm'), fn.sum('m', 'h'))
+        h = g.ndata.pop('h')
+
+        if alpha > 0.0:
+            h = (1.0 - alpha) * h + alpha * stacked
+
+        # Split back to per-modality
+        h_splits = th.split(h, split_dims, dim=-1)
+        for mod_idx, mod_h in enumerate(h_splits):
+            h_list_per_modality[mod_idx].append(mod_h)
+
+    if include_input:
+        for mod_idx, feat in enumerate(feat_list):
+            h_list_per_modality[mod_idx] = [feat] + h_list_per_modality[mod_idx]
+
+    return h_list_per_modality
+
+
 # ==============================================================================
 # NTSFormer Core Components
 # ==============================================================================
@@ -431,11 +486,16 @@ def _build_ntsformer_model(args, text_feat_dim, vis_feat_dim, n_classes, device)
     return model
 
 
-def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache_key=None):
+def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache_key=None,
+                                force_device=None):
     """Pre-compute SIGN features for text and visual modalities.
 
     Results are cached to ~/.cache/supra_nts_sign/ to avoid recomputing
     when running the same dataset+features across different hyperparams.
+
+    Uses sign_pre_compute_batched to run ONE graph propagation pass for
+    both modalities simultaneously (matching official coldgnn behavior).
+    Automatically uses GPU if graph is already on GPU.
     """
     import os
 
@@ -460,27 +520,41 @@ def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache
 
     print(f"Pre-computing SIGN features with k={sign_k}... (may take a while on large graphs)")
 
-    # Move to CPU for graph operations (memory efficient)
-    graph_cpu = graph.to('cpu')
-    text_feat_cpu = text_feat.cpu()
-    vis_feat_cpu = vis_feat.cpu()
-
-    # Pre-compute multi-hop features
-    t_text = time.time()
-    text_h_list = sign_pre_compute(
-        graph_cpu, text_feat_cpu, k=sign_k,
-        include_input=True, alpha=0.0, device='cpu'
+    # Determine compute device: use GPU if graph is already on GPU
+    compute_on_gpu = (force_device == 'gpu') or (
+        graph.is_cuda and force_device != 'cpu'
     )
-    print(f"  text SIGN done ({time.time()-t_text:.1f}s)")
+    compute_device = th.device('cuda') if compute_on_gpu else th.device('cpu')
 
-    t_vis = time.time()
-    vis_h_list = sign_pre_compute(
-        graph_cpu, vis_feat_cpu, k=sign_k,
-        include_input=True, alpha=0.0, device='cpu'
+    if compute_on_gpu:
+        print(f"  [GPU] Running SIGN on GPU (graph on {graph.device})")
+        graph_dev = graph.to(compute_device)
+        text_feat_dev = text_feat.to(compute_device)
+        vis_feat_dev = vis_feat.to(compute_device)
+    else:
+        print(f"  [CPU] Running SIGN on CPU (use --sign_use_gpu to enable GPU)")
+        graph_dev = graph.to('cpu')
+        text_feat_dev = text_feat.cpu()
+        vis_feat_dev = vis_feat.cpu()
+
+    # Use batched SIGN: one graph propagation for both modalities
+    # This matches the official coldgnn behavior where concat(text, visual)
+    # is processed in a SINGLE update_all() pass.
+    t_batched = time.time()
+    h_lists = sign_pre_compute_batched(
+        graph_dev,
+        [text_feat_dev, vis_feat_dev],
+        k=sign_k,
+        include_input=True,
+        alpha=0.0,
+        norm="both",
+        device=str(compute_device)
     )
-    print(f"  visual SIGN done ({time.time()-t_vis:.1f}s)")
+    text_h_list, vis_h_list = h_lists[0], h_lists[1]
+    print(f"  batched SIGN done ({time.time()-t_batched:.1f}s)  "
+          f"text_shape={[h.shape for h in text_h_list]}")
 
-    # Move back to device
+    # Move back to target device
     text_h_list = [h.to(device) for h in text_h_list]
     vis_h_list = [h.to(device) for h in vis_h_list]
 
@@ -491,8 +565,7 @@ def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache
         'vis_h_list': [h.cpu() for h in vis_h_list],
     }, cache_file)
     print(f"SIGN pre-compute done + cached to {cache_file}. "
-          f"Text multi-hop shape: {[h.shape for h in text_h_list]} "
-          f"({time.time()-t0:.1f}s)")
+          f"({time.time()-t0:.1f}s total)")
 
     return text_h_list, vis_h_list
 
@@ -577,6 +650,8 @@ def args_init():
                      help="Number of hops for SIGN pre-computation (k in A^k)")
     nts.add_argument("--nts_sign_alpha", type=float, default=0.0,
                      help="Residual coefficient for SIGN: h=(1-alpha)*Agg(h)+alpha*x")
+    nts.add_argument("--sign_use_gpu", action="store_true",
+                     help="Run SIGN pre-computation on GPU (faster but uses more GPU memory)")
 
     parser.add_argument("--disable_wandb", action="store_true", help="Disable wandb logging")
     parser.add_argument("--local_log", type=str, default=None, help="Optional CSV file to upsert local results")
@@ -637,8 +712,10 @@ def main():
     key_str = f"{args.data_name}_{text_bn}_{vis_bn}_k{sign_k}"
     sign_cache_key = hashlib.md5(key_str.encode()).hexdigest()[:12]
     t_precompute = time.time()
+    sign_use_gpu = 'gpu' if getattr(args, 'sign_use_gpu', False) else 'cpu'
     text_h_list, vis_h_list = _pre_compute_sign_features(
-        observe_graph, text_feat, vis_feat, sign_k, device, cache_key=sign_cache_key
+        observe_graph, text_feat, vis_feat, sign_k, device,
+        cache_key=sign_cache_key, force_device=sign_use_gpu
     )
     t_precompute = time.time() - t_precompute
     print(f"[TIME] data_loading={t_load:.2f}s  sign_precompute={t_precompute:.2f}s")
@@ -669,46 +746,6 @@ def main():
         train_step_times = []
         eval_step_times = []
         degrade_times = []
-
-        best_val_score = -1.0
-        final_test_result = 0.0
-        best_test_degrade = None
-        if report_drop:
-            best_test_degrade = {alpha: (None, None) for alpha in degrade_alphas}
-
-        for epoch in range(1, args.n_epochs + 1):
-            tic = time.time()
-
-            adjust_learning_rate_if_needed(args, optimizer, epoch)
-
-            model.train()
-            optimizer.zero_grad()
-
-            t_fwd_start = time.time()
-            logits = model(observe_graph, text_feat, vis_feat, text_h_list, vis_h_list)
-            loss = cross_entropy(logits[train_idx], labels[train_idx],
-                                label_smoothing=args.label_smoothing)
-            loss.backward()
-            optimizer.step()
-            train_step_times.append(time.time() - t_fwd_start)
-
-            if epoch % args.eval_steps == 0:
-                t_eval_start = time.time()
-                model.eval()
-                with th.no_grad():
-                    logits = model(graph, text_feat, vis_feat, text_h_list, vis_h_list)
-
-                val_pred = th.argmax(logits[val_idx], dim=1)
-                val_result = get_metric(val_pred, labels[val_idx], args.metric, average=args.average)
-
-                test_pred = th.argmax(logits[test_idx], dim=1)
-                test_result = get_metric(test_pred, labels[test_idx], args.metric, average=args.average)
-
-                lr_scheduler.step(float(loss.detach().item()))
-                eval_step_times.append(time.time() - t_eval_start)
-
-        stopper = initialize_early_stopping(args)
-        optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
         best_val_score = -1.0
         final_test_result = 0.0
@@ -812,7 +849,7 @@ def main():
         print(f"  [TIME] total={t_run_total:.1f}s  model_init={t_model_init:.2f}s  "
               f"train_total={t_train_total:.1f}s(avg={avg_train:.3f}s×{len(train_step_times)}ep)  "
               f"eval_total={t_eval_total:.1f}s(avg={avg_eval:.3f}s×{len(eval_step_times)}ep)  "
-              f"degrade={t_degrade_total:.2f}s")
+              f"degrade={t_degrade_total:.2f}s  other={t_other:.1f}s")
         if report_drop and best_test_degrade:
             alpha0 = degrade_alphas[0]
             dt, dv = best_test_degrade[alpha0]

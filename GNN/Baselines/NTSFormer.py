@@ -735,8 +735,14 @@ def main():
         degrade_visual = float(np.mean(run_degrade_visual_results)) if run_degrade_visual_results else None
         row = build_result_row(args=args, method="NTSFormer", full_metric=test_mean,
                                degrade_text=degrade_text, degrade_visual=degrade_visual,
-                               extra={"full_std": test_std})
-        key_fields = ["dataset", "method", "metric", "inductive", "fewshots"]
+                               extra={
+                                   "full_std": test_std,
+                                   "nts_sign_k": getattr(args, "nts_sign_k", ""),
+                                   "nts_sign_alpha": getattr(args, "nts_sign_alpha", ""),
+                                   "nts_num_tf_layers": getattr(args, "nts_num_tf_layers", ""),
+                                   "nts_num_heads": getattr(args, "nts_num_heads", ""),
+                               })
+        key_fields = ["dataset", "method", "metric", "n_hidden", "inductive", "fewshots"]
         if getattr(args, 'result_csv', None):
             update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
         if getattr(args, 'result_csv_all', None):

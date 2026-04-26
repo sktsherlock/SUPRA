@@ -374,8 +374,16 @@ def main():
         degrade_visual = float(np.mean(run_degrade_visual_results)) if run_degrade_visual_results else None
         row = build_result_row(args=args, method="MIG_GT", full_metric=test_mean,
                                degrade_text=degrade_text, degrade_visual=degrade_visual,
-                               extra={"full_std": test_std})
-        key_fields = ["dataset", "method", "n_layers", "single_modality", "inductive", "fewshots", "metric"]
+                               extra={
+                                   "full_std": test_std,
+                                   "k_t": getattr(args, "k_t", ""),
+                                   "k_v": getattr(args, "k_v", ""),
+                                   "num_samples": getattr(args, "num_samples", ""),
+                                   "tur_weight": getattr(args, "tur_weight", ""),
+                                   "mgdcf_alpha": getattr(args, "mgdcf_alpha", ""),
+                                   "mgdcf_beta": getattr(args, "mgdcf_beta", ""),
+                               })
+        key_fields = ["dataset", "method", "n_layers", "n_hidden", "single_modality", "inductive", "fewshots", "metric"]
         if getattr(args, "result_csv", None):
             update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
         if getattr(args, "result_csv_all", None):

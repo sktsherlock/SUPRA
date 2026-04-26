@@ -107,6 +107,12 @@ declare -A VAL_RATIO_BY_DS
 # TRAIN_RATIO_BY_DS["Reddit-S"]=${TRAIN_RATIO_BY_DS["Reddit-S"]:-0.2}
 # VAL_RATIO_BY_DS["Reddit-S"]=${VAL_RATIO_BY_DS["Reddit-S"]:-0.2}
 
+# Optional per-dataset hidden size overrides (Reddit-M is large, reduce to save memory)
+declare -A NTS_N_HIDDEN_BY_DS
+declare -A MIG_N_HIDDEN_BY_DS
+NTS_N_HIDDEN_BY_DS["Reddit-M"]="128"
+MIG_N_HIDDEN_BY_DS["Reddit-M"]="128"
+
 MM_PROJ_DIM=${MM_PROJ_DIM:-}
 
 # ---------------- Sweep (grid search) ----------------
@@ -654,11 +660,18 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           done
           ;;
         "nts")
+          # Resolve per-dataset hidden size override
+          _nts_h_arr=()
+          if [[ -n "${NTS_N_HIDDEN_BY_DS["${ds}"]:-}" ]]; then
+            read -r -a _nts_h_arr <<< "${NTS_N_HIDDEN_BY_DS[${ds}]}"
+          else
+            _nts_h_arr=("${nts_n_hidden[@]}")
+          fi
           for gnn in "NTSFormer"; do
             for drop in "${nts_dropouts[@]}"; do
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
-                  for h in "${nts_n_hidden[@]}"; do
+                  for h in "${_nts_h_arr[@]}"; do
                     for num_tf in "${nts_num_tf_layers[@]}"; do
                       for num_head in "${nts_num_heads[@]}"; do
                         for sign_k_val in "${nts_sign_k[@]}"; do
@@ -678,11 +691,18 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           done
           ;;
         "mig")
+          # Resolve per-dataset hidden size override
+          _mig_h_arr=()
+          if [[ -n "${MIG_N_HIDDEN_BY_DS["${ds}"]:-}" ]]; then
+            read -r -a _mig_h_arr <<< "${MIG_N_HIDDEN_BY_DS[${ds}]}"
+          else
+            _mig_h_arr=("${mig_n_hidden[@]}")
+          fi
           for gnn in "MIGGT"; do
             for drop in "${mig_dropouts[@]}"; do
               for lr in "${mig_lrs[@]}"; do
                 for wd in "${mig_wds[@]}"; do
-                  for h in "${mig_n_hidden[@]}"; do
+                  for h in "${_mig_h_arr[@]}"; do
                     for kt_kv in "${mig_k_t_kv[@]}"; do
                       IFS=',' read -r k_t k_v <<< "${kt_kv}"
                       model_label="MIGGT"
@@ -1239,11 +1259,18 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           done
           ;;
         "nts")
+          # Resolve per-dataset hidden size override
+          _nts_h_arr=()
+          if [[ -n "${NTS_N_HIDDEN_BY_DS["${ds}"]:-}" ]]; then
+            read -r -a _nts_h_arr <<< "${NTS_N_HIDDEN_BY_DS[${ds}]}"
+          else
+            _nts_h_arr=("${nts_n_hidden[@]}")
+          fi
           for gnn in "NTSFormer"; do
             for drop in "${nts_dropouts[@]}"; do
               for lr in "${nts_lrs[@]}"; do
                 for wd in "${nts_wds[@]}"; do
-                  for h in "${nts_n_hidden[@]}"; do
+                  for h in "${_nts_h_arr[@]}"; do
                     for num_tf in "${nts_num_tf_layers[@]}"; do
                       for num_head in "${nts_num_heads[@]}"; do
                         for sign_k_val in "${nts_sign_k[@]}"; do
@@ -1297,11 +1324,18 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           done
           ;;
         "mig")
+          # Resolve per-dataset hidden size override
+          _mig_h_arr=()
+          if [[ -n "${MIG_N_HIDDEN_BY_DS["${ds}"]:-}" ]]; then
+            read -r -a _mig_h_arr <<< "${MIG_N_HIDDEN_BY_DS[${ds}]}"
+          else
+            _mig_h_arr=("${mig_n_hidden[@]}")
+          fi
           for gnn in "MIGGT"; do
             for drop in "${mig_dropouts[@]}"; do
               for lr in "${mig_lrs[@]}"; do
                 for wd in "${mig_wds[@]}"; do
-                  for h in "${mig_n_hidden[@]}"; do
+                  for h in "${_mig_h_arr[@]}"; do
                     for kt_kv in "${mig_k_t_kv[@]}"; do
                       IFS=',' read -r k_t k_v <<< "${kt_kv}"
                       model_label="MIGGT"

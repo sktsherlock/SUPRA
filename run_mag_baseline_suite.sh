@@ -111,6 +111,14 @@ declare -A VAL_RATIO_BY_DS
 declare -A NTS_SIGN_K_BY_DS
 NTS_SIGN_K_BY_DS["Reddit-M"]="1"
 
+# Per-dataset NTSFormer eval_steps override (Reddit-M trains fast, eval more frequently)
+declare -A NTS_EVAL_STEPS_BY_DS
+NTS_EVAL_STEPS_BY_DS["Reddit-M"]="5"
+
+# Per-dataset NTSFormer early_stop_patience override (Reddit-M converges fast)
+declare -A NTS_EARLY_STOP_BY_DS
+NTS_EARLY_STOP_BY_DS["Reddit-M"]="20"
+
 MM_PROJ_DIM=${MM_PROJ_DIM:-}
 
 # ---------------- Sweep (grid search) ----------------
@@ -1257,6 +1265,10 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           else
             _nts_sign_k_arr=("${nts_sign_k[@]}")
           fi
+          # Resolve per-dataset eval_steps override (Reddit-M: eval every 5 epochs)
+          _nts_eval_steps="${NTS_EVAL_STEPS_BY_DS["${ds}"]:-${EVAL_STEPS}}"
+          # Resolve per-dataset early_stop override (Reddit-M: patience=20)
+          _nts_early_stop="${NTS_EARLY_STOP_BY_DS["${ds}"]:-${nts_early_stop_patience}}"
           for gnn in "NTSFormer"; do
             for drop in "${nts_dropouts[@]}"; do
               for lr in "${nts_lrs[@]}"; do
@@ -1294,8 +1306,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                   "${RESULT_CSV_ARG[@]}" \
                                   "${RESULT_CSV_ALL_ARG[@]}" \
                                   --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
-                                  --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
-                                  --early_stop_patience "${nts_early_stop_patience}" \
+                                  --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${_nts_eval_steps}" \
+                                  --early_stop_patience "${_nts_early_stop}" \
                                   --lr "${lr}" --wd "${wd}" \
                                   --n-layers "1" --n-hidden "${h}" --dropout "${drop}" \
                                   --label-smoothing "${nts_label_smoothing}" \
@@ -1303,7 +1315,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                   --nts_num_tf_layers "${num_tf}" \
                                   --nts_num_heads "${num_head}" \
                                   --nts_sign_k "${sign_k_val}" \
-                                  --nts_sign_alpha "${sign_alpha_val}"
+                                  --nts_sign_alpha "${sign_alpha_val}" \
+                                  --sign_use_gpu
                           done
                         done
                       done

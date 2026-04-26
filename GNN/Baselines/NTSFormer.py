@@ -461,7 +461,7 @@ def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache
               f"({time.time()-t0:.1f}s)")
         return text_h_list, vis_h_list
 
-    print(f"Pre-computing SIGN features with k={sign_k}...")
+    print(f"Pre-computing SIGN features with k={sign_k}... (may take a while on large graphs)")
 
     # Move to CPU for graph operations (memory efficient)
     graph_cpu = graph.to('cpu')
@@ -469,15 +469,19 @@ def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache
     vis_feat_cpu = vis_feat.cpu()
 
     # Pre-compute multi-hop features
+    t_text = time.time()
     text_h_list = sign_pre_compute(
         graph_cpu, text_feat_cpu, k=sign_k,
         include_input=True, alpha=0.0, device='cpu'
     )
+    print(f"  text SIGN done ({time.time()-t_text:.1f}s)")
 
+    t_vis = time.time()
     vis_h_list = sign_pre_compute(
         graph_cpu, vis_feat_cpu, k=sign_k,
         include_input=True, alpha=0.0, device='cpu'
     )
+    print(f"  visual SIGN done ({time.time()-t_vis:.1f}s)")
 
     # Move back to device
     text_h_list = [h.to(device) for h in text_h_list]

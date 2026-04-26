@@ -1333,8 +1333,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                   --nts_num_tf_layers "${num_tf}" \
                                   --nts_num_heads "${num_head}" \
                                   --nts_sign_k "${sign_k_val}" \
-                                  --nts_sign_alpha "${sign_alpha_val}" \
-                                  --sign_use_gpu
+                                  --nts_sign_alpha "${sign_alpha_val}"
                           done
                         done
                       done

@@ -678,10 +678,10 @@ def main():
                                 dt_val = float(np.asarray(dt_val).mean())
                             # Degrade visual: recompute SIGN from noisy visual
                             if target in ("visual", "both"):
-                                noisy_vis = _make_noisy_feature(visual_feat, train_idx, float(alpha))
+                                noisy_vis = _make_noisy_feature(vis_feat, train_idx, float(alpha))
                                 noisy_vis_h_list = sign_pre_compute(
                                     graph, noisy_vis, k=sign_k, include_input=True,
-                                    alpha=0.0, device=visual_feat.device
+                                    alpha=0.0, device=vis_feat.device
                                 )
                                 logits_dv = model(
                                     graph, text_feat, noisy_vis,

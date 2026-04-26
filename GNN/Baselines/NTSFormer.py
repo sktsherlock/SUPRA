@@ -582,10 +582,13 @@ def main():
 
     device = th.device("cuda:%d" % args.gpu if th.cuda.is_available() and args.gpu != -1 else "cpu")
 
+    t0 = time.time()
+    t_load = t0
     (
         graph, observe_graph, labels, train_idx, val_idx, test_idx,
         text_feat, vis_feat,
     ) = _load_mag_context(args, device)
+    t_load = time.time() - t_load
 
     n_classes = (labels.max() + 1).item()
     print(f"Number of classes: {n_classes}")
@@ -593,9 +596,12 @@ def main():
 
     # Pre-compute SIGN features
     sign_k = getattr(args, 'nts_sign_k', 3)
+    t_precompute = time.time()
     text_h_list, vis_h_list = _pre_compute_sign_features(
         observe_graph, text_feat, vis_feat, sign_k, device
     )
+    t_precompute = time.time() - t_precompute
+    print(f"[TIME] data_loading={t_load:.2f}s  sign_precompute={t_precompute:.2f}s")
 
     val_results = []
     test_results = []
@@ -605,6 +611,8 @@ def main():
     for run in range(args.n_runs):
         set_seed(args.seed + run)
 
+        t_run_start = time.time()
+        t_model_init = time.time()
         model = _build_ntsformer_model(
             args,
             text_feat_dim=text_feat.shape[1],
@@ -613,6 +621,51 @@ def main():
             device=device,
         )
         model.reset_parameters()
+        t_model_init = time.time() - t_model_init
+
+        stopper = initialize_early_stopping(args)
+        optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
+
+        train_step_times = []
+        eval_step_times = []
+        degrade_times = []
+
+        best_val_score = -1.0
+        final_test_result = 0.0
+        best_test_degrade = None
+        if report_drop:
+            best_test_degrade = {alpha: (None, None) for alpha in degrade_alphas}
+
+        for epoch in range(1, args.n_epochs + 1):
+            tic = time.time()
+
+            adjust_learning_rate_if_needed(args, optimizer, epoch)
+
+            model.train()
+            optimizer.zero_grad()
+
+            t_fwd_start = time.time()
+            logits = model(observe_graph, text_feat, vis_feat, text_h_list, vis_h_list)
+            loss = cross_entropy(logits[train_idx], labels[train_idx],
+                                label_smoothing=args.label_smoothing)
+            loss.backward()
+            optimizer.step()
+            train_step_times.append(time.time() - t_fwd_start)
+
+            if epoch % args.eval_steps == 0:
+                t_eval_start = time.time()
+                model.eval()
+                with th.no_grad():
+                    logits = model(graph, text_feat, vis_feat, text_h_list, vis_h_list)
+
+                val_pred = th.argmax(logits[val_idx], dim=1)
+                val_result = get_metric(val_pred, labels[val_idx], args.metric, average=args.average)
+
+                test_pred = th.argmax(logits[test_idx], dim=1)
+                test_result = get_metric(test_pred, labels[test_idx], args.metric, average=args.average)
+
+                lr_scheduler.step(float(loss.detach().item()))
+                eval_step_times.append(time.time() - t_eval_start)
 
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
@@ -631,13 +684,16 @@ def main():
             model.train()
             optimizer.zero_grad()
 
+            t_fwd_start = time.time()
             logits = model(observe_graph, text_feat, vis_feat, text_h_list, vis_h_list)
             loss = cross_entropy(logits[train_idx], labels[train_idx],
                                 label_smoothing=args.label_smoothing)
             loss.backward()
             optimizer.step()
+            train_step_times.append(time.time() - t_fwd_start)
 
             if epoch % args.eval_steps == 0:
+                t_eval_start = time.time()
                 model.eval()
                 with th.no_grad():
                     logits = model(graph, text_feat, vis_feat, text_h_list, vis_h_list)
@@ -649,6 +705,7 @@ def main():
                 test_result = get_metric(test_pred, labels[test_idx], args.metric, average=args.average)
 
                 lr_scheduler.step(float(loss.detach().item()))
+                eval_step_times.append(time.time() - t_eval_start)
 
                 toc = time.time()
                 total_time = toc - tic
@@ -658,6 +715,7 @@ def main():
                     final_test_result = float(test_result)
                     best_test_degrade = None
                     if report_drop:
+                        t_degrade_start = time.time()
                         best_test_degrade = {}
                         for alpha in degrade_alphas:
                             dt_val, dv_val = None, None
@@ -691,6 +749,7 @@ def main():
                                 dv_val = get_metric(pred_dv, labels[test_idx], args.metric, average=args.average)
                                 dv_val = float(np.asarray(dv_val).mean())
                             best_test_degrade[alpha] = (dt_val, dv_val)
+                        degrade_times.append(time.time() - t_degrade_start)
 
                 if stopper and stopper.step(val_result):
                     break
@@ -703,6 +762,17 @@ def main():
                 )
 
         print(f"Run {run+1}: Best Val {args.metric}={best_val_score:.4f}, Final Test {args.metric}={final_test_result:.4f}")
+        t_run_total = time.time() - t_run_start
+        t_train_total = sum(train_step_times)
+        t_eval_total = sum(eval_step_times)
+        t_degrade_total = sum(degrade_times)
+        t_other = t_run_total - t_model_init - t_train_total - t_eval_total - t_degrade_total
+        avg_train = np.mean(train_step_times) if train_step_times else 0
+        avg_eval = np.mean(eval_step_times) if eval_step_times else 0
+        print(f"  [TIME] total={t_run_total:.1f}s  model_init={t_model_init:.2f}s  "
+              f"train_total={t_train_total:.1f}s(avg={avg_train:.3f}s×{len(train_step_times)}ep)  "
+              f"eval_total={t_eval_total:.1f}s(avg={avg_eval:.3f}s×{len(eval_step_times)}ep)  "
+              f"degrade={t_degrade_total:.2f}s")
         if report_drop and best_test_degrade:
             alpha0 = degrade_alphas[0]
             dt, dv = best_test_degrade[alpha0]

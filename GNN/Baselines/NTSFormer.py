@@ -522,7 +522,7 @@ def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache
 
     # Determine compute device: use GPU if graph is already on GPU
     compute_on_gpu = (force_device == 'gpu') or (
-        graph.is_cuda and force_device != 'cpu'
+        str(graph.device).startswith('cuda') and force_device != 'cpu'
     )
     compute_device = th.device('cuda') if compute_on_gpu else th.device('cpu')
 

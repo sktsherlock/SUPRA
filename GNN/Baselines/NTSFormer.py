@@ -431,11 +431,36 @@ def _build_ntsformer_model(args, text_feat_dim, vis_feat_dim, n_classes, device)
     return model
 
 
-def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device):
+def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device, cache_key=None):
     """Pre-compute SIGN features for text and visual modalities.
 
-    This is done once before training to save computation.
+    Results are cached to ~/.cache/supra_nts_sign/ to avoid recomputing
+    when running the same dataset+features across different hyperparams.
     """
+    import hashlib, os
+
+    t0 = time.time()
+
+    # Build cache path from args if not provided
+    if cache_key is None:
+        text_bn = os.path.basename(getattr(args, 'text_feature', '') or 'unknown')
+        vis_bn = os.path.basename(getattr(args, 'visual_feature', '') or 'unknown')
+        ds_name = getattr(args, 'data_name', 'unknown')
+        key_str = f"{ds_name}_{text_bn}_{vis_bn}_k{sign_k}"
+        cache_key = hashlib.md5(key_str.encode()).hexdigest()[:12]
+
+    cache_dir = os.path.expanduser("~/.cache/supra_nts_sign")
+    cache_file = os.path.join(cache_dir, f"sign_{cache_key}.pt")
+
+    if os.path.exists(cache_file):
+        print(f"[CACHE HIT] Loading cached SIGN features from {cache_file}")
+        cached = th.load(cache_file, map_location=device)
+        text_h_list = [h.to(device) for h in cached['text_h_list']]
+        vis_h_list = [h.to(device) for h in cached['vis_h_list']]
+        print(f"SIGN loaded from cache. Text multi-hop shape: {[h.shape for h in text_h_list]} "
+              f"({time.time()-t0:.1f}s)")
+        return text_h_list, vis_h_list
+
     print(f"Pre-computing SIGN features with k={sign_k}...")
 
     # Move to CPU for graph operations (memory efficient)
@@ -458,7 +483,15 @@ def _pre_compute_sign_features(graph, text_feat, vis_feat, sign_k, device):
     text_h_list = [h.to(device) for h in text_h_list]
     vis_h_list = [h.to(device) for h in vis_h_list]
 
-    print(f"SIGN pre-compute done. Text multi-hop shape: {[h.shape for h in text_h_list]}")
+    # Save to cache (store on CPU to save GPU memory)
+    os.makedirs(cache_dir, exist_ok=True)
+    th.save({
+        'text_h_list': [h.cpu() for h in text_h_list],
+        'vis_h_list': [h.cpu() for h in vis_h_list],
+    }, cache_file)
+    print(f"SIGN pre-compute done + cached to {cache_file}. "
+          f"Text multi-hop shape: {[h.shape for h in text_h_list]} "
+          f"({time.time()-t0:.1f}s)")
 
     return text_h_list, vis_h_list
 

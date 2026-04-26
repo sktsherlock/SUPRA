@@ -89,8 +89,14 @@ def _compute_degrade_metrics_mag(
     train_idx=None,
     degrade_alpha: float = 1.0,
     degrade_target: str = "both",
+    **model_kwargs,
 ):
-    """Compute metric when degrading text or visual modality with Gaussian noise."""
+    """Compute metric when degrading text or visual modality with Gaussian noise.
+
+    Args:
+        model: forward function that takes (graph, text_feat, visual_feat, **model_kwargs)
+        **model_kwargs: extra arguments passed to model (e.g., pre-computed SIGN features)
+    """
     target = str(degrade_target or "both").lower()
     do_text = target in ("text", "both")
     do_visual = target in ("visual", "both")
@@ -99,11 +105,11 @@ def _compute_degrade_metrics_mag(
     degrade_vis = None
     if do_text:
         noisy_text = _make_noisy_feature(text_feat, train_idx, float(degrade_alpha))
-        pred_degrade_text = model(graph, noisy_text, visual_feat)
+        pred_degrade_text = model(graph, noisy_text, visual_feat, **model_kwargs)
         degrade_text = _compute_metric_from_logits(pred_degrade_text, labels, idx, metric, average=average)
     if do_visual:
         noisy_vis = _make_noisy_feature(visual_feat, train_idx, float(degrade_alpha))
-        pred_degrade_vis = model(graph, text_feat, noisy_vis)
+        pred_degrade_vis = model(graph, text_feat, noisy_vis, **model_kwargs)
         degrade_vis = _compute_metric_from_logits(pred_degrade_vis, labels, idx, metric, average=average)
     return degrade_text, degrade_vis
 

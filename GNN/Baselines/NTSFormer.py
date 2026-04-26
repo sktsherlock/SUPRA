@@ -39,7 +39,7 @@ from GNN.Utils.NodeClassification import (
     initialize_optimizer_and_scheduler,
     adjust_learning_rate_if_needed,
     log_progress,
-    _compute_degrade_metrics_mag,
+    _make_noisy_feature,
 )
 from GNN.Utils.model_config import add_common_args
 from GNN.Utils.result_logger import build_result_row, update_best_result_csv, append_result_csv
@@ -658,18 +658,39 @@ def main():
                     final_test_result = float(test_result)
                     best_test_degrade = None
                     if report_drop:
-                        def forward_for_degrade(g, text_f, vis_f):
-                            return model(g, text_f, vis_f, text_h_list, vis_h_list)
                         best_test_degrade = {}
                         for alpha in degrade_alphas:
-                            dt, dv = _compute_degrade_metrics_mag(
-                                forward_for_degrade, graph, text_feat, vis_feat,
-                                labels, test_idx, args.metric, average=args.average,
-                                train_idx=train_idx, degrade_alpha=alpha,
-                                degrade_target=degrade_target
-                            )
-                            best_test_degrade[alpha] = (float(dt) if dt is not None else None,
-                                                        float(dv) if dv is not None else None)
+                            dt_val, dv_val = None, None
+                            target = degrade_target
+                            # Degrade text: recompute SIGN from noisy text
+                            if target in ("text", "both"):
+                                noisy_text = _make_noisy_feature(text_feat, train_idx, float(alpha))
+                                noisy_text_h_list = sign_pre_compute(
+                                    graph, noisy_text, k=sign_k, include_input=True,
+                                    alpha=0.0, device=text_feat.device
+                                )
+                                logits_dt = model(
+                                    graph, noisy_text, vis_feat,
+                                    text_h_list=noisy_text_h_list, vis_h_list=vis_h_list
+                                )
+                                pred_dt = th.argmax(logits_dt[test_idx], dim=1)
+                                dt_val = get_metric(pred_dt, labels[test_idx], args.metric, average=args.average)
+                                dt_val = float(np.asarray(dt_val).mean())
+                            # Degrade visual: recompute SIGN from noisy visual
+                            if target in ("visual", "both"):
+                                noisy_vis = _make_noisy_feature(visual_feat, train_idx, float(alpha))
+                                noisy_vis_h_list = sign_pre_compute(
+                                    graph, noisy_vis, k=sign_k, include_input=True,
+                                    alpha=0.0, device=visual_feat.device
+                                )
+                                logits_dv = model(
+                                    graph, text_feat, noisy_vis,
+                                    text_h_list=text_h_list, vis_h_list=noisy_vis_h_list
+                                )
+                                pred_dv = th.argmax(logits_dv[test_idx], dim=1)
+                                dv_val = get_metric(pred_dv, labels[test_idx], args.metric, average=args.average)
+                                dv_val = float(np.asarray(dv_val).mean())
+                            best_test_degrade[alpha] = (dt_val, dv_val)
 
                 if stopper and stopper.step(val_result):
                     break

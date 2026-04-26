@@ -107,6 +107,10 @@ declare -A VAL_RATIO_BY_DS
 # TRAIN_RATIO_BY_DS["Reddit-S"]=${TRAIN_RATIO_BY_DS["Reddit-S"]:-0.2}
 # VAL_RATIO_BY_DS["Reddit-S"]=${VAL_RATIO_BY_DS["Reddit-S"]:-0.2}
 
+# Per-dataset NTSFormer sign_k override (Reddit-M is large, reduce k to save time)
+declare -A NTS_SIGN_K_BY_DS
+NTS_SIGN_K_BY_DS["Reddit-M"]="1"
+
 MM_PROJ_DIM=${MM_PROJ_DIM:-}
 
 # ---------------- Sweep (grid search) ----------------
@@ -654,6 +658,13 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
           done
           ;;
         "nts")
+          # Resolve per-dataset sign_k override (Reddit-M: reduce k to save time/memory)
+          _nts_sign_k_arr=()
+          if [[ -n "${NTS_SIGN_K_BY_DS["${ds}"]:-}" ]]; then
+            read -r -a _nts_sign_k_arr <<< "${NTS_SIGN_K_BY_DS[${ds}]}"
+          else
+            _nts_sign_k_arr=("${nts_sign_k[@]}")
+          fi
           for gnn in "NTSFormer"; do
             for drop in "${nts_dropouts[@]}"; do
               for lr in "${nts_lrs[@]}"; do
@@ -661,7 +672,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
                     for num_tf in "${nts_num_tf_layers[@]}"; do
                       for num_head in "${nts_num_heads[@]}"; do
-                        for sign_k_val in "${nts_sign_k[@]}"; do
+                        for sign_k_val in "${_nts_sign_k_arr[@]}"; do
                           for sign_alpha_val in "${nts_sign_alpha[@]}"; do
                             model_label="NTSFormer"
                             run_label="${model_label}-lr${lr}-wd${wd}-h${h}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${drop}"
@@ -1246,7 +1257,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   for h in "${nts_n_hidden[@]}"; do
                     for num_tf in "${nts_num_tf_layers[@]}"; do
                       for num_head in "${nts_num_heads[@]}"; do
-                        for sign_k_val in "${nts_sign_k[@]}"; do
+                        for sign_k_val in "${_nts_sign_k_arr[@]}"; do
                           for sign_alpha_val in "${nts_sign_alpha[@]}"; do
                             model_label="NTSFormer"
                             run_label="${model_label}-lr${lr}-wd${wd}-h${h}-tf${num_tf}-head${num_head}-k${sign_k_val}-alpha${sign_alpha_val}-do${drop}"

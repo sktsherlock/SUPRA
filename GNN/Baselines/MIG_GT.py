@@ -335,8 +335,8 @@ def main():
                     final_test_result = float(test_score)
                     best_test_degrade = None
                     if report_drop:
-                        def forward_for_degrade(text_f, vis_f):
-                            logits_d, _, _ = model(graph, text_f, vis_f)
+                        def forward_for_degrade(g, text_f, vis_f):
+                            logits_d, _, _ = model(g, text_f, vis_f)
                             return logits_d
                         best_test_degrade = {}
                         for alpha in degrade_alphas:

@@ -299,6 +299,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       tail -n 80 "${log_file}" >&2 || true
                       echo "    --- end tail ---" >&2
                     fi
+                    done
                   done
                 done
               done

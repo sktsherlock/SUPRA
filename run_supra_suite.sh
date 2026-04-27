@@ -304,6 +304,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
       done
     done
   done
+done
 
 echo ""
 echo "================================================"

@@ -138,10 +138,20 @@ total_jobs=0
 for fg in "${FEATURE_GROUPS_ARR[@]}"; do
   for ds in "${DATASETS_ARR[@]}"; do
     for model_name in ${SUPRA_MODELS}; do
-      for L in "${supra_n_layers[@]}"; do
-        for aw in "${supra_aux_weights[@]}"; do
-          for mlp_var in "${supra_mlp_variants[@]}"; do
-            ((total_jobs++))
+      for dropout in "${supra_dropout}"; do
+        for lr in "${supra_lrs[@]}"; do
+          for wd in "${supra_wds[@]}"; do
+            for h in "${supra_n_hidden[@]}"; do
+              for L in "${supra_n_layers[@]}"; do
+                for ed in "${supra_embed_dims[@]}"; do
+                  for aw in "${supra_aux_weights[@]}"; do
+                    for mlp_var in "${supra_mlp_variants[@]}"; do
+                      ((total_jobs++))
+                    done
+                  done
+                done
+              done
+            done
           done
         done
       done
@@ -294,8 +304,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
     done
   done
 done
+done
 
 echo ""
 echo "================================================"
 echo "SUPRA suite complete. Logs: ${LOG_ROOT}/"
-echo "================================================"

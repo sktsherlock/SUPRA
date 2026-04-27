@@ -223,7 +223,7 @@ for lr in "${supra_lrs[@]}"; do
               --label-smoothing "${supra_label_smoothing}" \
               --metric "${METRIC}" --average "${AVERAGE}" \
               --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-              --undirected \
+              --undirected "${UNDIRECTED}" \
               --selfloop "${SELFLOOP}" \
               --inductive "${INDUCTIVE}" \
               --model_name "${MODEL_NAME}" \

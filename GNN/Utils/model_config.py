@@ -124,10 +124,20 @@ def add_common_args(argparser):
         "--graph_path", type=str, default=None, help="The datasets to be implemented."
     )
     argparser.add_argument(
-        "--undirected", type=str2bool, default=True, help="Whether to undirect the graph."
+        "--undirected",
+        nargs="?",
+        const=True,
+        type=str2bool,
+        default=True,
+        help="Whether to undirect the graph. Accepts optional value: '--undirected [true|false]'.",
     )
     argparser.add_argument(
-        "--selfloop", type=str2bool, default=True, help="Whether to add self loop in the graph."
+        "--selfloop",
+        nargs="?",
+        const=True,
+        type=str2bool,
+        default=True,
+        help="Whether to add self loop in the graph. Accepts optional value: '--selfloop [true|false]'.",
     )
     argparser.add_argument(
         "--metric", type=str, default='accuracy', action=_MetricAction,
@@ -202,7 +212,12 @@ def add_common_args(argparser):
     # NOTE: report_acc_f1 / drop-modality metrics are handled in training scripts.
     # ! Split datasets
     argparser.add_argument(
-        "--inductive", type=str2bool, default=False, help="Whether to do inductive learning experiments."
+        "--inductive",
+        nargs="?",
+        const=True,
+        type=str2bool,
+        default=False,
+        help="Whether to do inductive learning experiments. Accepts optional value: '--inductive [true|false]'.",
     )
     argparser.add_argument(
         "--train_ratio", type=float, default=0.6, help="training ratio"

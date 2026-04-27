@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import inspect
 import os
 import sys
 import time
@@ -361,11 +362,46 @@ class SUPRA(nn.Module):
 
     def _run_layers(self, graph, x: th.Tensor, mp_layers) -> th.Tensor:
         h = x
-        # First layer is MLP projection (no graph), rest are GNN layers
-        h = mp_layers[0](h)  # MLP: Sequential only takes input tensor
-        for layer in mp_layers[1:]:
-            h = layer(graph, h)  # GNN: layers take (graph, h)
-        return h
+            if mp_layers is None:
+                return h
+
+            def _wants_graph_arg(module: nn.Module) -> bool:
+                if isinstance(module, nn.Sequential):
+                    return False
+                try:
+                    sig = inspect.signature(module.forward)
+                except (TypeError, ValueError):
+                    # Fallback: assume non-Sequential modules are graph-based.
+                    return True
+
+                params = list(sig.parameters.values())
+                # Common patterns:
+                #   forward(self, x) -> tensor-only
+                #   forward(self, graph, x) -> graph-based
+                # NOTE: we don't try to be perfect for *args/**kwargs; we'll fall back to try/except.
+                positional = [
+                    p for p in params
+                    if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+                ]
+                return len(positional) >= 3  # (self, graph, x)
+
+            for layer in mp_layers:
+                if _wants_graph_arg(layer):
+                    try:
+                        h = layer(graph, h)
+                    except TypeError as e:
+                        # Only fall back for the "wrong number of args" class of errors.
+                        msg = str(e)
+                        if isinstance(layer, nn.Sequential) or (
+                            "positional argument" in msg or "positional arguments" in msg or "required positional" in msg
+                        ):
+                            h = layer(h)
+                        else:
+                            raise
+                else:
+                    h = layer(h)
+
+            return h
 
     def _encode_with_drop(self, text_feat: th.Tensor, vis_feat: th.Tensor, present_t: th.Tensor, present_v: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
         e_t = self.enc_t(text_feat)

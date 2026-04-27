@@ -251,48 +251,49 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
 
                     start_time=${SECONDS}
 
-                    python -m GNN.SUPRA \
-                      --data_name "${ds}" \
-                      --graph_path "${graph_path}" \
-                      --text_feature "${text_feat}" \
-                      --visual_feature "${vis_feat}" \
-                      --gpu "${GPU_ID}" \
-                      --n-runs "${N_RUNS}" \
-                      --n-epochs "${N_EPOCHS}" \
-                      --warmup_epochs "${WARMUP_EPOCHS}" \
-                      --eval_steps "${EVAL_STEPS}" \
-                      --early_stop_patience "${supra_early_stop_patience}" \
-                      --lr "${lr}" \
-                      --wd "${wd}" \
-                      --n-layers "${L}" \
-                      --n-hidden "${h}" \
-                      --dropout "${dropout}" \
-                      --label-smoothing "${supra_label_smoothing}" \
-                      --metric "${METRIC}" \
-                      --average "${AVERAGE}" \
-                      --train_ratio "${TRAIN_RATIO}" \
-                      --val_ratio "${VAL_RATIO}" \
-                      --undirected true \
-                      --selfloop "${SELFLOOP}" \
-                      --inductive "${INDUCTIVE}" \
-                      --model_name "${model_name}" \
-                      --embed_dim "${ed}" \
-                      --aux_weight "${aw}" \
-                      --mlp_variant "${mlp_var}" \
-                      --result_csv "${RESULT_CSV}" \
-                      --result_csv_all "${RESULT_CSV_ALL}" \
-                      --disable_wandb \
-                      ${extra_args} \
-                      >> "${log_file}" 2>&1
-
-                    rc=$?
-                    dur_s=$((SECONDS - start_time))
-
-                    if [[ ${rc} -eq 0 ]]; then
+                    if python -m GNN.SUPRA \
+                        --data_name "${ds}" \
+                        --graph_path "${graph_path}" \
+                        --text_feature "${text_feat}" \
+                        --visual_feature "${vis_feat}" \
+                        --gpu "${GPU_ID}" \
+                        --n-runs "${N_RUNS}" \
+                        --n-epochs "${N_EPOCHS}" \
+                        --warmup_epochs "${WARMUP_EPOCHS}" \
+                        --eval_steps "${EVAL_STEPS}" \
+                        --early_stop_patience "${supra_early_stop_patience}" \
+                        --lr "${lr}" \
+                        --wd "${wd}" \
+                        --n-layers "${L}" \
+                        --n-hidden "${h}" \
+                        --dropout "${dropout}" \
+                        --label-smoothing "${supra_label_smoothing}" \
+                        --metric "${METRIC}" \
+                        --average "${AVERAGE}" \
+                        --train_ratio "${TRAIN_RATIO}" \
+                        --val_ratio "${VAL_RATIO}" \
+                        --undirected "${UNDIRECTED}" \
+                        --selfloop "${SELFLOOP}" \
+                        --inductive "${INDUCTIVE}" \
+                        --model_name "${model_name}" \
+                        --embed_dim "${ed}" \
+                        --aux_weight "${aw}" \
+                        --mlp_variant "${mlp_var}" \
+                        --result_csv "${RESULT_CSV}" \
+                        --result_csv_all "${RESULT_CSV_ALL}" \
+                        --disable_wandb \
+                        ${extra_args} \
+                        >> "${log_file}" 2>&1; then
+                      dur_s=$((SECONDS - start_time))
                       touch "${log_file}.done"
                       echo "    [OK] ${label} (${dur_s}s)"
                     else
-                      echo "    [FAIL] ${label} (exit=${rc}, ${dur_s}s)" >&2
+                      rc=$?
+                      dur_s=$((SECONDS - start_time))
+                      echo "    [FAIL] ${label} (exit=${rc}, ${dur_s}s) log=${log_file}" >&2
+                      echo "    --- tail ${log_file} ---" >&2
+                      tail -n 80 "${log_file}" >&2 || true
+                      echo "    --- end tail ---" >&2
                     fi
                   done
                 done
@@ -303,8 +304,6 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
       done
     done
   done
-done
-done
 
 echo ""
 echo "================================================"

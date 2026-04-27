@@ -234,7 +234,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       --average "${AVERAGE}" \
                       --train_ratio "${TRAIN_RATIO}" \
                       --val_ratio "${VAL_RATIO}" \
-                      --undirected \
+                      --undirected true \
                       --selfloop "${SELFLOOP}" \
                       --inductive "${INDUCTIVE}" \
                       --model_name "${model_name}" \

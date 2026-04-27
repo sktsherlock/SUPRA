@@ -127,8 +127,8 @@ SUPRA_LAYERS=${SUPRA_LAYERS:-"2 3 4"}
 read -r -a supra_n_layers <<< "${SUPRA_LAYERS}"
 supra_label_smoothing="0.1"
 supra_early_stop_patience="50"
-supra_embed_dims=("128" "256")
-supra_shared_depths=("1" "2" "3" "4")
+supra_embed_dims=("256")
+supra_shared_depths=()
 
 gat_n_heads=4
 gat_attn_drop=0.0
@@ -267,39 +267,36 @@ for metric in "${METRIC_ARR[@]}"; do
             for h in "${supra_n_hidden[@]}"; do
               for L in "${supra_n_layers[@]}"; do
                 for ed in "${supra_embed_dims[@]}"; do
-                  for sd in "${supra_shared_depths[@]}"; do
-                    label="${label_prefix}-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}-sd${sd}"
-                    run_model "${label}" \
-                      python GNN/SUPRA.py \
-                        --data_name "${ds}" \
-                        --graph_path "${GRAPH_PATH}" \
-                        --text_feature "${TEXT_FEAT}" \
-                        --visual_feature "${VIS_FEAT}" \
-                        --gpu "${GPU_ID}" \
-                        --n-runs "${N_RUNS}" \
-                        --n-epochs "${N_EPOCHS}" \
-                        --warmup_epochs "${WARMUP_EPOCHS}" \
-                        --eval_steps "${EVAL_STEPS}" \
-                        --early_stop_patience "${supra_early_stop_patience}" \
-                        --lr "${lr}" --wd "${wd}" \
-                        --n-layers "${L}" --n-hidden "${h}" --dropout "${supra_dropout}" \
-                        --label-smoothing "${supra_label_smoothing}" \
-                        --metric "${metric}" --average "${AVERAGE}" \
-                        --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                        --undirected "${UNDIRECTED}" \
-                        --selfloop "${SELFLOOP}" \
-                        --inductive "${INDUCTIVE}" \
-                        --model_name "${MODEL_NAME}" \
-                        --embed_dim "${ed}" \
-                        --shared_depth "${sd}" \
-                        --ortho_alpha "${ortho_alpha}" \
-                        ${AUX_ARGS} \
-                        --result_tag "${label_prefix}" \
-                        --result_csv "${RESULT_CSV}" \
-                        --result_csv_all "${RESULT_CSV_ALL}" \
-                        --disable_wandb \
-                        ${EXTRA_ARGS}
-                  done
+                  label="${label_prefix}-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}"
+                  run_model "${label}" \
+                    python GNN/SUPRA.py \
+                      --data_name "${ds}" \
+                      --graph_path "${GRAPH_PATH}" \
+                      --text_feature "${TEXT_FEAT}" \
+                      --visual_feature "${VIS_FEAT}" \
+                      --gpu "${GPU_ID}" \
+                      --n-runs "${N_RUNS}" \
+                      --n-epochs "${N_EPOCHS}" \
+                      --warmup_epochs "${WARMUP_EPOCHS}" \
+                      --eval_steps "${EVAL_STEPS}" \
+                      --early_stop_patience "${supra_early_stop_patience}" \
+                      --lr "${lr}" --wd "${wd}" \
+                      --n-layers "${L}" --n-hidden "${h}" --dropout "${supra_dropout}" \
+                      --label-smoothing "${supra_label_smoothing}" \
+                      --metric "${metric}" --average "${AVERAGE}" \
+                      --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
+                      --undirected "${UNDIRECTED}" \
+                      --selfloop "${SELFLOOP}" \
+                      --inductive "${INDUCTIVE}" \
+                      --model_name "${MODEL_NAME}" \
+                      --embed_dim "${ed}" \
+                      --ortho_alpha "${ortho_alpha}" \
+                      ${AUX_ARGS} \
+                      --result_tag "${label_prefix}" \
+                      --result_csv "${RESULT_CSV}" \
+                      --result_csv_all "${RESULT_CSV_ALL}" \
+                      --disable_wandb \
+                      ${EXTRA_ARGS}
                 done
               done
             done

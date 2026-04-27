@@ -287,13 +287,11 @@ class SUPRA(nn.Module):
         dropout: float,
         args,
         device: th.device,
-        shared_depth: int,
     ):
         super().__init__()
         self.args = args
         self.embed_dim = int(embed_dim)
         self.n_classes = int(n_classes)
-        self.shared_depth = int(shared_depth)
 
         # Modality encoders: project raw features to shared embedding space
         # These serve as the "unique" branches, capturing modality-specific
@@ -313,8 +311,8 @@ class SUPRA(nn.Module):
                 )
             return nn.ModuleList(layers)
 
-        # Shared message passing layers (deeper propagation)
-        self.mp_C = _make_mp_layers(self.shared_depth)
+        # Shared message passing layers (n_layers from args)
+        self.mp_C = _make_mp_layers(int(args.n_layers))
 
         # Prediction heads for shared and unique channels
         self.head_C = nn.Linear(self.embed_dim, self.n_classes)
@@ -473,7 +471,6 @@ def args_init():
     # SUPRA model arguments
     supra = parser.add_argument_group("SUPRA")
     supra.add_argument("--embed_dim", type=int, default=None, help="Embedding dimension for SUPRA channels")
-    supra.add_argument("--shared_depth", type=int, default=None, help="Propagation depth for shared channel")
     supra.add_argument("--ortho_alpha", type=float, default=1.0, help="Spectral orthogonalization strength (0=disable)")
     supra.add_argument("--use_aux_loss", action="store_true", help="Enable auxiliary loss on each branch (C, Ut, Uv)")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
@@ -584,7 +581,6 @@ def main():
     val_results, test_results = [], []
     select_metric, select_average = args.metric, args.average
     embed_dim = int(args.embed_dim) if args.embed_dim is not None else int(args.n_hidden)
-    shared_depth = int(args.shared_depth) if args.shared_depth is not None else int(args.n_layers)
 
     # Store best logits from all channels for oracle gate analysis
     best_logits_Ut_all, best_logits_Uv_all, best_logits_C_all = None, None, None
@@ -595,7 +591,7 @@ def main():
         model = SUPRA(
             text_in_dim=int(text_feat.shape[1]), vis_in_dim=int(vis_feat.shape[1]),
             embed_dim=embed_dim, n_classes=n_classes, dropout=float(args.dropout),
-            args=args, device=device, shared_depth=shared_depth,
+            args=args, device=device,
         ).to(device)
         model.reset_parameters()
 

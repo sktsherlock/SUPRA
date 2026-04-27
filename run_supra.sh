@@ -66,8 +66,8 @@ read -r -a supra_n_layers <<< "${SUPRA_LAYERS}"
 supra_label_smoothing="0.1"
 supra_early_stop_patience="50"
 
-supra_embed_dims=("128" "256")
-supra_shared_depths=("1" "2" "3" "4")
+supra_embed_dims=("256")
+supra_shared_depths=()
 
 gat_n_heads=4
 gat_attn_drop=0.0
@@ -235,36 +235,33 @@ for lr in "${supra_lrs[@]}"; do
     for h in "${supra_n_hidden[@]}"; do
       for L in "${supra_n_layers[@]}"; do
         for ed in "${supra_embed_dims[@]}"; do
-          for sd in "${supra_shared_depths[@]}"; do
-            label="${label_prefix}-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}-sd${sd}"
-            run_model "${label}" \
-              python GNN/SUPRA.py \
-                --data_name "${DATA_NAME}" \
-                --graph_path "${GRAPH_PATH}" \
-                --text_feature "${TEXT_FEAT}" \
-                --visual_feature "${VIS_FEAT}" \
-                --gpu "${GPU_ID}" \
-                --n-runs "${N_RUNS}" \
-                --n-epochs "${N_EPOCHS}" \
-                --warmup_epochs "${WARMUP_EPOCHS}" \
-                --eval_steps "${EVAL_STEPS}" \
-                --early_stop_patience "${supra_early_stop_patience}" \
-                --lr "${lr}" --wd "${wd}" \
-                --n-layers "${L}" --n-hidden "${h}" --dropout "${supra_dropout}" \
-                --label-smoothing "${supra_label_smoothing}" \
-                --metric "${METRIC}" --average "${AVERAGE}" \
-                --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
-                --undirected \
-                --selfloop "${SELFLOOP}" \
-                --inductive "${INDUCTIVE}" \
-                --model_name "${MODEL_NAME}" \
-                --embed_dim "${ed}" \
-                --shared_depth "${sd}" \
-                --ortho_alpha "${ORTHO_ALPHA}" \
-                ${AUX_ARGS} \
-                --disable_wandb \
-                ${EXTRA_ARGS}
-          done
+          label="${label_prefix}-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}"
+          run_model "${label}" \
+            python GNN/SUPRA.py \
+              --data_name "${DATA_NAME}" \
+              --graph_path "${GRAPH_PATH}" \
+              --text_feature "${TEXT_FEAT}" \
+              --visual_feature "${VIS_FEAT}" \
+              --gpu "${GPU_ID}" \
+              --n-runs "${N_RUNS}" \
+              --n-epochs "${N_EPOCHS}" \
+              --warmup_epochs "${WARMUP_EPOCHS}" \
+              --eval_steps "${EVAL_STEPS}" \
+              --early_stop_patience "${supra_early_stop_patience}" \
+              --lr "${lr}" --wd "${wd}" \
+              --n-layers "${L}" --n-hidden "${h}" --dropout "${supra_dropout}" \
+              --label-smoothing "${supra_label_smoothing}" \
+              --metric "${METRIC}" --average "${AVERAGE}" \
+              --train_ratio "${TRAIN_RATIO}" --val_ratio "${VAL_RATIO}" \
+              --undirected \
+              --selfloop "${SELFLOOP}" \
+              --inductive "${INDUCTIVE}" \
+              --model_name "${MODEL_NAME}" \
+              --embed_dim "${ed}" \
+              --ortho_alpha "${ORTHO_ALPHA}" \
+              ${AUX_ARGS} \
+              --disable_wandb \
+              ${EXTRA_ARGS}
         done
       done
     done

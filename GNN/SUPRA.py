@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import inspect
 import os
 import sys
 import time
@@ -362,38 +361,30 @@ class SUPRA(nn.Module):
 
     def _run_layers(self, graph, x: th.Tensor, mp_layers) -> th.Tensor:
         h = x
-        if mp_layers is None:
+        if not mp_layers:
             return h
 
-        def _wants_graph_arg(module: nn.Module) -> bool:
-            if isinstance(module, nn.Sequential):
-                return False
-            try:
-                sig = inspect.signature(module.forward)
-            except (TypeError, ValueError):
-                return True
-
-            params = list(sig.parameters.values())
-            positional = [
-                p for p in params
-                if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-            ]
-            return len(positional) >= 3
-
         for layer in mp_layers:
-            if _wants_graph_arg(layer):
-                try:
-                    h = layer(graph, h)
-                except TypeError as e:
-                    msg = str(e)
-                    if isinstance(layer, nn.Sequential) or (
-                        "positional argument" in msg or "positional arguments" in msg or "required positional" in msg
-                    ):
-                        h = layer(h)
-                    else:
-                        raise
-            else:
+            # Projection MLP / tensor-only layers
+            if isinstance(layer, nn.Sequential):
                 h = layer(h)
+                continue
+
+            # Graph-based layers (GCN/SAGE/GAT/RevGAT, etc.)
+            try:
+                h = layer(graph, h)
+            except TypeError as e:
+                # Fallback for tensor-only layers that don't accept (graph, h)
+                msg = str(e)
+                if (
+                    "positional argument" in msg
+                    or "positional arguments" in msg
+                    or "required positional" in msg
+                    or "missing" in msg
+                ):
+                    h = layer(h)
+                else:
+                    raise
 
         return h
 

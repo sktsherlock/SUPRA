@@ -231,7 +231,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                     for mlp_var in "${supra_mlp_variants[@]}"; do
                       ((++job_counter))
                       label="SUPRA-${model_name}-L${L}-aw${aw}-mlp${mlp_var}"
-                    log_file="${LOG_ROOT}/fg_${fg}/${ds}/${label}.log"
+                      log_file="${LOG_ROOT}/fg_${fg}/${ds}/${label}.log"
 
                     mkdir -p "$(dirname "${log_file}")"
 
@@ -243,47 +243,51 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
 
                     echo "    + ${job_counter}/${total_jobs} ${label}"
 
-                    # Build GAT extra args
-                    extra_args=""
-                    if [[ "${model_name}" == "GAT" ]]; then
-                      extra_args="--n-heads ${gat_n_heads} --attn-drop ${gat_attn_drop} --edge-drop ${gat_edge_drop}"
-                    fi
-
                     start_time=${SECONDS}
 
-                    if python -m GNN.SUPRA \
-                        --data_name "${ds}" \
-                        --graph_path "${graph_path}" \
-                        --text_feature "${text_feat}" \
-                        --visual_feature "${vis_feat}" \
-                        --gpu "${GPU_ID}" \
-                        --n-runs "${N_RUNS}" \
-                        --n-epochs "${N_EPOCHS}" \
-                        --warmup_epochs "${WARMUP_EPOCHS}" \
-                        --eval_steps "${EVAL_STEPS}" \
-                        --early_stop_patience "${supra_early_stop_patience}" \
-                        --lr "${lr}" \
-                        --wd "${wd}" \
-                        --n-layers "${L}" \
-                        --n-hidden "${h}" \
-                        --dropout "${dropout}" \
-                        --label-smoothing "${supra_label_smoothing}" \
-                        --metric "${METRIC}" \
-                        --average "${AVERAGE}" \
-                        --train_ratio "${TRAIN_RATIO}" \
-                        --val_ratio "${VAL_RATIO}" \
-                        --undirected "${UNDIRECTED}" \
-                        --selfloop "${SELFLOOP}" \
-                        --inductive "${INDUCTIVE}" \
-                        --model_name "${model_name}" \
-                        --embed_dim "${ed}" \
-                        --aux_weight "${aw}" \
-                        --mlp_variant "${mlp_var}" \
-                        --result_csv "${RESULT_CSV}" \
-                        --result_csv_all "${RESULT_CSV_ALL}" \
-                        --disable_wandb \
-                        ${extra_args} \
-                        >> "${log_file}" 2>&1; then
+                    cmd=(
+                      python -m GNN.SUPRA
+                      --data_name "${ds}"
+                      --graph_path "${graph_path}"
+                      --text_feature "${text_feat}"
+                      --visual_feature "${vis_feat}"
+                      --gpu "${GPU_ID}"
+                      --n-runs "${N_RUNS}"
+                      --n-epochs "${N_EPOCHS}"
+                      --warmup_epochs "${WARMUP_EPOCHS}"
+                      --eval_steps "${EVAL_STEPS}"
+                      --early_stop_patience "${supra_early_stop_patience}"
+                      --lr "${lr}"
+                      --wd "${wd}"
+                      --n-layers "${L}"
+                      --n-hidden "${h}"
+                      --dropout "${dropout}"
+                      --label-smoothing "${supra_label_smoothing}"
+                      --metric "${METRIC}"
+                      --average "${AVERAGE}"
+                      --train_ratio "${TRAIN_RATIO}"
+                      --val_ratio "${VAL_RATIO}"
+                      --undirected "${UNDIRECTED}"
+                      --selfloop "${SELFLOOP}"
+                      --inductive "${INDUCTIVE}"
+                      --model_name "${model_name}"
+                      --embed_dim "${ed}"
+                      --aux_weight "${aw}"
+                      --mlp_variant "${mlp_var}"
+                      --result_csv "${RESULT_CSV}"
+                      --result_csv_all "${RESULT_CSV_ALL}"
+                      --disable_wandb
+                    )
+
+                    if [[ "${model_name}" == "GAT" ]]; then
+                      cmd+=(
+                        --n-heads "${gat_n_heads}"
+                        --attn-drop "${gat_attn_drop}"
+                        --edge-drop "${gat_edge_drop}"
+                      )
+                    fi
+
+                    if "${cmd[@]}" >> "${log_file}" 2>&1; then
                       dur_s=$((SECONDS - start_time))
                       touch "${log_file}.done"
                       echo "    [OK] ${label} (${dur_s}s)"
@@ -304,7 +308,6 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
       done
     done
   done
-done
 done
 
 echo ""

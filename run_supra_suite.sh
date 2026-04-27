@@ -99,6 +99,7 @@ supra_label_smoothing="0.1"
 supra_early_stop_patience="50"
 supra_embed_dims=("256")
 supra_aux_weights=("0.0" "0.1" "0.3" "0.5" "0.7")
+supra_mlp_variants=("full" "ablate")  # full=MLP投影, ablate=无投影(对比基线)
 
 # GAT parameters
 gat_n_heads=4
@@ -131,6 +132,31 @@ count_job() {
 # =============================================================================
 # Main sweep loop
 # =============================================================================
+
+# Pre-count total jobs for progress display
+total_jobs=0
+for fg in "${FEATURE_GROUPS_ARR[@]}"; do
+  for ds in "${DATASETS_ARR[@]}"; do
+    for model_name in ${SUPRA_MODELS}; do
+      for L in "${supra_n_layers[@]}"; do
+        for aw in "${supra_aux_weights[@]}"; do
+          for mlp_var in "${supra_mlp_variants[@]}"; do
+            ((total_jobs++))
+          done
+        done
+      done
+    done
+  done
+done
+echo "=============================================="
+echo "Total jobs: ${total_jobs}"
+echo "  - Models: ${SUPRA_MODELS}"
+echo "  - Layers: ${SUPRA_LAYERS}"
+echo "  - Aux weights: ${supra_aux_weights[*]}"
+echo "  - MLP variants: ${supra_mlp_variants[*]}"
+echo "=============================================="
+
+job_counter=0
 for fg in "${FEATURE_GROUPS_ARR[@]}"; do
   for ds in "${DATASETS_ARR[@]}"; do
     echo ""
@@ -192,18 +218,20 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
               for L in "${supra_n_layers[@]}"; do
                 for ed in "${supra_embed_dims[@]}"; do
                   for aw in "${supra_aux_weights[@]}"; do
-                    label="SUPRA-${model_name}-lr${lr}-wd${wd}-h${h}-L${L}-do${dropout}-ed${ed}-aw${aw}"
+                    for mlp_var in "${supra_mlp_variants[@]}"; do
+                      ((job_counter++))
+                      label="SUPRA-${model_name}-L${L}-aw${aw}-mlp${mlp_var}"
                     log_file="${LOG_ROOT}/fg_${fg}/${ds}/${label}.log"
 
                     mkdir -p "$(dirname "${log_file}")"
 
                     # Check if done
                     if [[ -f "${log_file}.done" ]]; then
-                      echo "    [SKIP] ${label} (done)"
+                      echo "    [SKIP] ${job_counter}/${total_jobs} ${label} (done)"
                       continue
                     fi
 
-                    echo "    + ${label}"
+                    echo "    + ${job_counter}/${total_jobs} ${label}"
 
                     # Build GAT extra args
                     extra_args=""
@@ -240,6 +268,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       --model_name "${model_name}" \
                       --embed_dim "${ed}" \
                       --aux_weight "${aw}" \
+                      --mlp_variant "${mlp_var}" \
                       --result_csv "${RESULT_CSV}" \
                       --result_csv_all "${RESULT_CSV_ALL}" \
                       --disable_wandb \

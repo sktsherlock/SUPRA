@@ -299,27 +299,42 @@ class SUPRA(nn.Module):
         self.enc_t = ModalityEncoder(int(text_in_dim), self.embed_dim, float(dropout))
         self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
 
-        def _make_mp_layers(num_layers: int) -> nn.ModuleList:
-            # Two-layer MLP projection before GNN:
-            # concat(e_t, e_v) = 2*embed_dim → Linear → ReLU → LN → Linear → embed_dim → GNN layers
+        def _make_mp_layers(num_layers: int, mlp_variant: str = "full") -> nn.ModuleList:
+            # MLP projection before GNN:
+            # full: Linear→ReLU→LN→Linear (2 layers with nonlinear activation)
+            # ablate: no projection - concat features go directly to GNN
+            # Then n_layers-1 GNN layers (each processes embed_dim -> embed_dim)
+            # n_layers=1: projection or direct GNN
+            # n_layers=2: projection + 1 GNN
+            # n_layers=3: projection + 2 GNN
             layers = []
             first_in_dim = self.embed_dim * 2
-            proj = nn.Sequential(
-                nn.Linear(first_in_dim, self.embed_dim),
-                nn.ReLU(),
-                nn.LayerNorm(self.embed_dim),
-                nn.Linear(self.embed_dim, self.embed_dim),
-            )
-            layers.append(proj)
-            # Subsequent layers: process embed_dim features sequentially
-            for _ in range(1, int(num_layers)):
-                layers.append(
-                    _build_gnn_backbone(args, self.embed_dim, self.embed_dim, device, n_layers_override=1, n_hidden_override=self.embed_dim)
+            if mlp_variant == "full":
+                proj = nn.Sequential(
+                    nn.Linear(first_in_dim, self.embed_dim),
+                    nn.ReLU(),
+                    nn.LayerNorm(self.embed_dim),
+                    nn.Linear(self.embed_dim, self.embed_dim),
                 )
+                layers.append(proj)
+                gnn_start_in_dim = self.embed_dim
+            else:  # ablate - no projection, concat goes directly to GNN
+                gnn_start_in_dim = first_in_dim  # 2*embed_dim
+
+            # Add GNN layers (n_layers includes the projection if present)
+            # For "ablate": n_layers means n_layers GNN layers (no projection)
+            # For "full": n_layers-1 GNN layers after projection
+            gnn_layers_count = int(num_layers) if mlp_variant == "ablate" else max(0, int(num_layers) - 1)
+            for _ in range(gnn_layers_count):
+                layers.append(
+                    _build_gnn_backbone(args, gnn_start_in_dim, self.embed_dim, device, n_layers_override=1, n_hidden_override=self.embed_dim)
+                )
+                gnn_start_in_dim = self.embed_dim  # subsequent GNN layers use embed_dim
             return nn.ModuleList(layers)
 
-        # Shared message passing layers (n_layers from args)
-        self.mp_C = _make_mp_layers(int(args.n_layers))
+        # Shared message passing layers (n_layers from args, mlp_variant from args)
+        mlp_variant = str(getattr(args, "mlp_variant", "full"))
+        self.mp_C = _make_mp_layers(int(args.n_layers), mlp_variant=mlp_variant)
 
         # Prediction heads for shared and unique channels
         self.head_C = nn.Linear(self.embed_dim, self.n_classes)
@@ -466,6 +481,7 @@ def args_init():
     supra = parser.add_argument_group("SUPRA")
     supra.add_argument("--embed_dim", type=int, default=None, help="Embedding dimension for SUPRA channels")
     supra.add_argument("--aux_weight", type=float, default=0.0, help="Auxiliary loss weight for Ut/Uv channels (0=disable)")
+    supra.add_argument("--mlp_variant", type=str, default="full", choices=["full", "ablate"], help="MLP before GNN: full=Linear→ReLU→LN→Linear, ablate=Linear only")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
 
     return parser

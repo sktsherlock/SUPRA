@@ -138,20 +138,21 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
     echo "[${fg}] ${ds} (${METRIC})"
     echo "=============================================="
 
-    local key="${ds}|${fg}"
-    local text_rel="${TEXT_FEATURE_BY_DS_GROUP[${key}]:-}"
-    local vis_rel="${VIS_FEATURE_BY_DS_GROUP[${key}]:-}"
+    # Resolve feature paths
+    key="${ds}|${fg}"
+    text_rel="${TEXT_FEATURE_BY_DS_GROUP[${key}]:-}"
+    vis_rel="${VIS_FEATURE_BY_DS_GROUP[${key}]:-}"
 
     if [[ -z "${text_rel}" || -z "${vis_rel}" ]]; then
       echo "  [SKIP] Missing feature mapping for ${ds}|${fg}"
       continue
     fi
 
-    local ds_dir="${DATA_ROOT}/${ds}"
-    local ds_prefix="${ds//-/}"
-    local graph_path="${ds_dir}/${ds_prefix}Graph.pt"
-    local text_feat="${ds_dir}/${text_rel}"
-    local vis_feat="${ds_dir}/${vis_rel}"
+    ds_dir="${DATA_ROOT}/${ds}"
+    ds_prefix="${ds//-/}"
+    graph_path="${ds_dir}/${ds_prefix}Graph.pt"
+    text_feat="${ds_dir}/${text_rel}"
+    vis_feat="${ds_dir}/${vis_rel}"
 
     if [[ ! -f "${graph_path}" ]]; then
       echo "  [SKIP] Graph not found: ${graph_path}"
@@ -191,8 +192,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
               for L in "${supra_n_layers[@]}"; do
                 for ed in "${supra_embed_dims[@]}"; do
                   for aw in "${supra_aux_weights[@]}"; do
-                    local label="SUPRA-${model_name}-lr${lr}-wd${wd}-h${h}-L${L}-do${dropout}-ed${ed}-aw${aw}"
-                    local log_file="${LOG_ROOT}/fg_${fg}/${ds}/${label}.log"
+                    label="SUPRA-${model_name}-lr${lr}-wd${wd}-h${h}-L${L}-do${dropout}-ed${ed}-aw${aw}"
+                    log_file="${LOG_ROOT}/fg_${fg}/${ds}/${label}.log"
 
                     mkdir -p "$(dirname "${log_file}")"
 
@@ -205,12 +206,12 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                     echo "    + ${label}"
 
                     # Build GAT extra args
-                    local extra_args=""
+                    extra_args=""
                     if [[ "${model_name}" == "GAT" ]]; then
                       extra_args="--n-heads ${gat_n_heads} --attn-drop ${gat_attn_drop} --edge-drop ${gat_edge_drop}"
                     fi
 
-                    local start_time=${SECONDS}
+                    start_time=${SECONDS}
 
                     python -m GNN.SUPRA \
                       --data_name "${ds}" \
@@ -245,8 +246,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       ${extra_args} \
                       >> "${log_file}" 2>&1
 
-                    local rc=$?
-                    local dur_s=$((SECONDS - start_time))
+                    rc=$?
+                    dur_s=$((SECONDS - start_time))
 
                     if [[ ${rc} -eq 0 ]]; then
                       touch "${log_file}.done"

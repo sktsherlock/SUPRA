@@ -146,7 +146,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                 for ed in "${supra_embed_dims[@]}"; do
                   for aw in "${supra_aux_weights[@]}"; do
                     for mlp_var in "${supra_mlp_variants[@]}"; do
-                      ((total_jobs++))
+                      total_jobs=$((total_jobs + 1))
                     done
                   done
                 done

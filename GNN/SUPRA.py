@@ -1,4 +1,4 @@
-"""SUPRA: Unified Multimodal Learning with Spectral Orthogonalization."""
+"""SUPRA: Unified Multimodal Learning with Shared-Unique Channel Decomposition."""
 from __future__ import annotations
 
 import argparse
@@ -300,14 +300,21 @@ class SUPRA(nn.Module):
         self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
 
         def _make_mp_layers(num_layers: int) -> nn.ModuleList:
-            # First layer: projects from concat(e_t, e_v) = 2*embed_dim down to embed_dim
-            # Subsequent layers: process embed_dim features sequentially
+            # Two-layer MLP projection before GNN:
+            # concat(e_t, e_v) = 2*embed_dim → Linear → ReLU → LN → Linear → embed_dim → GNN layers
             layers = []
             first_in_dim = self.embed_dim * 2
-            for i in range(int(num_layers)):
-                in_dim = first_in_dim if i == 0 else self.embed_dim
+            proj = nn.Sequential(
+                nn.Linear(first_in_dim, self.embed_dim),
+                nn.ReLU(),
+                nn.LayerNorm(self.embed_dim),
+                nn.Linear(self.embed_dim, self.embed_dim),
+            )
+            layers.append(proj)
+            # Subsequent layers: process embed_dim features sequentially
+            for _ in range(1, int(num_layers)):
                 layers.append(
-                    _build_gnn_backbone(args, in_dim, self.embed_dim, device, n_layers_override=1, n_hidden_override=self.embed_dim)
+                    _build_gnn_backbone(args, self.embed_dim, self.embed_dim, device, n_layers_override=1, n_hidden_override=self.embed_dim)
                 )
             return nn.ModuleList(layers)
 
@@ -318,20 +325,6 @@ class SUPRA(nn.Module):
         self.head_C = nn.Linear(self.embed_dim, self.n_classes)
         self.head_Ut = nn.Linear(self.embed_dim, self.n_classes)
         self.head_Uv = nn.Linear(self.embed_dim, self.n_classes)
-
-        # Attach spectral orthogonalization hook to shared channel
-        self.spectral_orthogonalizer = SpectralOrthogonalizer(ns_steps=5, alpha=getattr(args, "ortho_alpha", 1.0))
-        self._register_spectral_hooks()
-
-    def _register_spectral_hooks(self):
-        """Register backward hooks on shared channel to prevent low-rank collapse."""
-        shared_modules = [self.mp_C, self.head_C]
-        for module in shared_modules:
-            for name, param in module.named_parameters():
-                if 'weight' in name and len(param.shape) == 2:
-                    param.register_hook(
-                        lambda grad, pid=id(param): self.spectral_orthogonalizer(pid, grad)
-                    )
 
     def reset_parameters(self):
         for module in [self.enc_t, self.enc_v, self.head_C, self.head_Ut, self.head_Uv]:
@@ -417,15 +410,14 @@ def _compute_losses(*, out: ForwardMultiOutputs, labels: th.Tensor, train_idx: t
         "loss/task": float(total_task_loss.detach().cpu().item()),
     }
 
-    # Auxiliary loss: each branch predicts independently
-    if getattr(args, "use_aux_loss", False):
-        loss_C = cross_entropy(out.logits_C_0[idx], labels[idx], label_smoothing=ls)
+    # Auxiliary loss: Ut and Uv channels get independent gradients
+    # (not C, because C already learns from logits_final loss)
+    aux_weight = float(getattr(args, "aux_weight", 0.0))
+    if aux_weight > 0:
         loss_Ut = cross_entropy(out.logits_Ut_0[idx], labels[idx], label_smoothing=ls)
         loss_Uv = cross_entropy(out.logits_Uv_0[idx], labels[idx], label_smoothing=ls)
-        aux_weight = 0.5
-        total_task_loss = total_task_loss + aux_weight * (loss_C + loss_Ut + loss_Uv)
+        total_task_loss = total_task_loss + aux_weight * (loss_Ut + loss_Uv)
         logs.update({
-            "loss/aux_C": float(loss_C.detach().cpu().item()),
             "loss/aux_Ut": float(loss_Ut.detach().cpu().item()),
             "loss/aux_Uv": float(loss_Uv.detach().cpu().item()),
         })
@@ -471,8 +463,7 @@ def args_init():
     # SUPRA model arguments
     supra = parser.add_argument_group("SUPRA")
     supra.add_argument("--embed_dim", type=int, default=None, help="Embedding dimension for SUPRA channels")
-    supra.add_argument("--ortho_alpha", type=float, default=1.0, help="Spectral orthogonalization strength (0=disable)")
-    supra.add_argument("--use_aux_loss", action="store_true", help="Enable auxiliary loss on each branch (C, Ut, Uv)")
+    supra.add_argument("--aux_weight", type=float, default=0.0, help="Auxiliary loss weight for Ut/Uv channels (0=disable)")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
 
     return parser

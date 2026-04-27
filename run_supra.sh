@@ -54,8 +54,6 @@ UNDIRECTED=${UNDIRECTED:-true}
 TRAIN_RATIO=${TRAIN_RATIO:-0.6}
 VAL_RATIO=${VAL_RATIO:-0.2}
 INDUCTIVE=${INDUCTIVE:-false}
-ORTHO_ALPHA=${ORTHO_ALPHA:-"1.0"}
-USE_AUX_LOSS=${USE_AUX_LOSS:-"false"}
 
 supra_dropout="0.3"
 supra_lrs=("0.0005" "0.001")
@@ -67,7 +65,7 @@ supra_label_smoothing="0.1"
 supra_early_stop_patience="50"
 
 supra_embed_dims=("256")
-supra_shared_depths=()
+supra_aux_weights=("0.0" "0.1" "0.3" "0.5" "0.7")
 
 gat_n_heads=4
 gat_attn_drop=0.0
@@ -85,23 +83,11 @@ Optional:
   --n_runs N           Number of runs (default: 3)
   --feature_group NAME  clip_roberta, default (default: clip_roberta)
   --model_name NAME    GNN backbone: GCN, SAGE, GAT, RevGAT (default: GCN)
-  --embed_dim N        SUPRA embedding dimension (default: 256)
-  --shared_depth N     Shared channel depth (default: 2)
   --output_dir DIR     Output directory (default: logs_supra)
-  --ortho_alpha N     Spectral orthogonalization strength (0=disable, 1=full) (default: 1.0)
-  --use_aux_loss       Enable auxiliary loss on each branch (default: off)
-
-Ablation modes (via environment variables):
-  ORTHO_ALPHA=0.0 USE_AUX_LOSS=false ./run_supra.sh ...  # Ablate-None
-  ORTHO_ALPHA=1.0 USE_AUX_LOSS=false ./run_supra.sh ...  # Ablate-Ortho
-  ORTHO_ALPHA=0.0 USE_AUX_LOSS=true  ./run_supra.sh ...  # Ablate-Aux
-  ORTHO_ALPHA=1.0 USE_AUX_LOSS=true  ./run_supra.sh ...  # SUPRA-Full
 
 Examples:
   ./run_supra.sh --data_name Movies
-  ./run_supra.sh --data_name Grocery --model_name GAT --embed_dim 128
-  ./run_supra.sh --data_name Reddit-M --n_runs 5
-  ORTHO_ALPHA=0.0 USE_AUX_LOSS=false ./run_supra.sh --data_name Movies  # Ablate-None
+  ./run_supra.sh --data_name Grocery --model_name GAT --gpu 1
 HELPEOF
 }
 
@@ -203,17 +189,6 @@ echo ">>> Dataset: ${DATA_NAME}, Feature Group: ${FEATURE_GROUP}"
 echo ">>> Model: SUPRA (${MODEL_NAME} backbone)"
 echo ">>> Self-loop: ${SELFLOOP}, Undirected: ${UNDIRECTED}"
 
-# Determine ablation label prefix
-case "${ORTHO_ALPHA}|${USE_AUX_LOSS}" in
-  "0.0|false") label_prefix="Ablate-None" ;;
-  "1.0|false") label_prefix="Ablate-Ortho" ;;
-  "0.0|true")  label_prefix="Ablate-Aux" ;;
-  "1.0|true")  label_prefix="SUPRA-Full" ;;
-  *)           label_prefix="SUPRA" ;;
-esac
-
-echo ">>> Ortho alpha: ${ORTHO_ALPHA}, Aux loss: ${USE_AUX_LOSS}, Label: ${label_prefix}"
-
 EXTRA_ARGS=""
 case "${MODEL_NAME}" in
   "GAT")
@@ -224,18 +199,13 @@ case "${MODEL_NAME}" in
     ;;
 esac
 
-# Build auxiliary args
-AUX_ARGS=""
-if [[ "${USE_AUX_LOSS}" == "true" ]]; then
-  AUX_ARGS="--use_aux_loss"
-fi
-
 for lr in "${supra_lrs[@]}"; do
   for wd in "${supra_wds[@]}"; do
     for h in "${supra_n_hidden[@]}"; do
       for L in "${supra_n_layers[@]}"; do
         for ed in "${supra_embed_dims[@]}"; do
-          label="${label_prefix}-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}"
+          for aw in "${supra_aux_weights[@]}"; do
+            label="SUPRA-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}-aw${aw}"
           run_model "${label}" \
             python GNN/SUPRA.py \
               --data_name "${DATA_NAME}" \
@@ -258,10 +228,10 @@ for lr in "${supra_lrs[@]}"; do
               --inductive "${INDUCTIVE}" \
               --model_name "${MODEL_NAME}" \
               --embed_dim "${ed}" \
-              --ortho_alpha "${ORTHO_ALPHA}" \
-              ${AUX_ARGS} \
+              --aux_weight "${aw}" \
               --disable_wandb \
               ${EXTRA_ARGS}
+          done
         done
       done
     done

@@ -108,15 +108,6 @@ TEXT_FEATURE_BY_DS_GROUP["Reddit-M|default"]='TextFeature/RedditM_Llama_3.2_11B_
 VIS_FEATURE_BY_DS_GROUP["Reddit-M|default"]='ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy'
 
 # =============================================================================
-# 4-way ablation config: ortho_alpha + use_aux_loss
-# =============================================================================
-declare -A MODE_CONFIG
-MODE_CONFIG["none"]="0.0 false"
-MODE_CONFIG["ortho"]="1.0 false"
-MODE_CONFIG["aux"]="0.0 true"
-MODE_CONFIG["full"]="1.0 true"
-
-# =============================================================================
 # SUPRA hyperparameter grid
 # =============================================================================
 supra_dropout="0.3"
@@ -128,7 +119,7 @@ read -r -a supra_n_layers <<< "${SUPRA_LAYERS}"
 supra_label_smoothing="0.1"
 supra_early_stop_patience="50"
 supra_embed_dims=("256")
-supra_shared_depths=()
+supra_aux_weights=("0.0" "0.1" "0.3" "0.5" "0.7")
 
 gat_n_heads=4
 gat_attn_drop=0.0
@@ -244,30 +235,13 @@ for metric in "${METRIC_ARR[@]}"; do
           ;;
       esac
 
-      for mode in none ortho aux full; do
-        read -r ortho_alpha aux_loss <<< "${MODE_CONFIG[${mode}]}"
-
-        case "${mode}" in
-          none)  label_prefix="Ablate-None" ;;
-          ortho) label_prefix="Ablate-Ortho" ;;
-          aux)   label_prefix="Ablate-Aux" ;;
-          full)  label_prefix="SUPRA-Full" ;;
-        esac
-
-        echo ""
-        echo "  >>> [${label_prefix}] OrthoAlpha=${ortho_alpha}, AuxLoss=${aux_loss}"
-
-        AUX_ARGS=""
-        if [[ "${aux_loss}" == "true" ]]; then
-          AUX_ARGS="--use_aux_loss"
-        fi
-
+      for aw in "${supra_aux_weights[@]}"; do
         for lr in "${supra_lrs[@]}"; do
           for wd in "${supra_wds[@]}"; do
             for h in "${supra_n_hidden[@]}"; do
               for L in "${supra_n_layers[@]}"; do
                 for ed in "${supra_embed_dims[@]}"; do
-                  label="${label_prefix}-${MODEL_NAME}-lr${lr}-wd${wd}-h${h}-L${L}-do${supra_dropout}-ed${ed}"
+                  label="SUPRA-${MODEL_NAME}-aw${aw}-lr${lr}-wd${wd}-h${h}-L${L}"
                   run_model "${label}" \
                     python GNN/SUPRA.py \
                       --data_name "${ds}" \
@@ -290,9 +264,8 @@ for metric in "${METRIC_ARR[@]}"; do
                       --inductive "${INDUCTIVE}" \
                       --model_name "${MODEL_NAME}" \
                       --embed_dim "${ed}" \
-                      --ortho_alpha "${ortho_alpha}" \
-                      ${AUX_ARGS} \
-                      --result_tag "${label_prefix}" \
+                      --aux_weight "${aw}" \
+                      --result_tag "SUPRA" \
                       --result_csv "${RESULT_CSV}" \
                       --result_csv_all "${RESULT_CSV_ALL}" \
                       --disable_wandb \

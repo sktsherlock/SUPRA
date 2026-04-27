@@ -346,8 +346,10 @@ class SUPRA(nn.Module):
 
     def _run_layers(self, graph, x: th.Tensor, mp_layers) -> th.Tensor:
         h = x
-        for layer in mp_layers:
-            h = layer(graph, h)
+        # First layer is MLP projection (no graph), rest are GNN layers
+        h = mp_layers[0](h)  # MLP: Sequential only takes input tensor
+        for layer in mp_layers[1:]:
+            h = layer(graph, h)  # GNN: layers take (graph, h)
         return h
 
     def _encode_with_drop(self, text_feat: th.Tensor, vis_feat: th.Tensor, present_t: th.Tensor, present_v: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:

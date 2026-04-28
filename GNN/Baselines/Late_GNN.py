@@ -21,6 +21,7 @@ sys.path.append(os.path.dirname(_ROOT))
 
 from GNN.GraphData import load_data, set_seed  # noqa: E402
 from GNN.Utils.LossFunction import cross_entropy, get_metric  # noqa: E402
+from GNN.Utils.model_config import str2bool
 from GNN.Utils.NodeClassification import (  # noqa: E402
     initialize_early_stopping,
     initialize_optimizer_and_scheduler,
@@ -113,6 +114,7 @@ class LateFusionMAG(nn.Module):
         text_gnn: nn.Module,
         visual_gnn: nn.Module,
         classifier: nn.Module,
+        use_mlp_before_fusion: bool = False,
     ):
         super().__init__()
         self.text_encoder = text_encoder
@@ -120,6 +122,21 @@ class LateFusionMAG(nn.Module):
         self.text_gnn = text_gnn
         self.visual_gnn = visual_gnn
         self.classifier = classifier
+        self.use_mlp_before_fusion = use_mlp_before_fusion
+        if use_mlp_before_fusion:
+            enc_dim = text_encoder.proj.out_features
+            self.text_mlp = nn.Sequential(
+                nn.Linear(enc_dim, enc_dim),
+                nn.ReLU(),
+                nn.LayerNorm(enc_dim),
+                nn.Linear(enc_dim, enc_dim),
+            )
+            self.vis_mlp = nn.Sequential(
+                nn.Linear(enc_dim, enc_dim),
+                nn.ReLU(),
+                nn.LayerNorm(enc_dim),
+                nn.Linear(enc_dim, enc_dim),
+            )
 
     def reset_parameters(self):
         if hasattr(self.text_encoder, "reset_parameters"):
@@ -145,6 +162,9 @@ class LateFusionMAG(nn.Module):
     def forward_branches(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor):
         text_z = self.text_encoder(text_feature)
         vis_z = self.visual_encoder(visual_feature)
+        if self.use_mlp_before_fusion:
+            text_z = self.text_mlp(text_z)
+            vis_z = self.vis_mlp(vis_z)
         # GCNII uses forward(x, adj) signature - swap args for GCNII only
         if type(self.text_gnn).__name__ == "GCNII":
             text_h = self.text_gnn(text_z, graph)
@@ -236,6 +256,12 @@ def args_init():
         default=None,
         help="Optional path to save best checkpoint per run (weights-only + args). If multiple runs, appends _run{k}.pt.",
     )
+    parser.add_argument(
+        "--late_mlp_before_fusion",
+        type=str2bool,
+        default=False,
+        help="Add MLP projection before late fusion concatenation.",
+    )
     return parser
 
 
@@ -307,6 +333,7 @@ def main():
             text_gnn,
             vis_gnn,
             classifier,
+            use_mlp_before_fusion=bool(getattr(args, "late_mlp_before_fusion", False)),
         )
         model.reset_parameters()
 

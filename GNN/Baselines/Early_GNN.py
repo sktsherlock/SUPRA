@@ -5,6 +5,8 @@ import sys
 import time
 from typing import Optional
 
+from GNN.Utils.model_config import str2bool
+
 import numpy as np
 import torch as th
 import torch.nn as nn
@@ -96,6 +98,7 @@ class SimpleMAGGNN(nn.Module):
         gnn: nn.Module,
         early_fuse: str = "concat",
         single_modality: Optional[str] = None,
+        use_mlp_projection: bool = False,
     ):
         super().__init__()
         self.text_encoder = text_encoder
@@ -103,6 +106,15 @@ class SimpleMAGGNN(nn.Module):
         self.gnn = gnn
         self.early_fuse = str(early_fuse).lower().strip() if early_fuse is not None else "concat"
         self.single_modality = single_modality
+        self.use_mlp_projection = use_mlp_projection
+        if use_mlp_projection:
+            enc_out = text_encoder.proj.out_features
+            self.mlp_proj = nn.Sequential(
+                nn.Linear(enc_out * 2, enc_out),
+                nn.ReLU(),
+                nn.LayerNorm(enc_out),
+                nn.Linear(enc_out, enc_out),
+            )
 
     def reset_parameters(self):
         if hasattr(self.text_encoder, "reset_parameters"):
@@ -124,6 +136,8 @@ class SimpleMAGGNN(nn.Module):
                 feat = text_h + vis_h
             else:
                 feat = th.cat([text_h, vis_h], dim=1)
+            if self.use_mlp_projection:
+                feat = self.mlp_proj(feat)
         gnn_name = type(self.gnn).__name__
         if gnn_name == "GCNII":
             return self.gnn(feat, graph)
@@ -361,6 +375,12 @@ def args_init():
         type=int,
         default=None,
         help="Embedding dim for analysis/probing when using --separate_classifier (default: n_hidden).",
+    )
+    parser.add_argument(
+        "--early_mlp_projection",
+        type=str2bool,
+        default=False,
+        help="Add MLP projection (Linear→ReLU→LN→Linear) between concat and GNN.",
     )
     parser.add_argument(
         "--separate_classifier",
@@ -798,6 +818,7 @@ def main():
                 gnn,
                 early_fuse=early_fuse,
                 single_modality=single_modality,
+                use_mlp_projection=bool(getattr(args, "early_mlp_projection", False)),
             )
 
         if separate_head:

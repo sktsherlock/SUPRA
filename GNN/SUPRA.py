@@ -296,8 +296,13 @@ class SUPRA(nn.Module):
         # Modality encoders: project raw features to shared embedding space
         # These serve as the "unique" branches, capturing modality-specific
         # information without co-modal signal contamination
-        self.enc_t = ModalityEncoder(int(text_in_dim), self.embed_dim, float(dropout))
-        self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
+        self.use_modality_encoder = not bool(getattr(args, "ablate_modality_encoder", False))
+        if self.use_modality_encoder:
+            self.enc_t = ModalityEncoder(int(text_in_dim), self.embed_dim, float(dropout))
+            self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
+        else:
+            self.enc_t = None
+            self.enc_v = None
 
         def _make_mp_layers(num_layers: int, mlp_variant: str = "full") -> nn.ModuleList:
             # MLP projection before GNN:
@@ -308,7 +313,11 @@ class SUPRA(nn.Module):
             # n_layers=2: projection + 1 GNN
             # n_layers=3: projection + 2 GNN
             layers = []
-            first_in_dim = self.embed_dim * 2
+            if self.use_modality_encoder:
+                first_in_dim = self.embed_dim * 2
+            else:
+                # No modality encoder: raw features go directly to GNN
+                first_in_dim = int(text_in_dim) + int(vis_in_dim)
             if mlp_variant == "full":
                 proj = nn.Sequential(
                     nn.Linear(first_in_dim, self.embed_dim),
@@ -389,8 +398,12 @@ class SUPRA(nn.Module):
         return h
 
     def _encode_with_drop(self, text_feat: th.Tensor, vis_feat: th.Tensor, present_t: th.Tensor, present_v: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
-        e_t = self.enc_t(text_feat)
-        e_v = self.enc_v(vis_feat)
+        if self.use_modality_encoder:
+            e_t = self.enc_t(text_feat)
+            e_v = self.enc_v(vis_feat)
+        else:
+            e_t = text_feat
+            e_v = vis_feat
         if present_t is not None:
             e_t = e_t * present_t.to(device=e_t.device, dtype=e_t.dtype).unsqueeze(1)
         if present_v is not None:
@@ -504,6 +517,12 @@ def args_init():
     supra.add_argument("--aux_weight", type=float, default=0.0, help="Auxiliary loss weight for Ut/Uv channels (0=disable)")
     supra.add_argument("--mlp_variant", type=str, default="full", choices=["full", "ablate"], help="MLP before GNN: full=Linear→ReLU→LN→Linear, ablate=Linear only")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
+    supra.add_argument("--ablate_modality_encoder", action="store_true",
+                       help="Skip enc_t/enc_v and directly concat raw features to GNN (no MLP projection)")
+    parser.add_argument("--analyze_gradients", action="store_true",
+                        help="Enable gradient SVD analysis during training")
+    parser.add_argument("--gradient_csv", type=str, default=None,
+                        help="Path to save gradient analysis CSV")
 
     return parser
 
@@ -616,6 +635,12 @@ def main():
     best_logits_Ut_all, best_logits_Uv_all, best_logits_C_all = None, None, None
     best_labels_all = None
 
+    # Gradient analyzer setup (initialized once, persists across runs)
+    gradient_analyzer = None
+    if getattr(args, 'analyze_gradients', False):
+        from GNN.Utils.gradient_analyzer import GradientAnalyzer
+        analyzer_layer_names = ['enc_t.proj', 'enc_v.proj', 'mp_C', 'head_C', 'head_Ut', 'head_Uv']
+
     for run in range(args.n_runs):
         set_seed(args.seed + run)
         model = SUPRA(
@@ -624,6 +649,15 @@ def main():
             args=args, device=device,
         ).to(device)
         model.reset_parameters()
+
+        if getattr(args, 'analyze_gradients', False):
+            if getattr(args, 'ablate_modality_encoder', False):
+                analyzer_layer_names = ['mp_C', 'head_C', 'head_Ut', 'head_Uv']
+            else:
+                analyzer_layer_names = ['enc_t.proj', 'enc_v.proj', 'mp_C', 'head_C', 'head_Ut', 'head_Uv']
+            # Re-attach to new model instance
+            gradient_analyzer = GradientAnalyzer(model, layer_names=analyzer_layer_names)
+            gradient_analyzer.attach()
 
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
@@ -719,6 +753,27 @@ def main():
             update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
         if getattr(args, 'result_csv_all', None):
             append_result_csv(args.result_csv_all, row)
+
+    # Write gradient analysis CSV if requested
+    if gradient_analyzer is not None and getattr(args, 'gradient_csv', None):
+        import csv
+        summary = gradient_analyzer.get_summary()
+        all_stats = gradient_analyzer.get_all_stats()
+        gradient_analyzer.detach()
+        with open(args.gradient_csv, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['run', 'layer', 'stable_rank_mean', 'stable_rank_std',
+                             'cond_num_mean', 'cond_num_std', 'ortho_score_mean', 'ortho_score_std', 'n_samples'])
+            for run_idx in range(args.n_runs):
+                for layer_name, stats in summary.items():
+                    writer.writerow([
+                        run_idx + 1, layer_name,
+                        stats['stable_rank_mean'], stats['stable_rank_std'],
+                        stats['cond_num_mean'], stats['cond_num_std'],
+                        stats['ortho_score_mean'], stats['ortho_score_std'],
+                        stats['n_samples'],
+                    ])
+        print(f"Gradient analysis saved to {args.gradient_csv}")
 
 if __name__ == "__main__":
     main()

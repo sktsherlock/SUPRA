@@ -296,13 +296,8 @@ class SUPRA(nn.Module):
         # Modality encoders: project raw features to shared embedding space
         # These serve as the "unique" branches, capturing modality-specific
         # information without co-modal signal contamination
-        self.use_modality_encoder = not bool(getattr(args, "ablate_modality_encoder", False))
-        if self.use_modality_encoder:
-            self.enc_t = ModalityEncoder(int(text_in_dim), self.embed_dim, float(dropout))
-            self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
-        else:
-            self.enc_t = None
-            self.enc_v = None
+        self.enc_t = ModalityEncoder(int(text_in_dim), self.embed_dim, float(dropout))
+        self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
 
         def _make_mp_layers(num_layers: int, mlp_variant: str = "full") -> nn.ModuleList:
             # MLP projection before GNN:
@@ -313,11 +308,7 @@ class SUPRA(nn.Module):
             # n_layers=2: projection + 1 GNN
             # n_layers=3: projection + 2 GNN
             layers = []
-            if self.use_modality_encoder:
-                first_in_dim = self.embed_dim * 2
-            else:
-                # No modality encoder: raw features go directly to GNN
-                first_in_dim = int(text_in_dim) + int(vis_in_dim)
+            first_in_dim = self.embed_dim * 2
             if mlp_variant == "full":
                 proj = nn.Sequential(
                     nn.Linear(first_in_dim, self.embed_dim),
@@ -398,12 +389,8 @@ class SUPRA(nn.Module):
         return h
 
     def _encode_with_drop(self, text_feat: th.Tensor, vis_feat: th.Tensor, present_t: th.Tensor, present_v: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
-        if self.use_modality_encoder:
-            e_t = self.enc_t(text_feat)
-            e_v = self.enc_v(vis_feat)
-        else:
-            e_t = text_feat
-            e_v = vis_feat
+        e_t = self.enc_t(text_feat)
+        e_v = self.enc_v(vis_feat)
         if present_t is not None:
             e_t = e_t * present_t.to(device=e_t.device, dtype=e_t.dtype).unsqueeze(1)
         if present_v is not None:
@@ -517,8 +504,6 @@ def args_init():
     supra.add_argument("--aux_weight", type=float, default=0.0, help="Auxiliary loss weight for Ut/Uv channels (0=disable)")
     supra.add_argument("--mlp_variant", type=str, default="full", choices=["full", "ablate"], help="MLP before GNN: full=Linear→ReLU→LN→Linear, ablate=Linear only")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
-    supra.add_argument("--ablate_modality_encoder", action="store_true",
-                       help="Skip enc_t/enc_v and directly concat raw features to GNN (no MLP projection)")
     parser.add_argument("--analyze_gradients", action="store_true",
                         help="Enable gradient SVD analysis during training")
     parser.add_argument("--gradient_csv", type=str, default=None,
@@ -651,10 +636,7 @@ def main():
         model.reset_parameters()
 
         if getattr(args, 'analyze_gradients', False):
-            if getattr(args, 'ablate_modality_encoder', False):
-                analyzer_layer_names = ['mp_C', 'head_C', 'head_Ut', 'head_Uv']
-            else:
-                analyzer_layer_names = ['enc_t.proj', 'enc_v.proj', 'mp_C', 'head_C', 'head_Ut', 'head_Uv']
+            analyzer_layer_names = ['enc_t.proj', 'enc_v.proj', 'mp_C', 'head_C', 'head_Ut', 'head_Uv']
             # Re-attach to new model instance
             gradient_analyzer = GradientAnalyzer(model, layer_names=analyzer_layer_names)
             gradient_analyzer.attach()

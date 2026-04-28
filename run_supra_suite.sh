@@ -230,7 +230,10 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                   for aw in "${supra_aux_weights[@]}"; do
                     for mlp_var in "${supra_mlp_variants[@]}"; do
                       ((++job_counter))
-                      label="SUPRA-${model_name}-L${L}-aw${aw}-mlp${mlp_var}"
+                      # IMPORTANT: label must include swept hyperparameters (e.g., lr)
+                      # otherwise different runs will share the same log_file and .done marker,
+                      # causing false [SKIP] on later grid points.
+                      label="SUPRA-${model_name}-lr${lr}-wd${wd}-h${h}-L${L}-do${dropout}-ed${ed}-aw${aw}-mlp${mlp_var}"
                       log_file="${LOG_ROOT}/fg_${fg}/${ds}/${label}.log"
 
                     mkdir -p "$(dirname "${log_file}")"

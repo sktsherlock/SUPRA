@@ -117,9 +117,6 @@ class LateFusionMAG(nn.Module):
         classifier: nn.Module,
         use_mlp_before_fusion: bool = False,
         use_no_encoder: bool = False,
-        text_raw_dim: Optional[int] = None,
-        vis_raw_dim: Optional[int] = None,
-        embed_dim: Optional[int] = None,
     ):
         super().__init__()
         self.text_encoder = text_encoder
@@ -129,21 +126,7 @@ class LateFusionMAG(nn.Module):
         self.classifier = classifier
         self.use_mlp_before_fusion = use_mlp_before_fusion
         self.use_no_encoder = use_no_encoder
-        if use_no_encoder:
-            # No encoders: raw features projected to embed_dim, then GNN
-            self.text_mlp = nn.Sequential(
-                nn.Linear(text_raw_dim, embed_dim),
-                nn.ReLU(),
-                nn.LayerNorm(embed_dim),
-                nn.Linear(embed_dim, embed_dim),
-            )
-            self.vis_mlp = nn.Sequential(
-                nn.Linear(vis_raw_dim, embed_dim),
-                nn.ReLU(),
-                nn.LayerNorm(embed_dim),
-                nn.Linear(embed_dim, embed_dim),
-            )
-        elif use_mlp_before_fusion:
+        if use_mlp_before_fusion and not use_no_encoder:
             enc_dim = text_encoder.proj.out_features
             self.text_mlp = nn.Sequential(
                 nn.Linear(enc_dim, enc_dim),
@@ -181,9 +164,9 @@ class LateFusionMAG(nn.Module):
 
     def forward_branches(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor):
         if self.use_no_encoder:
-            # No encoder: raw features go through MLP then GNN
-            text_z = self.text_mlp(text_feature)
-            vis_z = self.vis_mlp(visual_feature)
+            # No encoder: raw features → GNN directly
+            text_z = text_feature
+            vis_z = visual_feature
         else:
             text_z = self.text_encoder(text_feature)
             vis_z = self.visual_encoder(visual_feature)
@@ -374,9 +357,6 @@ def main():
             classifier,
             use_mlp_before_fusion=bool(getattr(args, "late_mlp_before_fusion", False)),
             use_no_encoder=use_no_encoder,
-            text_raw_dim=int(text_feat.shape[1]),
-            vis_raw_dim=int(vis_feat.shape[1]),
-            embed_dim=embed_dim,
         )
         model.reset_parameters()
 

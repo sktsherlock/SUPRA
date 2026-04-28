@@ -100,8 +100,6 @@ class SimpleMAGGNN(nn.Module):
         single_modality: Optional[str] = None,
         use_mlp_projection: bool = False,
         use_no_encoder: bool = False,
-        text_raw_dim: Optional[int] = None,
-        vis_raw_dim: Optional[int] = None,
     ):
         super().__init__()
         self.text_encoder = text_encoder
@@ -111,15 +109,7 @@ class SimpleMAGGNN(nn.Module):
         self.single_modality = single_modality
         self.use_mlp_projection = use_mlp_projection
         self.use_no_encoder = use_no_encoder
-        if use_no_encoder:
-            # Direct concat of raw features: feat = concat(text, visual)
-            self.mlp_proj = nn.Sequential(
-                nn.Linear(text_raw_dim + vis_raw_dim, (text_raw_dim + vis_raw_dim) // 2),
-                nn.ReLU(),
-                nn.LayerNorm((text_raw_dim + vis_raw_dim) // 2),
-                nn.Linear((text_raw_dim + vis_raw_dim) // 2, text_raw_dim + vis_raw_dim),
-            )
-        elif use_mlp_projection:
+        if use_mlp_projection and not use_no_encoder:
             enc_out = text_encoder.proj.out_features
             self.mlp_proj = nn.Sequential(
                 nn.Linear(enc_out * 2, enc_out),
@@ -142,10 +132,8 @@ class SimpleMAGGNN(nn.Module):
         elif self.single_modality == "visual":
             feat = self.visual_encoder(visual_feature)
         elif self.use_no_encoder:
-            # No modality encoder: raw concat → MLP projection → GNN
+            # No encoder: raw concat → GNN (traditional GNN approach for multimodal)
             feat = th.cat([text_feature, visual_feature], dim=1)
-            if self.mlp_proj is not None:
-                feat = self.mlp_proj(feat)
         else:
             text_h = self.text_encoder(text_feature)
             vis_h = self.visual_encoder(visual_feature)
@@ -819,14 +807,13 @@ def main():
         use_no_encoder = bool(getattr(args, "early_no_encoder", False))
 
         if use_no_encoder:
-            # No modality encoders: raw concat → (MLP) → GNN
+            # No encoder: raw concat → GNN (traditional GNN approach)
             text_encoder = None
             visual_encoder = None
             if single_modality in ("text", "visual"):
-                downstream_in_dim_no_enc = int(text_feature.shape[1]) if single_modality == "text" else int(visual_feature.shape[1])
+                downstream_in_dim_gnn = int(text_feature.shape[1]) if single_modality == "text" else int(visual_feature.shape[1])
             else:
-                downstream_in_dim_no_enc = int(text_feature.shape[1]) + int(visual_feature.shape[1])
-            downstream_in_dim_gnn = downstream_in_dim_no_enc
+                downstream_in_dim_gnn = int(text_feature.shape[1]) + int(visual_feature.shape[1])
         else:
             text_encoder = ModalityEncoder(int(text_feature.shape[1]), proj_dim, args.dropout).to(device)
             visual_encoder = ModalityEncoder(int(visual_feature.shape[1]), proj_dim, args.dropout).to(device)
@@ -857,8 +844,6 @@ def main():
                 single_modality=single_modality,
                 use_mlp_projection=bool(getattr(args, "early_mlp_projection", False)),
                 use_no_encoder=use_no_encoder,
-                text_raw_dim=int(text_feature.shape[1]),
-                vis_raw_dim=int(visual_feature.shape[1]),
             )
 
         if separate_head:

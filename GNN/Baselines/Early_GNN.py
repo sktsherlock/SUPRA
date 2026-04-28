@@ -93,12 +93,15 @@ def _sample_pair_idx(idx: th.Tensor, max_pairs: int) -> th.Tensor:
 class SimpleMAGGNN(nn.Module):
     def __init__(
         self,
-        text_encoder: nn.Module,
-        visual_encoder: nn.Module,
+        text_encoder: Optional[nn.Module],
+        visual_encoder: Optional[nn.Module],
         gnn: nn.Module,
         early_fuse: str = "concat",
         single_modality: Optional[str] = None,
         use_mlp_projection: bool = False,
+        use_no_encoder: bool = False,
+        text_raw_dim: Optional[int] = None,
+        vis_raw_dim: Optional[int] = None,
     ):
         super().__init__()
         self.text_encoder = text_encoder
@@ -107,7 +110,16 @@ class SimpleMAGGNN(nn.Module):
         self.early_fuse = str(early_fuse).lower().strip() if early_fuse is not None else "concat"
         self.single_modality = single_modality
         self.use_mlp_projection = use_mlp_projection
-        if use_mlp_projection:
+        self.use_no_encoder = use_no_encoder
+        if use_no_encoder:
+            # Direct concat of raw features: feat = concat(text, visual)
+            self.mlp_proj = nn.Sequential(
+                nn.Linear(text_raw_dim + vis_raw_dim, (text_raw_dim + vis_raw_dim) // 2),
+                nn.ReLU(),
+                nn.LayerNorm((text_raw_dim + vis_raw_dim) // 2),
+                nn.Linear((text_raw_dim + vis_raw_dim) // 2, text_raw_dim + vis_raw_dim),
+            )
+        elif use_mlp_projection:
             enc_out = text_encoder.proj.out_features
             self.mlp_proj = nn.Sequential(
                 nn.Linear(enc_out * 2, enc_out),
@@ -117,9 +129,9 @@ class SimpleMAGGNN(nn.Module):
             )
 
     def reset_parameters(self):
-        if hasattr(self.text_encoder, "reset_parameters"):
+        if self.text_encoder is not None and hasattr(self.text_encoder, "reset_parameters"):
             self.text_encoder.reset_parameters()
-        if hasattr(self.visual_encoder, "reset_parameters"):
+        if self.visual_encoder is not None and hasattr(self.visual_encoder, "reset_parameters"):
             self.visual_encoder.reset_parameters()
         if hasattr(self.gnn, "reset_parameters"):
             self.gnn.reset_parameters()
@@ -129,6 +141,11 @@ class SimpleMAGGNN(nn.Module):
             feat = self.text_encoder(text_feature)
         elif self.single_modality == "visual":
             feat = self.visual_encoder(visual_feature)
+        elif self.use_no_encoder:
+            # No modality encoder: raw concat → MLP projection → GNN
+            feat = th.cat([text_feature, visual_feature], dim=1)
+            if self.mlp_proj is not None:
+                feat = self.mlp_proj(feat)
         else:
             text_h = self.text_encoder(text_feature)
             vis_h = self.visual_encoder(visual_feature)
@@ -381,6 +398,12 @@ def args_init():
         type=str2bool,
         default=False,
         help="Add MLP projection (Linear→ReLU→LN→Linear) between concat and GNN.",
+    )
+    parser.add_argument(
+        "--early_no_encoder",
+        type=str2bool,
+        default=False,
+        help="Skip per-modality encoders and directly concat raw features to GNN.",
     )
     parser.add_argument(
         "--separate_classifier",
@@ -791,17 +814,31 @@ def main():
     for run in range(args.n_runs):
         set_seed(args.seed + run)
 
-        text_encoder = ModalityEncoder(int(text_feature.shape[1]), proj_dim, args.dropout).to(device)
-        visual_encoder = ModalityEncoder(int(visual_feature.shape[1]), proj_dim, args.dropout).to(device)
-
         separate_head = bool(getattr(args, "separate_classifier", False))
         embed_dim = int(args.early_embed_dim) if args.early_embed_dim is not None else int(args.n_hidden)
+        use_no_encoder = bool(getattr(args, "early_no_encoder", False))
+
+        if use_no_encoder:
+            # No modality encoders: raw concat → (MLP) → GNN
+            text_encoder = None
+            visual_encoder = None
+            if single_modality in ("text", "visual"):
+                downstream_in_dim_no_enc = int(text_feature.shape[1]) if single_modality == "text" else int(visual_feature.shape[1])
+            else:
+                downstream_in_dim_no_enc = int(text_feature.shape[1]) + int(visual_feature.shape[1])
+            downstream_in_dim_gnn = downstream_in_dim_no_enc
+        else:
+            text_encoder = ModalityEncoder(int(text_feature.shape[1]), proj_dim, args.dropout).to(device)
+            visual_encoder = ModalityEncoder(int(visual_feature.shape[1]), proj_dim, args.dropout).to(device)
+            if single_modality in ("text", "visual"):
+                downstream_in_dim = proj_dim
+            downstream_in_dim_gnn = downstream_in_dim
 
         if args.backend == "mlp":
             from GNN.Library.MLP import MLP
 
             out_dim = embed_dim if separate_head else n_classes
-            mlp = MLP(downstream_in_dim, out_dim, args.n_layers, args.n_hidden, F.relu, args.dropout).to(device)
+            mlp = MLP(downstream_in_dim_gnn, out_dim, args.n_layers, args.n_hidden, F.relu, args.dropout).to(device)
             base_model = SimpleMAGMLP(
                 text_encoder,
                 visual_encoder,
@@ -811,7 +848,7 @@ def main():
             )
         else:
             out_dim = embed_dim if separate_head else n_classes
-            gnn = _build_gnn_backbone(args, downstream_in_dim, out_dim, device)
+            gnn = _build_gnn_backbone(args, downstream_in_dim_gnn, out_dim, device)
             base_model = SimpleMAGGNN(
                 text_encoder,
                 visual_encoder,
@@ -819,6 +856,9 @@ def main():
                 early_fuse=early_fuse,
                 single_modality=single_modality,
                 use_mlp_projection=bool(getattr(args, "early_mlp_projection", False)),
+                use_no_encoder=use_no_encoder,
+                text_raw_dim=int(text_feature.shape[1]),
+                vis_raw_dim=int(visual_feature.shape[1]),
             )
 
         if separate_head:

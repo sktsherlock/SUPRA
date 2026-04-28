@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import re
+from typing import Optional
 
 import numpy as np
 import torch as th
@@ -109,12 +110,16 @@ class LateFusionMAG(nn.Module):
 
     def __init__(
         self,
-        text_encoder: nn.Module,
-        visual_encoder: nn.Module,
+        text_encoder: Optional[nn.Module],
+        visual_encoder: Optional[nn.Module],
         text_gnn: nn.Module,
         visual_gnn: nn.Module,
         classifier: nn.Module,
         use_mlp_before_fusion: bool = False,
+        use_no_encoder: bool = False,
+        text_raw_dim: Optional[int] = None,
+        vis_raw_dim: Optional[int] = None,
+        embed_dim: Optional[int] = None,
     ):
         super().__init__()
         self.text_encoder = text_encoder
@@ -123,7 +128,22 @@ class LateFusionMAG(nn.Module):
         self.visual_gnn = visual_gnn
         self.classifier = classifier
         self.use_mlp_before_fusion = use_mlp_before_fusion
-        if use_mlp_before_fusion:
+        self.use_no_encoder = use_no_encoder
+        if use_no_encoder:
+            # No encoders: raw features projected to embed_dim, then GNN
+            self.text_mlp = nn.Sequential(
+                nn.Linear(text_raw_dim, embed_dim),
+                nn.ReLU(),
+                nn.LayerNorm(embed_dim),
+                nn.Linear(embed_dim, embed_dim),
+            )
+            self.vis_mlp = nn.Sequential(
+                nn.Linear(vis_raw_dim, embed_dim),
+                nn.ReLU(),
+                nn.LayerNorm(embed_dim),
+                nn.Linear(embed_dim, embed_dim),
+            )
+        elif use_mlp_before_fusion:
             enc_dim = text_encoder.proj.out_features
             self.text_mlp = nn.Sequential(
                 nn.Linear(enc_dim, enc_dim),
@@ -139,9 +159,9 @@ class LateFusionMAG(nn.Module):
             )
 
     def reset_parameters(self):
-        if hasattr(self.text_encoder, "reset_parameters"):
+        if self.text_encoder is not None and hasattr(self.text_encoder, "reset_parameters"):
             self.text_encoder.reset_parameters()
-        if hasattr(self.visual_encoder, "reset_parameters"):
+        if self.visual_encoder is not None and hasattr(self.visual_encoder, "reset_parameters"):
             self.visual_encoder.reset_parameters()
         if hasattr(self.text_gnn, "reset_parameters"):
             self.text_gnn.reset_parameters()
@@ -160,11 +180,16 @@ class LateFusionMAG(nn.Module):
         return self.classifier(fused)
 
     def forward_branches(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor):
-        text_z = self.text_encoder(text_feature)
-        vis_z = self.visual_encoder(visual_feature)
-        if self.use_mlp_before_fusion:
-            text_z = self.text_mlp(text_z)
-            vis_z = self.vis_mlp(vis_z)
+        if self.use_no_encoder:
+            # No encoder: raw features go through MLP then GNN
+            text_z = self.text_mlp(text_feature)
+            vis_z = self.vis_mlp(visual_feature)
+        else:
+            text_z = self.text_encoder(text_feature)
+            vis_z = self.visual_encoder(visual_feature)
+            if self.use_mlp_before_fusion:
+                text_z = self.text_mlp(text_z)
+                vis_z = self.vis_mlp(vis_z)
         # GCNII uses forward(x, adj) signature - swap args for GCNII only
         if type(self.text_gnn).__name__ == "GCNII":
             text_h = self.text_gnn(text_z, graph)
@@ -262,6 +287,12 @@ def args_init():
         default=False,
         help="Add MLP projection before late fusion concatenation.",
     )
+    parser.add_argument(
+        "--late_no_encoder",
+        type=str2bool,
+        default=False,
+        help="Skip per-modality encoders and pass raw features directly to GNN.",
+    )
     return parser
 
 
@@ -322,10 +353,18 @@ def main():
 
         proj_dim = int(args.mm_proj_dim) if args.mm_proj_dim is not None else int(args.n_hidden)
         embed_dim = int(args.late_embed_dim) if args.late_embed_dim is not None else int(args.n_hidden)
-        text_encoder = mag_base.ModalityEncoder(int(text_feat.shape[1]), proj_dim, float(args.dropout)).to(device)
-        visual_encoder = mag_base.ModalityEncoder(int(vis_feat.shape[1]), proj_dim, float(args.dropout)).to(device)
-        text_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
-        vis_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
+        use_no_encoder = bool(getattr(args, "late_no_encoder", False))
+        if use_no_encoder:
+            text_encoder = None
+            visual_encoder = None
+            # Build GNN accepting raw feature dims
+            text_gnn = mag_base._build_gnn_backbone(args, int(text_feat.shape[1]), embed_dim, device)
+            vis_gnn = mag_base._build_gnn_backbone(args, int(vis_feat.shape[1]), embed_dim, device)
+        else:
+            text_encoder = mag_base.ModalityEncoder(int(text_feat.shape[1]), proj_dim, float(args.dropout)).to(device)
+            visual_encoder = mag_base.ModalityEncoder(int(vis_feat.shape[1]), proj_dim, float(args.dropout)).to(device)
+            text_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
+            vis_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
         classifier = nn.Linear(2 * embed_dim, n_classes).to(device)
         model = LateFusionMAG(
             text_encoder,
@@ -334,6 +373,10 @@ def main():
             vis_gnn,
             classifier,
             use_mlp_before_fusion=bool(getattr(args, "late_mlp_before_fusion", False)),
+            use_no_encoder=use_no_encoder,
+            text_raw_dim=int(text_feat.shape[1]),
+            vis_raw_dim=int(vis_feat.shape[1]),
+            embed_dim=embed_dim,
         )
         model.reset_parameters()
 

@@ -178,6 +178,9 @@ class SimpleMAGMLP(nn.Module):
             feat = self.text_encoder(text_feature)
         elif self.single_modality == "visual":
             feat = self.visual_encoder(visual_feature)
+        elif self.use_no_encoder:
+            # No encoder: raw concat → MLP (for bimodal, when use_no_encoder=True)
+            feat = th.cat([text_feature, visual_feature], dim=1)
         else:
             text_h = self.text_encoder(text_feature)
             vis_h = self.visual_encoder(visual_feature)

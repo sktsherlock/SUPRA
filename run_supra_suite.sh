@@ -280,7 +280,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       --result_csv "${RESULT_CSV}"
                       --result_csv_all "${RESULT_CSV_ALL}"
                       --disable_wandb
-                      --report_drop_modality
+                      --report_drop_modality true
                       --degrade_alphas "1.0"
                     )
 

@@ -157,6 +157,7 @@ class SimpleMAGMLP(nn.Module):
         mlp: nn.Module,
         early_fuse: str = "concat",
         single_modality: Optional[str] = None,
+        use_no_encoder: bool = False,
     ):
         super().__init__()
         self.text_encoder = text_encoder
@@ -164,6 +165,7 @@ class SimpleMAGMLP(nn.Module):
         self.mlp = mlp
         self.early_fuse = str(early_fuse).lower().strip() if early_fuse is not None else "concat"
         self.single_modality = single_modality
+        self.use_no_encoder = use_no_encoder
 
     def reset_parameters(self):
         if hasattr(self.text_encoder, "reset_parameters"):
@@ -835,6 +837,7 @@ def main():
                 mlp,
                 early_fuse=early_fuse,
                 single_modality=single_modality,
+                use_no_encoder=use_no_encoder,
             )
         else:
             out_dim = embed_dim if separate_head else n_classes

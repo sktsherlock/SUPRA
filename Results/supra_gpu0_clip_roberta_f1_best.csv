@@ -1,9 +1,9 @@
 dataset,method,backbone,n_layers,metric,full,degrade_text,degrade_visual,full_pm,degrade_text_pm,degrade_visual_pm,overall_hmean_pm,single_modality,inductive,fewshots,text_feature,visual_feature,lr,wd,dropout,n_hidden,full_std,embed_dim,aux_weight,mlp_variant
-Movies,SUPRA,GCN,3,f1,51.421,,,51.42 ± 1.13,,,,none,False,,Movies_roberta_base_512_mean.npy,Movies_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,1.135,256,0.0,full
-Movies,SUPRA,GAT,3,f1,48.131,,,48.13 ± 0.05,,,,none,False,,Movies_roberta_base_512_mean.npy,Movies_openai_clip-vit-large-patch14.npy,0.0005,0.0001,0.3,256,0.047,256,0.0,ablate
-Grocery,SUPRA,GCN,2,f1,76.683,,,76.68 ± 0.12,,,,none,False,,Grocery_roberta_base_256_mean.npy,Grocery_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.121,256,0.0,full
-Grocery,SUPRA,GAT,3,f1,73.801,,,73.80 ± 0.35,,,,none,False,,Grocery_roberta_base_256_mean.npy,Grocery_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.35,256,0.0,ablate
-Toys,SUPRA,GCN,2,f1,79.019,,,79.02 ± 0.17,,,,none,False,,Toys_roberta_base_512_mean.npy,Toys_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.172,256,0.0,full
-Toys,SUPRA,GAT,3,f1,77.81,,,77.81 ± 0.30,,,,none,False,,Toys_roberta_base_512_mean.npy,Toys_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.297,256,0.0,ablate
-Reddit-M,SUPRA,GCN,2,f1,84.568,,,84.57 ± 0.05,,,,none,False,,RedditM_roberta_base_100_mean.npy,RedditM_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.048,256,0.0,full
+Grocery,SUPRA,GAT,3,f1,73.801,,,73.80 ± 0.35,,,,none,False,,Grocery_roberta_base_256_mean.npy,Grocery_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.35,256,0.5,ablate
+Grocery,SUPRA,GCN,2,f1,76.683,,,76.68 ± 0.12,,,,none,False,,Grocery_roberta_base_256_mean.npy,Grocery_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.121,256,0.3,ablate
+Movies,SUPRA,GAT,3,f1,48.131,,,48.13 ± 0.05,,,,none,False,,Movies_roberta_base_512_mean.npy,Movies_openai_clip-vit-large-patch14.npy,0.0005,0.0001,0.3,256,0.047,256,0.7,full
+Movies,SUPRA,GCN,3,f1,51.421,,,51.42 ± 1.13,,,,none,False,,Movies_roberta_base_512_mean.npy,Movies_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,1.135,256,0.3,full
 Reddit-M,SUPRA,GAT,3,f1,82.271,,,82.27 ± 0.12,,,,none,False,,RedditM_roberta_base_100_mean.npy,RedditM_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.119,256,0.0,ablate
+Reddit-M,SUPRA,GCN,2,f1,84.568,,,84.57 ± 0.05,,,,none,False,,RedditM_roberta_base_100_mean.npy,RedditM_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.048,256,0.0,ablate
+Toys,SUPRA,GAT,3,f1,77.81,,,77.81 ± 0.30,,,,none,False,,Toys_roberta_base_512_mean.npy,Toys_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.297,256,0.7,ablate
+Toys,SUPRA,GCN,2,f1,79.019,,,79.02 ± 0.17,,,,none,False,,Toys_roberta_base_512_mean.npy,Toys_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.172,256,0.7,ablate

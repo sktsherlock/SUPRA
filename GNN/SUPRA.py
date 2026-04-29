@@ -43,7 +43,6 @@ from GNN.Baselines.Early_GNN import _make_observe_graph_inductive
 from GNN.Utils.NodeClassification import (
     _compute_degrade_metrics_mag,
     _as_scalar_float,
-    _parse_degrade_alphas,
     _alpha_tag,
 )
 
@@ -371,12 +370,6 @@ def args_init():
     supra.add_argument("--aux_weight", type=float, default=0.0, help="Auxiliary loss weight for Ut/Uv channels (0=disable)")
     supra.add_argument("--mlp_variant", type=str, default="ablate", choices=["full", "ablate"], help="MLP before GNN: full=Linear→ReLU→LN→Linear, ablate=concat only (no projection)")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
-    supra.add_argument("--report_drop_modality", action="store_true",
-                        help="Report modality drop results (degrade_text, degrade_visual)")
-    supra.add_argument("--degrade_target", type=str, default="both", choices=["text", "visual", "both"],
-                        help="Which modality to degrade: text, visual, or both")
-    supra.add_argument("--degrade_alphas", type=str, default="",
-                        help="Comma-separated noise alphas for modality degradation, e.g., '0.2,0.4,0.6,0.8,1.0'")
     parser.add_argument("--analyze_gradients", action="store_true",
                         help="Enable gradient SVD analysis during training")
     parser.add_argument("--gradient_csv", type=str, default=None,
@@ -492,7 +485,14 @@ def main():
     # Degrade experiment settings
     report_drop = getattr(args, 'report_drop_modality', False)
     degrade_target = str(getattr(args, 'degrade_target', 'both'))
-    degrade_alphas = _parse_degrade_alphas(args)
+    # Parse degrade_alphas (already defined in add_common_args)
+    raw_alphas = getattr(args, 'degrade_alphas', '')
+    if raw_alphas is None or str(raw_alphas).strip() == "":
+        degrade_alphas = [1.0]
+    else:
+        import re
+        parts = re.split(r'[\s,]+', str(raw_alphas).strip())
+        degrade_alphas = [float(p) for p in parts if p]
     best_degrade_metrics = {}  # alpha -> (degrade_text, degrade_vis) from best model
 
     # Store best logits from all channels for oracle gate analysis

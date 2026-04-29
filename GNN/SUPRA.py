@@ -13,22 +13,11 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-import dgl
 
 try:
     import wandb  # type: ignore
 except Exception:  # pragma: no cover
     wandb = None
-
-try:
-    import seaborn as sns  # type: ignore
-except Exception:  # pragma: no cover
-    sns = None
-
-try:
-    import matplotlib.pyplot as plt  # type: ignore
-except Exception:  # pragma: no cover
-    plt = None
 
 # Allow running as a script
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -40,10 +29,6 @@ from GNN.Utils.NodeClassification import (
     initialize_early_stopping,
     initialize_optimizer_and_scheduler,
     adjust_learning_rate_if_needed,
-    log_results_to_wandb,
-    log_progress,
-    print_final_results,
-    _as_scalar_float,
 )
 from GNN.Utils.model_config import (
     add_common_args,
@@ -55,130 +40,6 @@ from GNN.Utils.model_config import (
 )
 from GNN.Utils.result_logger import build_result_row, update_best_result_csv, append_result_csv
 from GNN.Baselines.Early_GNN import _make_observe_graph_inductive
-
-
-# ==============================================================================
-# Newton-Schulz Spectral Orthogonalization
-# Prevents low-rank collapse in shared representations by orthogonalizing
-# gradient matrices during backpropagation.
-# ==============================================================================
-class SpectralOrthogonalizer:
-    """Newton-Schulz iteration for spectral normalization of gradient matrices.
-
-    Applies iterative orthogonalization: X = a*X + b*(X@A) + c*(X@A@A)
-    where A = X.T @ X, to prevent rank deficiency in shared channels.
-
-    Supports dynamic orthogonalization strength (alpha):
-        grad = (1 - alpha) * grad_original + alpha * grad_orthogonalized
-
-    Alpha can be:
-        - Fixed value (e.g., 0.5)
-        - Scheduled decay (high early, low later)
-        - Rank-adaptive (based on singular value decay rate)
-    """
-    def __init__(self, ns_steps: int = 5, alpha: float = 1.0, rank_adaptive: bool = False):
-        self.ns_steps = ns_steps
-        self.alpha = alpha  # Orthogonalization strength (0=off, 1=full)
-        self.rank_adaptive = rank_adaptive
-        self._current_step = 0
-
-    def set_alpha(self, alpha: float):
-        """Set the orthogonalization strength alpha."""
-        self.alpha = max(0.0, min(1.0, alpha))
-
-    def set_step(self, step: int):
-        """Set current training step for adaptive scheduling."""
-        self._current_step = step
-
-    def _compute_rank_ratio(self, X: th.Tensor) -> float:
-        """Compute stable rank ratio: sum(s^2) / max(s^2).
-
-        Low ratio indicates potential low-rank tendency.
-        """
-        try:
-            s = th.linalg.svd(X, compute_uv=False)
-            ss = s * s
-            total = ss.sum()
-            max_s = ss[0] if len(ss) > 0 else 1.0
-            return (total / max_s).item() if max_s > 0 else 1.0
-        except Exception:
-            return 1.0
-
-    def _adaptive_alpha(self, grad: th.Tensor) -> float:
-        """Compute adaptive alpha based on gradient rank analysis."""
-        if not self.rank_adaptive:
-            return self.alpha
-
-        try:
-            r, c = grad.shape
-            X = grad.float()
-            if r < c:
-                X = X.T
-
-            s = th.linalg.svd(X, compute_uv=False)
-            if len(s) < 2:
-                return self.alpha
-
-            # Compute singular value decay rate
-            # Large decay (s[0] >> s[-1]) suggests low-rank prone -> higher alpha
-            ratio = (s[0] / (s[-1] + 1e-7)).item()
-
-            # Map ratio to alpha: higher ratio -> stronger orthogonalization
-            # Clamp to [alpha, 1.0]
-            adaptive = min(1.0, self.alpha * (1 + 0.1 * ratio))
-            return max(self.alpha, adaptive)
-        except Exception:
-            return self.alpha
-
-    def __call__(self, param_id: int, grad: th.Tensor) -> th.Tensor:
-        if len(grad.shape) != 2:
-            return grad
-
-        r, c = grad.shape
-        if r == 0 or c == 0:
-            return grad
-
-        # If alpha is 0, skip orthogonalization
-        if self.alpha <= 0.0:
-            return grad
-
-        # Adaptive alpha based on rank analysis
-        alpha = self._adaptive_alpha(grad)
-
-        dtype, device = grad.dtype, grad.device
-        X = grad.float()
-
-        transpose = False
-        if r < c:
-            X = X.T
-            r, c = c, r
-            transpose = True
-
-        X = X / (X.norm() + 1e-7)
-        # Newton-Schulz coefficients for 5-step iteration
-        a, b, c_coef = 3.4445, -4.7750, 2.0315
-
-        for _ in range(self.ns_steps):
-            A = X.T @ X
-            B = A @ A
-            X = a * X + b * (X @ A) + c_coef * (X @ B)
-
-        if transpose:
-            X = X.T
-
-        scale = max(r, c) ** 0.5
-        ortho_grad = X * scale
-
-        # Mix original gradient with orthogonalized gradient
-        if alpha < 1.0:
-            mixed = (1 - alpha) * grad + alpha * ortho_grad.to(dtype)
-        else:
-            mixed = ortho_grad.to(dtype)
-
-        return mixed
-
-
-# ==============================================================================
 
 
 class ModalityEncoder(nn.Module):

@@ -40,6 +40,12 @@ from GNN.Utils.model_config import (
 )
 from GNN.Utils.result_logger import build_result_row, update_best_result_csv, append_result_csv
 from GNN.Baselines.Early_GNN import _make_observe_graph_inductive
+from GNN.Utils.NodeClassification import (
+    _compute_degrade_metrics_mag,
+    _as_scalar_float,
+    _parse_degrade_alphas,
+    _alpha_tag,
+)
 
 
 class ModalityEncoder(nn.Module):
@@ -363,8 +369,14 @@ def args_init():
     supra = parser.add_argument_group("SUPRA")
     supra.add_argument("--embed_dim", type=int, default=None, help="Embedding dimension for SUPRA channels")
     supra.add_argument("--aux_weight", type=float, default=0.0, help="Auxiliary loss weight for Ut/Uv channels (0=disable)")
-    supra.add_argument("--mlp_variant", type=str, default="full", choices=["full", "ablate"], help="MLP before GNN: full=Linear→ReLU→LN→Linear, ablate=Linear only")
+    supra.add_argument("--mlp_variant", type=str, default="ablate", choices=["full", "ablate"], help="MLP before GNN: full=Linear→ReLU→LN→Linear, ablate=concat only (no projection)")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
+    supra.add_argument("--report_drop_modality", action="store_true",
+                        help="Report modality drop results (degrade_text, degrade_visual)")
+    supra.add_argument("--degrade_target", type=str, default="both", choices=["text", "visual", "both"],
+                        help="Which modality to degrade: text, visual, or both")
+    supra.add_argument("--degrade_alphas", type=str, default="",
+                        help="Comma-separated noise alphas for modality degradation, e.g., '0.2,0.4,0.6,0.8,1.0'")
     parser.add_argument("--analyze_gradients", action="store_true",
                         help="Enable gradient SVD analysis during training")
     parser.add_argument("--gradient_csv", type=str, default=None,
@@ -477,6 +489,12 @@ def main():
     select_metric, select_average = args.metric, args.average
     embed_dim = int(args.embed_dim) if args.embed_dim is not None else int(args.n_hidden)
 
+    # Degrade experiment settings
+    report_drop = getattr(args, 'report_drop_modality', False)
+    degrade_target = str(getattr(args, 'degrade_target', 'both'))
+    degrade_alphas = _parse_degrade_alphas(args)
+    best_degrade_metrics = {}  # alpha -> (degrade_text, degrade_vis) from best model
+
     # Store best logits from all channels for oracle gate analysis
     best_logits_Ut_all, best_logits_Uv_all, best_logits_C_all = None, None, None
     best_labels_all = None
@@ -540,6 +558,23 @@ def main():
                         'Uv': out_full.logits_Uv_0.detach().clone(),
                         'C': out_full.logits_C_0.detach().clone(),
                     }
+                    # Compute degrade metrics if enabled
+                    if report_drop and degrade_alphas:
+                        for alpha in degrade_alphas:
+                            dt, dv = _compute_degrade_metrics_mag(
+                                model=model,
+                                graph=graph,
+                                text_feat=text_feat,
+                                visual_feat=vis_feat,
+                                labels=labels,
+                                idx=test_idx,
+                                metric=select_metric,
+                                average=select_average,
+                                train_idx=train_idx,
+                                degrade_alpha=float(alpha),
+                                degrade_target=degrade_target,
+                            )
+                            best_degrade_metrics[alpha] = (_as_scalar_float(dt), _as_scalar_float(dv))
                 if stopper and stopper.step(val_score): break
 
                 total_time += time.time() - tic
@@ -567,6 +602,13 @@ def main():
     print(f"Average val {args.metric}: {_fmt_pct(val_results)}")
     print(f"Average test {args.metric}: {_fmt_pct(test_results)}")
 
+    if report_drop and best_degrade_metrics:
+        print(f"\nModality Degradation Results (alpha=1.0):")
+        for alpha, (dt, dv) in best_degrade_metrics.items():
+            if alpha == 1.0:
+                print(f"  degrade_text {args.metric}: {dt*100:.3f}%")
+                print(f"  degrade_visual {args.metric}: {dv*100:.3f}%")
+
     if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
         wandb.log({f'Mean_Val_{args.metric}': float(np.mean(val_results)), f'Mean_Test_{args.metric}': float(np.mean(test_results))})
 
@@ -590,7 +632,30 @@ def main():
         test_mean = float(np.mean(test_results))
         test_std = float(np.std(test_results))
         method_name = getattr(args, 'result_tag', None) or "SUPRA"
-        row = build_result_row(args=args, method=method_name, full_metric=test_mean, extra={"full_std": test_std})
+
+        # Extract degrade metrics for direct parameters
+        degrade_text_value = None
+        degrade_visual_value = None
+        extra: Dict[str, object] = {"full_std": test_std}
+
+        if report_drop and best_degrade_metrics:
+            for alpha, (dt, dv) in best_degrade_metrics.items():
+                tag = _alpha_tag(alpha)
+                extra[f"degrade_text{tag}"] = dt
+                extra[f"degrade_visual{tag}"] = dv
+                # Primary degrade columns use alpha=1.0 or single alpha
+                if alpha == 1.0 or len(best_degrade_metrics) == 1:
+                    degrade_text_value = dt
+                    degrade_visual_value = dv
+
+        row = build_result_row(
+            args=args,
+            method=method_name,
+            full_metric=test_mean,
+            degrade_text=degrade_text_value,
+            degrade_visual=degrade_visual_value,
+            extra=extra,
+        )
         key_fields = ["dataset", "method", "backbone", "metric", "single_modality", "inductive", "fewshots"]
         if getattr(args, 'result_csv', None):
             update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")

@@ -390,8 +390,8 @@ def args_init():
     parser.add_argument(
         "--early_no_encoder",
         type=str2bool,
-        default=False,
-        help="Skip per-modality encoders and directly concat raw features to GNN.",
+        default=True,
+        help="Skip per-modality encoders and directly concat raw features to GNN (default: True).",
     )
     parser.add_argument(
         "--separate_classifier",

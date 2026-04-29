@@ -273,8 +273,8 @@ def args_init():
     parser.add_argument(
         "--late_no_encoder",
         type=str2bool,
-        default=False,
-        help="Skip per-modality encoders and pass raw features directly to GNN.",
+        default=True,
+        help="Skip per-modality encoders and pass raw features directly to GNN (default: True).",
     )
     return parser
 

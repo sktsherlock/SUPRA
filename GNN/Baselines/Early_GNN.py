@@ -128,9 +128,9 @@ class SimpleMAGGNN(nn.Module):
 
     def forward(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor) -> th.Tensor:
         if self.single_modality == "text":
-            feat = self.text_encoder(text_feature)
+            feat = text_feature if self.use_no_encoder else self.text_encoder(text_feature)
         elif self.single_modality == "visual":
-            feat = self.visual_encoder(visual_feature)
+            feat = visual_feature if self.use_no_encoder else self.visual_encoder(visual_feature)
         elif self.use_no_encoder:
             # No encoder: raw concat → GNN (traditional GNN approach for multimodal)
             feat = th.cat([text_feature, visual_feature], dim=1)
@@ -175,9 +175,9 @@ class SimpleMAGMLP(nn.Module):
 
     def forward(self, graph, text_feature: th.Tensor, visual_feature: th.Tensor) -> th.Tensor:
         if self.single_modality == "text":
-            feat = self.text_encoder(text_feature)
+            feat = text_feature if self.use_no_encoder else self.text_encoder(text_feature)
         elif self.single_modality == "visual":
-            feat = self.visual_encoder(visual_feature)
+            feat = visual_feature if self.use_no_encoder else self.visual_encoder(visual_feature)
         elif self.use_no_encoder:
             # No encoder: raw concat → MLP (for bimodal, when use_no_encoder=True)
             feat = th.cat([text_feature, visual_feature], dim=1)

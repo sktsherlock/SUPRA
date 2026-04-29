@@ -69,7 +69,7 @@ read -r -a DATASETS_ARR <<< "${DATASETS}"
 read -r -a FEATURE_GROUPS_ARR <<< "${FEATURE_GROUPS}"
 
 # ---------------- Model backbones ----------------
-SUPRA_MODELS=${SUPRA_MODELS:-"GCN GAT"}  # Only GCN and GAT for now
+SUPRA_MODELS=${SUPRA_MODELS:-"GCN"}  # Only GCN for now (GAT can be added back if needed)
 
 # ---------------- Common training knobs ----------------
 GPU_ID=${GPU_ID:-0}
@@ -99,7 +99,7 @@ supra_label_smoothing="0.1"
 supra_early_stop_patience="50"
 supra_embed_dims=("256")
 supra_aux_weights=("0.0" "0.1" "0.3" "0.5" "0.7")
-supra_mlp_variants=("full" "ablate")  # full=MLP投影, ablate=无投影(对比基线)
+supra_mlp_variants=("ablate")  # ablate=concat only, no projection (now default)
 
 # GAT parameters
 gat_n_heads=4
@@ -280,6 +280,8 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       --result_csv "${RESULT_CSV}"
                       --result_csv_all "${RESULT_CSV_ALL}"
                       --disable_wandb
+                      --report_drop_modality
+                      --degrade_alphas "1.0"
                     )
 
                     if [[ "${model_name}" == "GAT" ]]; then

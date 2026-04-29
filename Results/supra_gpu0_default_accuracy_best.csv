@@ -1,9 +1,9 @@
-dataset,method,backbone,n_layers,metric,full,degrade_text,degrade_visual,full_pm,degrade_text_pm,degrade_visual_pm,overall_hmean_pm,single_modality,inductive,fewshots,text_feature,visual_feature,lr,wd,dropout,n_hidden,full_std
-Movies,SUPRA,GCN,2,accuracy,59.09,,,59.09 ± 0.31,,,,none,False,,Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy,Movies_Llama-3.2-11B-Vision-Instruct_visual.npy,0.0005,0.0001,0.3,256,0.315
-Movies,SUPRA,GAT,2,accuracy,57.961,,,57.96 ± 0.28,,,,none,False,,Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy,Movies_Llama-3.2-11B-Vision-Instruct_visual.npy,0.0005,0.0001,0.3,256,0.276
-Grocery,SUPRA,GCN,3,accuracy,87.539,,,87.54 ± 0.01,,,,none,False,,Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy,Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy,0.001,0.0001,0.3,256,0.014
-Grocery,SUPRA,GAT,2,accuracy,86.983,,,86.98 ± 0.18,,,,none,False,,Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy,Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy,0.001,0.0001,0.3,256,0.183
-Toys,SUPRA,GCN,2,accuracy,83.45,,,83.45 ± 0.06,,,,none,False,,Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy,Toys_Llama-3.2-11B-Vision-Instruct_visual.npy,0.0005,0.0001,0.3,256,0.059
-Toys,SUPRA,GAT,3,accuracy,82.83,,,82.83 ± 0.10,,,,none,False,,Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy,Toys_Llama-3.2-11B-Vision-Instruct_visual.npy,0.001,0.0001,0.3,256,0.099
-Reddit-M,SUPRA,GCN,4,accuracy,88.743,,,88.74 ± 0.10,,,,none,False,,RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy,RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy,0.0005,0.0001,0.3,256,0.102
-Reddit-M,SUPRA,GAT,2,accuracy,87.633,,,87.63 ± 0.15,,,,none,False,,RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy,RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy,0.001,0.0001,0.3,256,0.147
+dataset,method,backbone,n_layers,metric,full,degrade_text,degrade_visual,full_pm,degrade_text_pm,degrade_visual_pm,overall_hmean_pm,single_modality,inductive,fewshots,text_feature,visual_feature,lr,wd,dropout,n_hidden,full_std,embed_dim,aux_weight,mlp_variant
+Movies,SUPRA,GCN,2,accuracy,59.09,,,59.09 ± 0.31,,,,none,False,,Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy,Movies_Llama-3.2-11B-Vision-Instruct_visual.npy,0.0005,0.0001,0.3,256,0.315,256,0.0,full
+Movies,SUPRA,GAT,2,accuracy,57.961,,,57.96 ± 0.28,,,,none,False,,Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy,Movies_Llama-3.2-11B-Vision-Instruct_visual.npy,0.0005,0.0001,0.3,256,0.276,256,0.0,ablate
+Grocery,SUPRA,GCN,3,accuracy,87.539,,,87.54 ± 0.01,,,,none,False,,Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy,Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy,0.001,0.0001,0.3,256,0.014,256,0.0,full
+Grocery,SUPRA,GAT,2,accuracy,86.983,,,86.98 ± 0.18,,,,none,False,,Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy,Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy,0.001,0.0001,0.3,256,0.183,256,0.0,ablate
+Toys,SUPRA,GCN,2,accuracy,83.45,,,83.45 ± 0.06,,,,none,False,,Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy,Toys_Llama-3.2-11B-Vision-Instruct_visual.npy,0.0005,0.0001,0.3,256,0.059,256,0.0,full
+Toys,SUPRA,GAT,3,accuracy,82.83,,,82.83 ± 0.10,,,,none,False,,Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy,Toys_Llama-3.2-11B-Vision-Instruct_visual.npy,0.001,0.0001,0.3,256,0.099,256,0.0,ablate
+Reddit-M,SUPRA,GCN,4,accuracy,88.743,,,88.74 ± 0.10,,,,none,False,,RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy,RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy,0.0005,0.0001,0.3,256,0.102,256,0.0,full
+Reddit-M,SUPRA,GAT,2,accuracy,87.633,,,87.63 ± 0.15,,,,none,False,,RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy,RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy,0.001,0.0001,0.3,256,0.147,256,0.0,ablate

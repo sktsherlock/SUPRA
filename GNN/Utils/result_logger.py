@@ -75,6 +75,9 @@ def build_result_row(
         "wd": getattr(args, "wd", ""),
         "dropout": getattr(args, "dropout", ""),
         "n_hidden": getattr(args, "n_hidden", ""),
+        "embed_dim": getattr(args, "embed_dim", getattr(args, "n_hidden", "")),
+        "aux_weight": getattr(args, "aux_weight", ""),
+        "mlp_variant": getattr(args, "mlp_variant", ""),
     }
     if extra:
         for k, v in extra.items():

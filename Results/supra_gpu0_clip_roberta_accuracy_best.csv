@@ -1,9 +1,9 @@
-dataset,method,backbone,n_layers,metric,full,degrade_text,degrade_visual,full_pm,degrade_text_pm,degrade_visual_pm,overall_hmean_pm,single_modality,inductive,fewshots,text_feature,visual_feature,lr,wd,dropout,n_hidden,full_std
-Movies,SUPRA,GCN,3,accuracy,56.022,,,56.02 ± 0.31,,,,none,False,,Movies_roberta_base_512_mean.npy,Movies_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.31
-Movies,SUPRA,GAT,4,accuracy,53.603,,,53.60 ± 0.30,,,,none,False,,Movies_roberta_base_512_mean.npy,Movies_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.295
-Grocery,SUPRA,GCN,2,accuracy,84.221,,,84.22 ± 0.15,,,,none,False,,Grocery_roberta_base_256_mean.npy,Grocery_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.149
-Grocery,SUPRA,GAT,3,accuracy,82.982,,,82.98 ± 0.20,,,,none,False,,Grocery_roberta_base_256_mean.npy,Grocery_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.199
-Toys,SUPRA,GCN,2,accuracy,80.841,,,80.84 ± 0.19,,,,none,False,,Toys_roberta_base_512_mean.npy,Toys_openai_clip-vit-large-patch14.npy,0.0005,0.0001,0.3,256,0.188
-Toys,SUPRA,GAT,3,accuracy,80.301,,,80.30 ± 0.24,,,,none,False,,Toys_roberta_base_512_mean.npy,Toys_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.237
-Reddit-M,SUPRA,GCN,2,accuracy,87.255,,,87.25 ± 0.12,,,,none,False,,RedditM_roberta_base_100_mean.npy,RedditM_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.121
-Reddit-M,SUPRA,GAT,3,accuracy,85.304,,,85.30 ± 0.17,,,,none,False,,RedditM_roberta_base_100_mean.npy,RedditM_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.173
+dataset,method,backbone,n_layers,metric,full,degrade_text,degrade_visual,full_pm,degrade_text_pm,degrade_visual_pm,overall_hmean_pm,single_modality,inductive,fewshots,text_feature,visual_feature,lr,wd,dropout,n_hidden,full_std,embed_dim,aux_weight,mlp_variant
+Movies,SUPRA,GCN,3,accuracy,56.022,,,56.02 ± 0.31,,,,none,False,,Movies_roberta_base_512_mean.npy,Movies_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.31,256,0.0,full
+Movies,SUPRA,GAT,4,accuracy,53.603,,,53.60 ± 0.30,,,,none,False,,Movies_roberta_base_512_mean.npy,Movies_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.295,256,0.0,ablate
+Grocery,SUPRA,GCN,2,accuracy,84.221,,,84.22 ± 0.15,,,,none,False,,Grocery_roberta_base_256_mean.npy,Grocery_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.149,256,0.0,full
+Grocery,SUPRA,GAT,3,accuracy,82.982,,,82.98 ± 0.20,,,,none,False,,Grocery_roberta_base_256_mean.npy,Grocery_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.199,256,0.0,ablate
+Toys,SUPRA,GCN,2,accuracy,80.841,,,80.84 ± 0.19,,,,none,False,,Toys_roberta_base_512_mean.npy,Toys_openai_clip-vit-large-patch14.npy,0.0005,0.0001,0.3,256,0.188,256,0.0,full
+Toys,SUPRA,GAT,3,accuracy,80.301,,,80.30 ± 0.24,,,,none,False,,Toys_roberta_base_512_mean.npy,Toys_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.237,256,0.0,ablate
+Reddit-M,SUPRA,GCN,2,accuracy,87.255,,,87.25 ± 0.12,,,,none,False,,RedditM_roberta_base_100_mean.npy,RedditM_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.121,256,0.0,full
+Reddit-M,SUPRA,GAT,3,accuracy,85.304,,,85.30 ± 0.17,,,,none,False,,RedditM_roberta_base_100_mean.npy,RedditM_openai_clip-vit-large-patch14.npy,0.001,0.0001,0.3,256,0.173,256,0.0,ablate

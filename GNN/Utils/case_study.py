@@ -84,6 +84,7 @@ def analyze_dirichlet_energy(
     adj[srcs, dsts] = 1.0
     adj = adj + adj.T  # Make symmetric (undirected)
     adj = adj / adj.sum(dim=1, keepdim=True).clamp_min(1e-10)  # Row-normalize
+    adj = adj.cpu()  # Move to CPU to match features device
 
     results = {'dataset': dataset_name}
 

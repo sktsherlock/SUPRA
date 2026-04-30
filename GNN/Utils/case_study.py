@@ -46,7 +46,7 @@ def compute_dirichlet_energy_vectorized(features: th.Tensor, adj: th.Tensor) -> 
         Scalar Dirichlet Energy value
     """
     # Convert sparse adjacency to dense if needed
-    if adj.is_sparse():
+    if adj.is_sparse:
         adj_dense = adj.to_dense()
     else:
         adj_dense = adj

@@ -406,7 +406,7 @@ def main():
 
     # Load checkpoint
     print(f"Loading checkpoint from {args.checkpoint}")
-    checkpoint = th.load(args.checkpoint, map_location=device)
+    checkpoint = th.load(args.checkpoint, map_location=device, weights_only=False)
     ckpt_args = checkpoint.get('args', None)
     text_in_dim = checkpoint.get('text_in_dim')
     vis_in_dim = checkpoint.get('vis_in_dim')

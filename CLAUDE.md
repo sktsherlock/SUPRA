@@ -9,19 +9,28 @@ SUPRA is a multimodal graph neural network framework for node classification. Th
 ## Architecture
 
 ```
-text ──► enc_t ──┬──► concat ──► GNN ──► C 通道 (共享语义)
-                │
-visual ──► enc_v ┘   │
-                      ├──► Ut 通道 (文本独特语义, 无GNN)
-                      └──► Uv 通道 (视觉独特语义, 无GNN)
+text ──► enc_t ──┬──► concat ──► MLP ──► GNN ──► C 通道 (共享语义)
+                 │                              (可选mlp_variant=ablate则无MLP)
+visual ──► enc_v ┘                                    │
+                                                      ├──► Ut 通道 (文本独特语义, 无GNN)
+                                                      └──► Uv 通道 (视觉独特语义, 无GNN)
 
 融合: logits_final = (logits_C + logits_Ut + logits_Uv) / 3
 ```
 
-**关键设计**:
-- **C 通道**: concat(t,v) → GNN → 预测, 学习跨模态共享信息
-- **Ut/Uv 通道**: 直接编码 → 预测, 无图传播, 学习各模态独特信息
-- **Spectral Orthogonalization**: 梯度后处理, 防止共享表示低秩崩溃
+**三通道设计**:
+- **C 通道**: concat(enc_t, enc_v) → (可选MLP投影) → GNN层 → head_C → logits_C，学习跨模态共享信息
+- **Ut 通道**: enc_t → head_Ut → logits_Ut，无图传播，学习文本模态独特语义
+- **Uv 通道**: enc_v → head_Uv → logits_Uv，无图传播，学习视觉模态独特语义
+- **融合**: 三个通道的 logits 等权重相加
+
+**关键设计要点**:
+- Ut/Uv 通道**不参与图消息传递**，保证独特语义不被邻居信息污染
+- 每个通道的梯度来源独立：C 通道从 `logits_C` 的 loss 回传；Ut/Uv 从各自的 `logits_Ut/Uv` 回传
+- `aux_weight > 0` 时，Ut/Uv 会额外获得 `aux_weight * (loss_Ut + loss_Uv)` 的梯度强化
+- `mlp_variant`:
+  - `full`（默认）：concat 后接 Linear→ReLU→LN→Linear 再进 GNN
+  - `ablate`：concat 直接进 GNN，无额外投影层
 
 ## Running Experiments
 
@@ -75,7 +84,7 @@ python -m GNN.Baselines.Early_GNN --data_name Movies --backend mlp --model_name 
 
 ## Code Structure
 
-- `GNN/SUPRA.py` - 主模型, 包含三通道架构和谱正交化
+- `GNN/SUPRA.py` - 主模型, 三通道架构 (C/Ut/Uv) + 等权重融合
 - `GNN/Baselines/Early_GNN.py` - 早期融合基线 (concat → GNN); 支持 `--single_modality text|visual` 单模态实验
 - `GNN/Baselines/Late_GNN.py` - 晚期融合基线 (各模态独立GNN → 融合)
 - `GNN/Baselines/NTSFormer.py` - 多模态图Transformer (SIGN pre-compute + Transformer)
@@ -104,6 +113,8 @@ python -m GNN.Baselines.Early_GNN --data_name Movies --backend mlp --model_name 
 | `--degrade_alphas` | 噪声强度, 如 `0.2,0.4,0.6,0.8,1.0` | 全部 |
 | `--result_csv` | Best 结果写入路径 | NTSFormer/MIG_GT |
 | `--result_csv_all` | All runs 结果写入路径 | NTSFormer/MIG_GT |
+| `--mlp_variant` | MLP投影模式: `full`（有投影）或 `ablate`（无投影）| SUPRA |
+| `--aux_weight` | 额外梯度强化 Ut/Uv 通道的权重, 0=关闭 | SUPRA |
 
 ## Common Issues
 
@@ -130,4 +141,5 @@ python -m GNN.Baselines.Early_GNN --data_name Movies --backend mlp --model_name 
 
 - **模态独特语义 (Modality-Unique Semantics)**: 某些节点只有特定模态能正确预测
 - **模态公平性 (Modality Fairness)**: 保证弱模态也有平等的学习机会, 不被强模态压制
-- **MLP_s的作用**: 在concat后对异构模态进行投影, 使其适合图传播 (仅在SUPRA中有效, EarlyGNN中反而有害)
+- **MLP投影的作用** (`mlp_variant=full`): 在concat后对异构模态进行投影, 使其适合图传播 (仅在SUPRA中有效, Early_GNN中反而有害)
+- **模态编码器 (enc_t/enc_v)**: Linear→ReLU→Dropout, 将原始高维特征投影到 embed_dim 公共空间; 同时作为 Ut/Uv 通道的特征提取器

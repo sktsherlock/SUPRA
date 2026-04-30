@@ -182,6 +182,9 @@ def analyze_node_predictions(
     # Get top-k most divergent nodes in test set
     top_k = min(n_cases, len(test_idx))
     top_disagreement_vals, top_indices = test_disagreement.topk(top_k)
+    # top_indices are local indices into test_disagreement/test_nodes
+    # Convert to global node IDs
+    global_indices = test_nodes[top_indices]  # (top_k,)
 
     results = {
         'dataset': None,
@@ -189,11 +192,11 @@ def analyze_node_predictions(
         'cases': [],
     }
 
-    for rank, idx_idx in enumerate(top_indices.cpu().numpy()):
-        actual_idx = test_nodes[idx_idx].item()
+    for rank in range(top_k):
+        actual_idx = global_indices[rank].item()
         node_id = actual_idx
-        label = test_labels[idx_idx].item()
-        disagreement = top_disagreement_vals[idx_idx].item()
+        label = test_labels[top_indices[rank]].item()
+        disagreement = top_disagreement_vals[rank].item()
 
         p_C = pred_C[actual_idx].item()
         p_Ut = pred_Ut[actual_idx].item()

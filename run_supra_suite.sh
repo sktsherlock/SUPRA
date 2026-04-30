@@ -88,6 +88,11 @@ TRAIN_RATIO=${TRAIN_RATIO:-0.6}
 VAL_RATIO=${VAL_RATIO:-0.2}
 INDUCTIVE=${INDUCTIVE:-false}
 
+# Modality encoder type: linear (default/SUPRA) or deep (SUPRA+)
+MODALITY_ENCODER=${MODALITY_ENCODER:-linear}
+ENC_N_LAYERS=${ENC_N_LAYERS:-2}
+ENC_HIDDEN_DIM=${ENC_HIDDEN_DIM:-1024}
+
 # ---------------- SUPRA hyperparameter grid ----------------
 supra_dropout="0.3"
 supra_lrs=("0.0005" "0.001")
@@ -277,6 +282,9 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                       --embed_dim "${ed}"
                       --aux_weight "${aw}"
                       --mlp_variant "${mlp_var}"
+                      --modality_encoder "${MODALITY_ENCODER}"
+                      --enc_n_layers "${ENC_N_LAYERS}"
+                      --enc_hidden_dim "${ENC_HIDDEN_DIM}"
                       --result_csv "${RESULT_CSV}"
                       --result_csv_all "${RESULT_CSV_ALL}"
                       --disable_wandb

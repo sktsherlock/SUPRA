@@ -205,6 +205,62 @@ SUPRA_LAYERS="2 3 4" ./run_supra.sh --data_name Toys
 | `--gpu` | GPU device ID | 0 |
 | `--n_runs` | Number of runs | 3 |
 
+### Saving Model Checkpoints
+
+```bash
+# Train and save a model checkpoint
+python -m GNN.SUPRA \
+    --data_name Movies \
+    --text_feature /path/to/text.npy \
+    --visual_feature /path/to/vis.npy \
+    --graph_path /path/to/MoviesGraph.pt \
+    --save_checkpoint ./checkpoints/movies_supra_best.pt \
+    --n_runs 3
+```
+
+### Case Study Analysis
+
+After training, use `GNN/Utils/case_study.py` to analyze channel-level behaviors:
+
+```bash
+python -m GNN.Utils.case_study \
+    --checkpoint ./checkpoints/movies_supra_best.pt \
+    --data_name Movies \
+    --graph_path /path/to/MoviesGraph.pt \
+    --text_feature /path/to/text.npy \
+    --visual_feature /path/to/vis.npy \
+    --n_cases 10
+```
+
+**Three analysis modes** (all run by default, use flags to disable individual ones):
+
+| Flag | Description |
+|------|-------------|
+| `--analyze_dirichlet` | Dirichlet Energy analysis — measures semantic sharpness preservation per channel |
+| `--analyze_nodes` | Node case study — shows top Ut/Uv disagreement nodes and per-channel predictions |
+| `--analyze_per_class` | Per-class accuracy breakdown — reveals which classes favor which modality |
+
+**Example output — Dirichlet Energy:**
+```
+Dirichlet Energy Analysis — Movies
+  Raw concat features:        0.023451  (baseline)
+  C channel (GNN):            0.008234  (drop -61.7%)
+  Ut channel (unique text):   0.021023  (drop -10.4%)
+  Uv channel (unique visual): 0.019847  (drop -15.4%)
+```
+Interpretation: Ut/Uv channels retain ~85-90% of original semantic energy vs only ~40% for the C channel, confirming that unique channels protect modality-specific semantics from GNN smoothing.
+
+**Example output — Node Case Study:**
+```
+Node Prediction Case Study (top 10 Ut/Uv divergent nodes)
+  All correct: 7/10  |  Ut-only: 1  |  Uv-only: 0  |  C-only: 0  |  Fusion helps: 1
+  [Rank 1] Node 342 | Label: Comedy | Disagreement: 0.4321
+    C channel:      Comedy ✓  (conf: 0.912)
+    Ut channel:     Drama ✗   (conf: 0.823)
+    Uv channel:     Comedy ✓  (conf: 0.756)
+    Fusion:         Comedy ✓  (conf: 0.831)
+```
+
 ### Batch Experiments
 
 ```bash

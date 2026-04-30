@@ -70,6 +70,73 @@ class ModalityEncoder(nn.Module):
         return x
 
 
+class DeepResidualModalityEncoder(nn.Module):
+    """Deep Residual MLP modality encoder with LayerNorm, GELU, and skip connections.
+
+    Reference: Similar philosophy to GCNII's identity mapping — high-dimensional
+    raw features should be continuously supervised across multiple transformation layers.
+    Each residual block performs: x_{l+1} = x_l + F(x_l) where F is MLP with LN+GELU+Dropout.
+
+    Architecture for high-dimensional inputs (e.g. 4096d Llama features):
+        in_dim -> hidden_dim (bottleneck) -> ... (residual blocks) -> out_dim
+
+    Args:
+        in_dim: Input feature dimension
+        out_dim: Output embedding dimension (default 256)
+        dropout: Dropout rate
+        n_layers: Number of residual blocks (n_layers >= 2 to have at least 1 block)
+        hidden_dim: Intermediate hidden dimension (default 1024, designed for 4096d input)
+    """
+    def __init__(self, in_dim: int, out_dim: int, dropout: float, n_layers: int = 3,
+                 hidden_dim: int = 1024):
+        super().__init__()
+        self.n_layers = n_layers
+
+        # First projection: in_dim -> hidden_dim (compress high-dim to hidden space)
+        self.input_proj = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+        )
+
+        # Residual blocks in hidden space
+        self.blocks = nn.ModuleList()
+        for _ in range(n_layers - 1):
+            self.blocks.append(nn.Sequential(
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.LayerNorm(hidden_dim),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.LayerNorm(hidden_dim),
+            ))
+
+        # Final projection: hidden_dim -> out_dim
+        self.output_proj = nn.Sequential(
+            nn.Linear(hidden_dim, out_dim),
+            nn.LayerNorm(out_dim),
+        )
+
+        self.act = nn.GELU()
+        self.dropout = nn.Dropout(dropout)
+
+    def reset_parameters(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        x = self.input_proj(x)
+        x = self.act(x)
+        x = self.dropout(x)
+        for block in self.blocks:
+            x = x + block(x)
+            x = self.act(x)
+        x = self.output_proj(x)
+        return x
+
+
 @dataclass
 class ForwardOutputs:
     """Outputs from a single forward pass with all branch logits and embeddings."""
@@ -162,8 +229,20 @@ class SUPRA(nn.Module):
         # Modality encoders: project raw features to shared embedding space
         # These serve as the "unique" branches, capturing modality-specific
         # information without co-modal signal contamination
-        self.enc_t = ModalityEncoder(int(text_in_dim), self.embed_dim, float(dropout))
-        self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
+        modality_encoder = str(getattr(args, 'modality_encoder', 'linear'))
+        enc_n_layers = int(getattr(args, 'enc_n_layers', 3))
+        enc_hidden_dim = int(getattr(args, 'enc_hidden_dim', 1024))
+
+        if modality_encoder == 'deep':
+            self.enc_t = DeepResidualModalityEncoder(
+                int(text_in_dim), self.embed_dim, float(dropout),
+                n_layers=enc_n_layers, hidden_dim=enc_hidden_dim)
+            self.enc_v = DeepResidualModalityEncoder(
+                int(vis_in_dim), self.embed_dim, float(dropout),
+                n_layers=enc_n_layers, hidden_dim=enc_hidden_dim)
+        else:
+            self.enc_t = ModalityEncoder(int(text_in_dim), self.embed_dim, float(dropout))
+            self.enc_v = ModalityEncoder(int(vis_in_dim), self.embed_dim, float(dropout))
 
         def _make_mp_layers(num_layers: int, mlp_variant: str = "full") -> nn.ModuleList:
             # MLP projection before GNN:
@@ -369,7 +448,16 @@ def args_init():
     supra.add_argument("--embed_dim", type=int, default=None, help="Embedding dimension for SUPRA channels")
     supra.add_argument("--aux_weight", type=float, default=0.0, help="Auxiliary loss weight for Ut/Uv channels (0=disable)")
     supra.add_argument("--mlp_variant", type=str, default="ablate", choices=["full", "ablate"], help="MLP before GNN: full=Linear→ReLU→LN→Linear, ablate=concat only (no projection)")
+    supra.add_argument("--modality_encoder", type=str, default="linear",
+                        choices=["linear", "deep"],
+                        help="Modality encoder architecture: linear=single Linear+ReLU, deep=Deep Residual MLP (LN+GELU+Residual)")
+    supra.add_argument("--enc_n_layers", type=int, default=3,
+                        help="Number of residual blocks for deep modality encoder (only used when modality_encoder=deep)")
+    supra.add_argument("--enc_hidden_dim", type=int, default=1024,
+                        help="Hidden dimension for deep residual modality encoder (default 1024, designed for high-dim 4096d LLM features)")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
+    parser.add_argument("--save_checkpoint", type=str, default=None,
+                        help="Path to save best model checkpoint after training")
     parser.add_argument("--analyze_gradients", action="store_true",
                         help="Enable gradient SVD analysis during training")
     parser.add_argument("--gradient_csv", type=str, default=None,
@@ -499,6 +587,10 @@ def main():
     best_logits_Ut_all, best_logits_Uv_all, best_logits_C_all = None, None, None
     best_labels_all = None
 
+    # Global best model state across all runs (for checkpoint saving)
+    global_best_model_state = None
+    global_best_val_score = -1.0
+
     # Gradient analyzer setup (initialized once, persists across runs)
     gradient_analyzer = None
     if getattr(args, 'analyze_gradients', False):
@@ -525,6 +617,7 @@ def main():
 
         best_val_score, final_test_result, best_val_result, total_time = -1.0, 0.0, -1.0, 0.0
         run_best_logits = None
+        best_model_state = None
 
         for epoch in range(1, args.n_epochs + 1):
             tic = time.time()
@@ -558,6 +651,12 @@ def main():
                         'Uv': out_full.logits_Uv_0.detach().clone(),
                         'C': out_full.logits_C_0.detach().clone(),
                     }
+                    # Save best model state for checkpoint
+                    best_model_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+                    # Update global best model if this is the best across all runs
+                    if val_score > global_best_val_score:
+                        global_best_val_score = float(val_score)
+                        global_best_model_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
                     # Compute degrade metrics if enabled
                     if report_drop and degrade_alphas:
                         for alpha in degrade_alphas:
@@ -682,6 +781,18 @@ def main():
                         stats['n_samples'],
                     ])
         print(f"Gradient analysis saved to {args.gradient_csv}")
+
+    # Save model checkpoint if requested
+    if getattr(args, 'save_checkpoint', None) and global_best_model_state is not None:
+        th.save({
+            'model_state_dict': global_best_model_state,
+            'args': args,
+            'text_in_dim': int(text_feat.shape[1]),
+            'vis_in_dim': int(vis_feat.shape[1]),
+            'embed_dim': embed_dim,
+            'n_classes': n_classes,
+        }, args.save_checkpoint)
+        print(f"Checkpoint saved to {args.save_checkpoint}")
 
 if __name__ == "__main__":
     main()

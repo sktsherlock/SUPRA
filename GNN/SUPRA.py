@@ -43,7 +43,6 @@ from GNN.Baselines.Early_GNN import _make_observe_graph_inductive
 from GNN.Utils.NodeClassification import (
     _compute_degrade_metrics_mag,
     _as_scalar_float,
-    _alpha_tag,
 )
 
 
@@ -582,6 +581,9 @@ def main():
         parts = re.split(r'[\s,]+', str(raw_alphas).strip())
         degrade_alphas = [float(p) for p in parts if p]
     best_degrade_metrics = {}  # alpha -> (degrade_text, degrade_vis) from best model
+    # Collect degrade metrics across all runs for mean/std computation
+    run_degrade_text_results = []
+    run_degrade_visual_results = []
 
     # Store best logits from all channels for oracle gate analysis
     best_logits_Ut_all, best_logits_Uv_all, best_logits_C_all = None, None, None
@@ -682,6 +684,14 @@ def main():
         val_results.append(best_val_result)
         test_results.append(final_test_result)
 
+        # Collect degrade metrics from this run
+        if report_drop and best_degrade_metrics:
+            # Use alpha=1.0 or first alpha as the primary
+            primary_alpha = 1.0 if 1.0 in best_degrade_metrics else next(iter(best_degrade_metrics))
+            dt, dv = best_degrade_metrics[primary_alpha]
+            run_degrade_text_results.append(dt)
+            run_degrade_visual_results.append(dv)
+
         if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
             wandb.log({f'Val_{args.metric}': best_val_result, f'Test_{args.metric}': final_test_result})
 
@@ -737,15 +747,11 @@ def main():
         degrade_visual_value = None
         extra: Dict[str, object] = {"full_std": test_std}
 
-        if report_drop and best_degrade_metrics:
-            for alpha, (dt, dv) in best_degrade_metrics.items():
-                tag = _alpha_tag(alpha)
-                extra[f"degrade_text{tag}"] = dt
-                extra[f"degrade_visual{tag}"] = dv
-                # Primary degrade columns use alpha=1.0 or single alpha
-                if alpha == 1.0 or len(best_degrade_metrics) == 1:
-                    degrade_text_value = dt
-                    degrade_visual_value = dv
+        if report_drop and run_degrade_text_results:
+            degrade_text_value = float(np.mean(run_degrade_text_results))
+            degrade_visual_value = float(np.mean(run_degrade_visual_results))
+            extra["degrade_text_std"] = float(np.std(run_degrade_text_results))
+            extra["degrade_visual_std"] = float(np.std(run_degrade_visual_results))
 
         row = build_result_row(
             args=args,

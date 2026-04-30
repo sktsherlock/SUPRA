@@ -78,6 +78,10 @@ def build_result_row(
         "embed_dim": getattr(args, "embed_dim", getattr(args, "n_hidden", "")),
         "aux_weight": getattr(args, "aux_weight", ""),
         "mlp_variant": getattr(args, "mlp_variant", ""),
+        # Deep residual modality encoder parameters
+        "modality_encoder": getattr(args, "modality_encoder", ""),
+        "enc_n_layers": getattr(args, "enc_n_layers", ""),
+        "enc_hidden_dim": getattr(args, "enc_hidden_dim", ""),
     }
     if extra:
         for k, v in extra.items():

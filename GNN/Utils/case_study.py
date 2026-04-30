@@ -78,13 +78,14 @@ def analyze_dirichlet_energy(
     """
     model.eval()
     # Build adjacency matrix from edge list (avoids DGL sparse library dependency)
+    # Determine device from features to ensure consistency
+    feat_device = text_feat.device
     srcs, dsts = graph.all_edges()
     num_nodes = graph.num_nodes()
-    adj = th.zeros(num_nodes, num_nodes, dtype=th.float32)
+    adj = th.zeros(num_nodes, num_nodes, dtype=th.float32, device=feat_device)
     adj[srcs, dsts] = 1.0
     adj = adj + adj.T  # Make symmetric (undirected)
     adj = adj / adj.sum(dim=1, keepdim=True).clamp_min(1e-10)  # Row-normalize
-    adj = adj.cpu()  # Move to CPU to match features device
 
     results = {'dataset': dataset_name}
 

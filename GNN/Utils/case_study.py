@@ -77,7 +77,13 @@ def analyze_dirichlet_energy(
     - Uv channel output (unique visual, expected to preserve energy)
     """
     model.eval()
-    adj = graph.adjacency_matrix().to_dense()
+    # Build adjacency matrix from edge list (avoids DGL sparse library dependency)
+    srcs, dsts = graph.all_edges()
+    num_nodes = graph.num_nodes()
+    adj = th.zeros(num_nodes, num_nodes, dtype=th.float32)
+    adj[srcs, dsts] = 1.0
+    adj = adj + adj.T  # Make symmetric (undirected)
+    adj = adj / adj.sum(dim=1, keepdim=True).clamp_min(1e-10)  # Row-normalize
 
     results = {'dataset': dataset_name}
 

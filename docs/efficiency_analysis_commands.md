@@ -5,7 +5,7 @@
 **数据集**: Reddit-M
 **特征组**: Llama (default)
 **数据路径**: `/mnt/input/MAGB_Dataset`
-**度量**: Parameters (M), Peak GPU Memory (MB ± std), Total Training Time (s ± std), Avg Epoch Time (s/epoch ± std), Epochs Needed (± std)
+**度量**: Parameters (M), Peak Memory (MB ± std), Total Time (s ± std), Avg Epoch (s/ep ± std), Epochs Needed (± std)
 **运行设置**: 2 runs 平均，种子=42
 
 ---
@@ -122,7 +122,7 @@ python tools/profile_efficiency.py \
 
 | 模型 | Params (M) | Peak Memory (MB) | Total Time (s) | Avg Epoch (s/ep) | Epochs Needed |
 |------|------------|-----------------|----------------|-----------------|--------------|
-| SUPRA-GCN | 2.399 | — | — | — | — |
+| SUPRA-GCN | 2.399 | 4772.53 ± 0.00 | 3.63 ± 0.07 | 0.0579 ± 0.0047 | 63.0 ± 4.0 |
 | Early_GNN-GCN | — | — | — | — | — |
 | Late_GNN-GCN | — | — | — | — | — |
 | Late_GNN-GAT | — | — | — | — | — |

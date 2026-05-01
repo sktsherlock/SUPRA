@@ -225,9 +225,10 @@ def _profile_single_run(model_type, args, text_dim, vis_dim, n_classes, device,
 
     optimizer = th.optim.Adam(model.parameters(), lr=float(args.lr), weight_decay=float(args.wd))
 
-    # Reset peak memory
+    # Reset peak memory (after model init and optimizer creation)
     if th.cuda.is_available():
         th.cuda.reset_peak_memory_stats(device)
+        th.cuda.empty_cache()
 
     # Profile: run n_profile_epochs to measure per-epoch time and peak memory (train + eval)
     epoch_times = []

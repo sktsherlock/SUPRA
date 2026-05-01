@@ -77,7 +77,7 @@ python -m GNN.Baselines.Late_GNN \
     --model_name GAT \
     --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.001 --wd 0.0001 \
-    --n-heads 4 --attn_drop 0.0 --edge_drop 0.0 \
+    --n-heads 4 --attn-drop 0.0 --edge-drop 0.0 \
     --n-runs 2 --seed 42 \
     --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/late_gnn_gat_reddit_m.csv \

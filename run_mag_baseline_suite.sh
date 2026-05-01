@@ -1323,6 +1323,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                                   --metric "${METRIC}" --average "${AVERAGE}" \
                                   "${RESULT_CSV_ARG[@]}" \
                                   "${RESULT_CSV_ALL_ARG[@]}" \
+                                  --report_drop_modality "${REPORT_DROP_MODALITY}" \
                                   --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
                                   --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${_nts_eval_steps}" \
                                   --early_stop_patience "${_nts_early_stop}" \
@@ -1379,6 +1380,7 @@ for fg in "${FEATURE_GROUPS_ARR[@]}"; do
                             --metric "${METRIC}" --average "${AVERAGE}" \
                             "${RESULT_CSV_ARG[@]}" \
                             "${RESULT_CSV_ALL_ARG[@]}" \
+                            --report_drop_modality "${REPORT_DROP_MODALITY}" \
                             --n-epochs "${N_EPOCHS}" --n-runs "${N_RUNS}" \
                             --warmup_epochs "${WARMUP_EPOCHS}" --eval_steps "${EVAL_STEPS}" \
                             --early_stop_patience "${mig_early_stop_patience}" \

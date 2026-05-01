@@ -160,7 +160,7 @@ def train_one_epoch(model, graph, text_feat, vis_feat, labels, train_idx, optimi
         fused = model.fuse_embeddings(text_h, vis_h)
         out = model.classifier(fused)
     elif model_type == "Early_GNN_GCN":
-        out = model(graph, text_feat, visual_feat)
+        out = model(graph, text_feat, vis_feat)
     loss = cross_entropy(out[train_idx], labels[train_idx], label_smoothing=label_smoothing)
     loss.backward()
     optimizer.step()

@@ -56,7 +56,7 @@ python -m GNN.Baselines.Late_GNN \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --backend gnn --model_name GCN \
+    --model_name GCN \
     --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --n-runs 2 --seed 42 \
@@ -74,7 +74,7 @@ python -m GNN.Baselines.Late_GNN \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --backend gnn --model_name GAT \
+    --model_name GAT \
     --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.001 --wd 0.0001 \
     --n-heads 4 --attn_drop 0.0 --edge_drop 0.0 \

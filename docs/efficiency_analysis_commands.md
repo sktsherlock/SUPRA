@@ -114,13 +114,13 @@ python -m GNN.Baselines.MIG_GT \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --n_hidden 256 --n_layers 2 \
+    --n-hidden 256 --n-layers 2 \
     --dropout 0.3 --lr 0.001 --wd 0.0001 \
     --k_t 3 --k_v 2 \
     --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \
     --num_samples 10 --tur_weight 1.0 \
-    --n_runs 2 --seed 42 \
-    --n_epochs 1000 --early_stop_patience 20 \
+    --n-runs 2 --seed 42 \
+    --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/mig_gt_reddit_m.csv \
     --disable_wandb \
     --gpu 0

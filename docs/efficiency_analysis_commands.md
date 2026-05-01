@@ -17,12 +17,12 @@ python -m GNN.SUPRA \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --embed_dim 256 --n_layers 3 --n_hidden 256 \
+    --embed_dim 256 --n-layers 3 --n-hidden 256 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --aux_weight 0.1 \
     --mlp_variant ablate \
-    --n_runs 2 --seed 42 \
-    --n_epochs 1000 --early_stop_patience 20 \
+    --n-runs 2 --seed 42 \
+    --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/supra_gcn_reddit_m.csv \
     --gpu 0
 ```
@@ -36,10 +36,10 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend gnn --model_name GCN \
-    --n_hidden 256 --n_layers 3 \
+    --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --n_runs 2 --seed 42 \
-    --n_epochs 1000 --early_stop_patience 20 \
+    --n-runs 2 --seed 42 \
+    --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/early_gnn_gcn_reddit_m.csv \
     --gpu 0
 ```
@@ -55,10 +55,10 @@ python -m GNN.Baselines.Late_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend gnn --model_name GCN \
-    --n_hidden 256 --n_layers 3 \
+    --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --n_runs 2 --seed 42 \
-    --n_epochs 1000 --early_stop_patience 20 \
+    --n-runs 2 --seed 42 \
+    --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/late_gnn_gcn_reddit_m.csv \
     --gpu 0
 ```
@@ -72,11 +72,11 @@ python -m GNN.Baselines.Late_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend gnn --model_name GAT \
-    --n_hidden 256 --n_layers 3 \
+    --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.001 --wd 0.0001 \
-    --n_heads 4 --attn_drop 0.0 --edge_drop 0.0 \
-    --n_runs 2 --seed 42 \
-    --n_epochs 1000 --early_stop_patience 20 \
+    --n-heads 4 --attn_drop 0.0 --edge_drop 0.0 \
+    --n-runs 2 --seed 42 \
+    --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/late_gnn_gat_reddit_m.csv \
     --gpu 0
 ```

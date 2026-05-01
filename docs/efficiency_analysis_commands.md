@@ -30,18 +30,18 @@ python tools/profile_efficiency.py \
 
 ```bash
 python tools/profile_efficiency.py \
-    --model SUPRA \
+    --model Early_GNN_GCN \
     --data_name Reddit-M \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --embed_dim 256 --n_layers 3 --n_hidden 256 \
+    --n_hidden 256 --n_layers 3 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 20 \
     --gpu 0
 ```
 
-> 注: Early_GNN 与 SUPRA 使用相同的模型构造逻辑，仅无 aux_weight 和 mlp_variant 参数。
+> 注: Early_GNN 为早期融合基线，与 SUPRA/Late_GNN 架构完全不同。
 
 ## 3. Late_GNN-GCN（3层，与Early_GNN参数一致）
 
@@ -116,7 +116,7 @@ python tools/profile_efficiency.py \
 | 模型 | Params (M) | Peak Memory (MB) | Total Time (s) | Avg Epoch (s/ep) | Epochs Needed |
 |------|------------|-----------------|----------------|-----------------|--------------|
 | SUPRA-GCN | 2.399 | 4763.38 | 2.32 | 0.0596 | 39 |
-| Early_GNN | — | — | — | — | — |
+| Early_GNN-GCN | — | — | — | — | — |
 | Late_GNN-GCN | — | — | — | — | — |
 | Late_GNN-GAT | — | — | — | — | — |
 | NTSFormer | — | — | — | — | — |

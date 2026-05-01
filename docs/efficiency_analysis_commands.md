@@ -24,6 +24,7 @@ python -m GNN.SUPRA \
     --n-runs 2 --seed 42 \
     --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/supra_gcn_reddit_m.csv \
+    --disable_wandb \
     --gpu 0
 ```
 
@@ -41,6 +42,7 @@ python -m GNN.Baselines.Early_GNN \
     --n-runs 2 --seed 42 \
     --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/early_gnn_gcn_reddit_m.csv \
+    --disable_wandb \
     --gpu 0
 ```
 
@@ -60,6 +62,7 @@ python -m GNN.Baselines.Late_GNN \
     --n-runs 2 --seed 42 \
     --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/late_gnn_gcn_reddit_m.csv \
+    --disable_wandb \
     --gpu 0
 ```
 
@@ -78,6 +81,7 @@ python -m GNN.Baselines.Late_GNN \
     --n-runs 2 --seed 42 \
     --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/late_gnn_gat_reddit_m.csv \
+    --disable_wandb \
     --gpu 0
 ```
 
@@ -96,6 +100,7 @@ python -m GNN.Baselines.NTSFormer \
     --n_runs 2 --seed 42 \
     --n_epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/ntsformer_reddit_m.csv \
+    --disable_wandb \
     --gpu 0
 ```
 
@@ -117,6 +122,7 @@ python -m GNN.Baselines.MIG_GT \
     --n_runs 2 --seed 42 \
     --n_epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/mig_gt_reddit_m.csv \
+    --disable_wandb \
     --gpu 0
 ```
 

@@ -156,7 +156,7 @@ Efficiency Profile: <ModelName> on <data_name>
 | 模型 | Params (M) | Peak Memory (MB) | Total Time (s) | Avg Epoch (s/ep) | Epochs Needed |
 |------|------------|-----------------|----------------|-----------------|--------------|
 | SUPRA-GCN | 2.399 | 5614.67 ± 29.38 | 13.41 ± 2.51 | 0.0611 ± 0.0004 | 219.5 ± 39.5 |
-| Early_GNN-GCN | — | — | — | — | — |
+| Early_GNN-GCN | 2.176 | 12691.49 ± 0.00 | 8.43 ± 0.58 | 0.0505 ± 0.0077 | 167.0 ± 14.0 |
 | Late_GNN-GCN | — | — | — | — | — |
 | Late_GNN-GAT | — | — | — | — | — |
 | NTSFormer | — | — | — | — | — |

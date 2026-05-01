@@ -496,6 +496,13 @@ def _mag_classification_mmcl(
     best_test_degrade = None
     best_state_dict = None
 
+    # Efficiency tracking
+    peak_memory_mb = 0.0
+    if th.cuda.is_available():
+        th.cuda.reset_peak_memory_stats()
+        th.cuda.empty_cache()
+    epochs_needed = args.n_epochs  # will be updated if early stop triggered
+
     mmcl_weight = float(getattr(args, "mmcl_weight", 0.0))
     mmcl_temperature = float(getattr(args, "mmcl_temperature", 0.1))
     mmcl_max_pairs = int(getattr(args, "mmcl_max_pairs", 2048))
@@ -631,6 +638,7 @@ def _mag_classification_mmcl(
 
             if args.early_stop_patience is not None:
                 if stopper.step(val_score):
+                    epochs_needed = epoch
                     break
 
             if epoch % args.log_every == 0:
@@ -686,11 +694,23 @@ def _mag_classification_mmcl(
                 )
 
     if return_extra:
+        # Record peak memory after training
+        if th.cuda.is_available():
+            peak_memory_mb = th.cuda.max_memory_allocated() / 1048576.0
+        # Compute avg epoch time
+        if epochs_needed > 0:
+            avg_epoch_time = float(total_time) / float(epochs_needed)
+        else:
+            avg_epoch_time = 0.0
+
         extra = {
             "best_val_select": _as_scalar_float(best_val_score),
             "best_val_metric": _as_scalar_float(best_val_result),
             "best_test_metric": _as_scalar_float(final_test_result),
             "best_state_dict": best_state_dict,
+            "peak_memory_mb": peak_memory_mb,
+            "avg_epoch_time": avg_epoch_time,
+            "epochs_needed": epochs_needed,
         }
         if report_drop and best_test_degrade is not None:
             if isinstance(best_test_degrade, dict):
@@ -803,6 +823,14 @@ def main():
     degrade_text_results_map = {}
     degrade_visual_results_map = {}
 
+    # Efficiency profiling: collect per-run metrics
+    efficiency_runs = {
+        'peak_memory_MB': [],
+        'epoch_times': [],
+        'epochs_needed': [],
+    }
+    n_params_M = None  # will be set on first run
+
     t_train_start = time.time()
     for run in range(args.n_runs):
         set_seed(args.seed + run)
@@ -859,6 +887,11 @@ def main():
         else:
             model = base_model
             model.reset_parameters()
+
+        # Count params on first run
+        if n_params_M is None:
+            n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            n_params_M = n_params / 1e6
 
         if float(getattr(args, "mmcl_weight", 0.0)) > 0.0 or float(getattr(args, "kd_weight", 0.0)) > 0.0:
             val_result, test_result, extra = _mag_classification_mmcl(
@@ -921,6 +954,14 @@ def main():
             os.makedirs(os.path.dirname(ckpt_path) or ".", exist_ok=True)
             th.save({"state_dict": best_state_dict, "args": vars(args)}, ckpt_path)
             print(f"[Info] Saved best checkpoint to {ckpt_path}")
+
+        # Collect efficiency profiling data from extra
+        if isinstance(extra, dict):
+            efficiency_runs['peak_memory_MB'].append(extra.get('peak_memory_mb', 0.0))
+            efficiency_runs['epochs_needed'].append(extra.get('epochs_needed', args.n_epochs))
+            avg_ep_time = extra.get('avg_epoch_time', 0.0)
+            ep_needed = extra.get('epochs_needed', args.n_epochs)
+            efficiency_runs['epoch_times'].append([avg_ep_time] * ep_needed)
 
     def _mean_std(values):
         mean = float(np.mean(values))
@@ -1019,6 +1060,27 @@ def main():
                 update_best_result_csv(args.result_csv, row, key_fields=key_fields, score_field="full")
             if getattr(args, "result_csv_all", None):
                 append_result_csv(args.result_csv_all, row)
+
+    # Efficiency profiling summary
+    all_epoch_times = [t for run_times in efficiency_runs['epoch_times'] for t in run_times]
+    avg_epoch_time = float(np.mean(all_epoch_times)) if all_epoch_times else 0
+    std_epoch_time = float(np.std(all_epoch_times)) if all_epoch_times else 0
+    avg_epochs_needed = float(np.mean(efficiency_runs['epochs_needed']))
+    std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
+    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
+    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
+    avg_total_time = avg_epochs_needed * avg_epoch_time
+    std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']])) if efficiency_runs['epoch_times'] else 0
+
+    print(f"\n{'='*60}")
+    print(f"Efficiency Profile: Early_GNN on {args.data_name}")
+    print(f"{'='*60}")
+    print(f"  Parameters:       {n_params_M:.3f} M" if n_params_M else "  Parameters:       N/A")
+    print(f"  Peak Memory:     {avg_peak_memory:.2f} ± {std_peak_memory:.2f} MB")
+    print(f"  Total Time(est): {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
+    print(f"  Avg Epoch:        {avg_epoch_time:.4f} ± {std_epoch_time:.4f} s/epoch")
+    print(f"  Epochs Needed:    {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":

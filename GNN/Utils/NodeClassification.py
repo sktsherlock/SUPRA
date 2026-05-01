@@ -394,6 +394,13 @@ def mag_classification(
     best_test_degrade = None
     best_state_dict = None
 
+    # Efficiency tracking
+    peak_memory_mb = 0.0
+    if th.cuda.is_available():
+        th.cuda.reset_peak_memory_stats()
+        th.cuda.empty_cache()
+    epochs_needed = args.n_epochs  # will be updated if early stop triggered
+
     for epoch in range(1, args.n_epochs + 1):
         tic = time.time()
 
@@ -508,6 +515,7 @@ def mag_classification(
 
             if args.early_stop_patience is not None:
                 if stopper.step(val_score):
+                    epochs_needed = epoch
                     break
 
             if epoch % args.log_every == 0:
@@ -555,11 +563,23 @@ def mag_classification(
                     wandb.log(log_payload)
 
     if return_extra:
+        # Record peak memory after training
+        if th.cuda.is_available():
+            peak_memory_mb = th.cuda.max_memory_allocated() / 1048576.0
+        # Compute avg epoch time
+        if epochs_needed > 0:
+            avg_epoch_time = float(total_time) / float(epochs_needed)
+        else:
+            avg_epoch_time = 0.0
+
         extra = {
             "best_val_select": _as_scalar_float(best_val_score),
             "best_val_metric": _as_scalar_float(best_val_result),
             "best_test_metric": _as_scalar_float(final_test_result),
             "best_state_dict": best_state_dict,
+            "peak_memory_mb": peak_memory_mb,
+            "avg_epoch_time": avg_epoch_time,
+            "epochs_needed": epochs_needed,
         }
         if str(getattr(args, "metric", "")).lower() == "accuracy":
             extra.update(

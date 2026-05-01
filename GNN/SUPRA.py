@@ -599,6 +599,23 @@ def main():
         from GNN.Utils.gradient_analyzer import GradientAnalyzer
         analyzer_layer_names = ['enc_t.proj', 'enc_v.proj', 'mp_C', 'head_C', 'head_Ut', 'head_Uv']
 
+    # Efficiency profiling: collect per-run metrics
+    efficiency_runs = {
+        'peak_memory_MB': [],
+        'epoch_times': [],
+        'epochs_needed': [],
+    }
+
+    # Build one model to count params (before the run loop)
+    _model_for_count = SUPRA(
+        text_in_dim=int(text_feat.shape[1]), vis_in_dim=int(vis_feat.shape[1]),
+        embed_dim=embed_dim, n_classes=n_classes, dropout=float(args.dropout),
+        args=args, device=device,
+    ).to(device)
+    n_params = sum(p.numel() for p in _model_for_count.parameters() if p.requires_grad)
+    n_params_M = n_params / 1e6
+    del _model_for_count
+
     for run in range(args.n_runs):
         set_seed(args.seed + run)
         model = SUPRA(
@@ -617,9 +634,16 @@ def main():
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
+        # Peak memory tracking (reset after model init and optimizer creation)
+        peak_memory_mb = 0.0
+        if th.cuda.is_available():
+            th.cuda.reset_peak_memory_stats(device)
+            th.cuda.empty_cache()
+
         best_val_score, final_test_result, best_val_result, total_time = -1.0, 0.0, -1.0, 0.0
         run_best_logits = None
         best_model_state = None
+        epochs_needed = args.n_epochs  # will be updated if early stop triggered
 
         for epoch in range(1, args.n_epochs + 1):
             tic = time.time()
@@ -676,13 +700,30 @@ def main():
                                 degrade_target=degrade_target,
                             )
                             best_degrade_metrics[alpha] = (_as_scalar_float(dt), _as_scalar_float(dv))
-                if stopper and stopper.step(val_score): break
+                if stopper and stopper.step(val_score):
+                    epochs_needed = epoch
+                    break
 
-                total_time += time.time() - tic
+                total_time += time.time() - tic  # total_time = time for eval_steps epochs
+
+        # Compute avg epoch time: total_time covers epochs_needed epochs
+        if epochs_needed > 0:
+            avg_epoch_time = total_time / epochs_needed
+        else:
+            avg_epoch_time = 0.0
+
+        # Record peak memory after training
+        if th.cuda.is_available():
+            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
         print(f"Run {run+1} Final Test Score: {final_test_result:.4f}")
         val_results.append(best_val_result)
         test_results.append(final_test_result)
+
+        # Collect efficiency profiling data
+        efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
+        efficiency_runs['epoch_times'].append([avg_epoch_time] * epochs_needed)  # list of per-epoch times
+        efficiency_runs['epochs_needed'].append(epochs_needed)
 
         # Collect degrade metrics from this run
         if report_drop and best_degrade_metrics:
@@ -735,6 +776,27 @@ def main():
             val_idx=val_idx,
             test_idx=test_idx,
         )
+
+    # Efficiency profiling summary
+    all_epoch_times = [t for run_times in efficiency_runs['epoch_times'] for t in run_times]
+    avg_epoch_time = float(np.mean(all_epoch_times)) if all_epoch_times else 0
+    std_epoch_time = float(np.std(all_epoch_times)) if all_epoch_times else 0
+    avg_epochs_needed = float(np.mean(efficiency_runs['epochs_needed']))
+    std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
+    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
+    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
+    avg_total_time = avg_epochs_needed * avg_epoch_time
+    std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']]))
+
+    print(f"\n{'='*60}")
+    print(f"Efficiency Profile: SUPRA on {args.data_name}")
+    print(f"{'='*60}")
+    print(f"  Parameters:       {n_params_M:.3f} M")
+    print(f"  Peak Memory:     {avg_peak_memory:.2f} ± {std_peak_memory:.2f} MB")
+    print(f"  Total Time(est): {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
+    print(f"  Avg Epoch:        {avg_epoch_time:.4f} ± {std_epoch_time:.4f} s/epoch")
+    print(f"  Epochs Needed:    {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")
+    print(f"{'='*60}")
 
     # Save results to CSV if requested
     if getattr(args, 'result_csv', None) or getattr(args, 'result_csv_all', None):

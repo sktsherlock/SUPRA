@@ -331,6 +331,37 @@ def main():
     degrade_text_results_map = {}
     degrade_visual_results_map = {}
 
+    # Efficiency profiling: collect per-run metrics
+    efficiency_runs = {
+        'peak_memory_MB': [],
+        'epoch_times': [],
+        'epochs_needed': [],
+    }
+
+    # Build one model to count params (before the run loop)
+    _proj_dim = int(args.mm_proj_dim) if args.mm_proj_dim is not None else int(args.n_hidden)
+    _embed_dim = int(args.late_embed_dim) if args.late_embed_dim is not None else int(args.n_hidden)
+    _use_no_encoder = bool(getattr(args, "late_no_encoder", False))
+    if _use_no_encoder:
+        _text_encoder = None
+        _visual_encoder = None
+        _text_gnn = mag_base._build_gnn_backbone(args, int(text_feat.shape[1]), _embed_dim, device)
+        _vis_gnn = mag_base._build_gnn_backbone(args, int(vis_feat.shape[1]), _embed_dim, device)
+    else:
+        _text_encoder = mag_base.ModalityEncoder(int(text_feat.shape[1]), _proj_dim, float(args.dropout)).to(device)
+        _visual_encoder = mag_base.ModalityEncoder(int(vis_feat.shape[1]), _proj_dim, float(args.dropout)).to(device)
+        _text_gnn = mag_base._build_gnn_backbone(args, _proj_dim, _embed_dim, device)
+        _vis_gnn = mag_base._build_gnn_backbone(args, _proj_dim, _embed_dim, device)
+    _classifier = nn.Linear(2 * _embed_dim, n_classes).to(device)
+    _model_for_count = LateFusionMAG(
+        _text_encoder, _visual_encoder, _text_gnn, _vis_gnn, _classifier,
+        use_mlp_before_fusion=bool(getattr(args, "late_mlp_before_fusion", False)),
+        use_no_encoder=_use_no_encoder,
+    )
+    n_params = sum(p.numel() for p in _model_for_count.parameters() if p.requires_grad)
+    n_params_M = n_params / 1e6
+    del _model_for_count
+
     for run in range(args.n_runs):
         set_seed(args.seed + run)
 
@@ -368,6 +399,13 @@ def main():
         best_val_score = -1.0
         best_test_degrade = None
         best_state_dict = None
+
+        # Efficiency tracking
+        peak_memory_mb = 0.0
+        if th.cuda.is_available():
+            th.cuda.reset_peak_memory_stats(device)
+            th.cuda.empty_cache()
+        epochs_needed = args.n_epochs  # will be updated if early stop triggered
 
         for epoch in range(1, args.n_epochs + 1):
             tic = time.time()
@@ -512,6 +550,7 @@ def main():
                             best_test_degrade = degrade_vals
 
                 if stopper and stopper.step(val_score):
+                    epochs_needed = epoch
                     break
 
                 log_progress(
@@ -582,6 +621,14 @@ def main():
                         degrade_text_results.append(degrade_text)
                     if degrade_vis is not None:
                         degrade_visual_results.append(degrade_vis)
+
+        # Collect efficiency profiling data
+        if th.cuda.is_available():
+            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
+        avg_epoch_time = float(total_time) / float(epochs_needed) if epochs_needed > 0 else 0.0
+        efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
+        efficiency_runs['epoch_times'].append([avg_epoch_time] * epochs_needed)
+        efficiency_runs['epochs_needed'].append(epochs_needed)
         # metric-only reporting
 
     def _mean_std(values):
@@ -598,6 +645,28 @@ def main():
     print(f"Average test {args.metric}: {_fmt_pct(test_results)}")
     t_end = time.time()
     print(f"[TIME] total: {t_end - t0:.1f}s | setup: {t_load_data - t0:.1f}s | train: {t_end - t_load_data:.1f}s (excl. module import)")
+
+    # Efficiency profiling summary
+    all_epoch_times = [t for run_times in efficiency_runs['epoch_times'] for t in run_times]
+    avg_epoch_time = float(np.mean(all_epoch_times)) if all_epoch_times else 0
+    std_epoch_time = float(np.std(all_epoch_times)) if all_epoch_times else 0
+    avg_epochs_needed = float(np.mean(efficiency_runs['epochs_needed']))
+    std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
+    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
+    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
+    avg_total_time = avg_epochs_needed * avg_epoch_time
+    std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']]))
+
+    print(f"\n{'='*60}")
+    print(f"Efficiency Profile: Late_GNN on {args.data_name}")
+    print(f"{'='*60}")
+    print(f"  Parameters:       {n_params_M:.3f} M")
+    print(f"  Peak Memory:     {avg_peak_memory:.2f} ± {std_peak_memory:.2f} MB")
+    print(f"  Total Time(est): {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
+    print(f"  Avg Epoch:        {avg_epoch_time:.4f} ± {std_epoch_time:.4f} s/epoch")
+    print(f"  Epochs Needed:    {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")
+    print(f"{'='*60}")
+
     if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
         val_mean, val_std = _mean_std(val_results)
         test_mean, test_std = _mean_std(test_results)

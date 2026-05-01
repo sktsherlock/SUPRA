@@ -145,6 +145,17 @@ Efficiency Profile: <ModelName> on <data_name>
 
 ---
 
+## 实验结果
+
+| 模型 | Params (M) | Peak Memory (MB) | Total Time (s) | Avg Epoch (s/ep) | Epochs Needed |
+|------|------------|-----------------|----------------|-----------------|--------------|
+| SUPRA-GCN | 2.399 | 5614.67 ± 29.38 | 13.41 ± 2.51 | 0.0611 ± 0.0004 | 219.5 ± 39.5 |
+| Early_GNN-GCN | — | — | — | — | — |
+| Late_GNN-GCN | — | — | — | — | — |
+| Late_GNN-GAT | — | — | — | — | — |
+| NTSFormer | — | — | — | — | — |
+| MIG_GT | — | — | — | — | — |
+
 ## 参数汇总表
 
 | 模型 | n_layers | lr | wd | 特殊参数 |

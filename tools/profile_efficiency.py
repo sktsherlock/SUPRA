@@ -78,7 +78,7 @@ def build_ntsformer(args, text_dim, vis_dim, n_classes, device):
         dropout=float(args.dropout),
         args=args,
         device=device,
-        sign_k=int(getattr(args, "nts_sign_k", 2)),
+        sign_k=int(getattr(args, "nts_sign_k", 1)),
     ).to(device)
     return model
 

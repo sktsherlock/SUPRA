@@ -79,7 +79,7 @@ python tools/profile_efficiency.py \
     --gpu 0
 ```
 
-## 5. NTSFormer（lr=0.0005，sign_k=2）
+## 5. NTSFormer（lr=0.0005，sign_k=1，num_heads=2）
 
 ```bash
 python tools/profile_efficiency.py \
@@ -90,12 +90,14 @@ python tools/profile_efficiency.py \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --n_hidden 256 --n_layers 2 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --n_heads 4 \
-    --nts_sign_k 2 \
+    --nts_num_heads 2 \
+    --nts_sign_k 1 \
     --n_runs 2 --seed 42 \
     --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 20 \
     --gpu 0
 ```
+
+> 注: NTSFormer 默认不使用 inductive（`inductive=False`），所以 `observe_graph == graph`（不移除边）。最佳参数: `--nts_num_heads=2`, `--nts_sign_k=1`（来自 gpu1_default_accuracy_best.csv）。
 
 ## 6. MIG_GT（lr=0.001，k_t=3, k_v=2）
 

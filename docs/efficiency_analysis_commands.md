@@ -111,6 +111,19 @@ python tools/profile_efficiency.py \
 
 ---
 
+## 实验结果
+
+| 模型 | Params (M) | Peak Memory (MB) | Total Time (s) | Avg Epoch (s/ep) | Epochs Needed |
+|------|------------|-----------------|----------------|-----------------|--------------|
+| SUPRA-GCN | 2.399 | 4763.38 | 2.32 | 0.0596 | 39 |
+| Early_GNN | — | — | — | — | — |
+| Late_GNN-GCN | — | — | — | — | — |
+| Late_GNN-GAT | — | — | — | — | — |
+| NTSFormer | — | — | — | — | — |
+| MIG_GT | — | — | — | — | — |
+
+---
+
 ## 参数汇总表
 
 | 模型 | n_layers | lr | wd | 特殊参数 |

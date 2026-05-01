@@ -181,15 +181,31 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
     n_params = count_params(model)
 
     # Load data
-    graph, _, labels, train_idx, val_idx, test_idx, text_feat, visual_feat, _ = \
+    graph, labels, train_idx, val_idx, test_idx = \
         load_data(args.graph_path, train_ratio=float(args.train_ratio),
                   val_ratio=float(args.val_ratio), name=args.data_name, fewshots=False)
+
+    # Apply undirected and selfloop (matching sweep script defaults)
+    undirected = getattr(args, "undirected", True)
+    selfloop = getattr(args, "selfloop", True)
+    if undirected:
+        srcs, dsts = graph.all_edges()
+        graph.add_edges(dsts, srcs)
+    if selfloop:
+        graph = graph.remove_self_loop().add_self_loop()
+    graph.create_formats_()
     graph = graph.to(device)
-    text_feat = text_feat.to(device)
-    visual_feat = visual_feat.to(device)
+
     labels = labels.to(device)
     train_idx = train_idx.to(device)
     val_idx = val_idx.to(device)
+
+    # For Late_GNN: use observe_graph (same as graph in non-inductive mode)
+    observe_graph = graph
+
+    # Load features from numpy files
+    text_feat = th.from_numpy(np.load(args.text_feature, mmap_mode="r").astype(np.float32)).to(device)
+    visual_feat = th.from_numpy(np.load(args.visual_feature, mmap_mode="r").astype(np.float32)).to(device)
 
     # Pre-compute for NTSFormer
     text_h_list, vis_h_list = None, None
@@ -299,6 +315,10 @@ def main():
     # MIG_GT specific
     parser.add_argument("--k_t", type=int, default=3)
     parser.add_argument("--k_v", type=int, default=2)
+    parser.add_argument("--mgdcf_alpha", type=float, default=0.1)
+    parser.add_argument("--mgdcf_beta", type=float, default=0.9)
+    parser.add_argument("--num_samples", type=int, default=10)
+    parser.add_argument("--tur_weight", type=float, default=1.0)
     # Late_GNN specific
     parser.add_argument("--late_embed_dim", type=int, default=None)
     parser.add_argument("--mm_proj_dim", type=int, default=None)
@@ -317,7 +337,7 @@ def main():
     vis_dim = int(np.load(args.visual_feature, mmap_mode="r").shape[1])
 
     print(f"Building {args.model} (text_dim={text_dim}, vis_dim={vis_dim})...")
-    _, _, labels, _, _, _, _, _, _ = \
+    _, labels, _, _, _ = \
         load_data(args.graph_path, train_ratio=args.train_ratio,
                   val_ratio=args.val_ratio, name=args.data_name, fewshots=False)
     n_classes = int(labels.max().item()) + 1

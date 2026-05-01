@@ -89,6 +89,36 @@ def build_miggt(args, text_dim, vis_dim, n_classes, device):
     return model
 
 
+def build_early_gnn(args, text_dim, vis_dim, n_classes, device, backbone):
+    """Early_GNN with GCN or GAT backbone - early fusion of encoded modalities."""
+    embed_dim = int(args.n_hidden)
+    proj_dim = embed_dim
+
+    # Build encoders
+    text_encoder = mag_base.ModalityEncoder(text_dim, proj_dim, float(args.dropout)).to(device)
+    visual_encoder = mag_base.ModalityEncoder(vis_dim, proj_dim, float(args.dropout)).to(device)
+
+    # For early fusion (concat): downstream_in_dim = 2 * proj_dim
+    downstream_in_dim_gnn = 2 * proj_dim
+
+    # Build GNN backbone
+    args.model_name = backbone
+    gnn = mag_base._build_gnn_backbone(args, downstream_in_dim_gnn, n_classes, device)
+
+    # Build Early_GNN model
+    model = mag_base.SimpleMAGGNN(
+        text_encoder,
+        visual_encoder,
+        gnn,
+        early_fuse="concat",
+        single_modality=None,
+        use_mlp_projection=False,
+        use_no_encoder=False,
+    )
+    model.reset_parameters()
+    return model
+
+
 def build_late_gnn(args, text_dim, vis_dim, n_classes, device, backbone):
     """Late_GNN with GCN or GAT backbone."""
     embed_dim = int(args.n_hidden)
@@ -133,6 +163,11 @@ def train_one_epoch(model, graph, text_feat, vis_feat, labels, train_idx, optimi
         text_h, vis_h = model.forward_branches(graph, text_feat, vis_feat)
         fused = model.fuse_embeddings(text_h, vis_h)
         out = model.classifier(fused)
+    elif model_type == "Early_GNN_GCN":
+        text_h = model.text_encoder(text_feat)
+        vis_h = model.visual_encoder(visual_feat)
+        feat = th.cat([text_h, vis_h], dim=1)
+        out = model.gnn(graph, feat)
     loss = cross_entropy(out[train_idx], labels[train_idx], label_smoothing=label_smoothing)
     loss.backward()
     optimizer.step()
@@ -154,6 +189,11 @@ def infer(model, graph, text_feat, vis_feat, labels, val_idx, model_type, **kwar
         text_h, vis_h = model.forward_branches(graph, text_feat, vis_feat)
         fused = model.fuse_embeddings(text_h, vis_h)
         out = model.classifier(fused)
+    elif model_type == "Early_GNN_GCN":
+        text_h = model.text_encoder(text_feat)
+        vis_h = model.visual_encoder(visual_feat)
+        feat = th.cat([text_h, vis_h], dim=1)
+        out = model.gnn(graph, feat)
     val_pred = out[val_idx].argmax(dim=1)
     val_true = labels[val_idx]
     acc = (val_pred == val_true).float().mean().item()
@@ -175,6 +215,8 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
         model = build_miggt(args, text_dim, vis_dim, n_classes, device)
     elif model_type in ("Late_GNN_GCN", "Late_GNN_GAT"):
         model = build_late_gnn(args, text_dim, vis_dim, n_classes, device, backbone=model_type.replace("Late_GNN_", ""))
+    elif model_type == "Early_GNN_GCN":
+        model = build_early_gnn(args, text_dim, vis_dim, n_classes, device, backbone="GCN")
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
@@ -287,7 +329,7 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
 def main():
     parser = argparse.ArgumentParser("Efficiency Profiler")
     parser.add_argument("--model", type=str, required=True,
-                        choices=["SUPRA", "NTSFormer", "MIG_GT", "Late_GNN_GCN", "Late_GNN_GAT"])
+                        choices=["SUPRA", "NTSFormer", "MIG_GT", "Early_GNN_GCN", "Late_GNN_GCN", "Late_GNN_GAT"])
     parser.add_argument("--data_name", type=str, required=True)
     parser.add_argument("--graph_path", type=str, required=True)
     parser.add_argument("--text_feature", type=str, required=True)

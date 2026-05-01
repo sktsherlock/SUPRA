@@ -46,9 +46,27 @@ python -m GNN.Baselines.Early_GNN \
     --gpu 0
 ```
 
+## 3. Early_GNN-GraphSAGE（3层，与SUPRA参数一致）
+
+```bash
+python -m GNN.Baselines.Early_GNN \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --backend gnn --model_name SAGE \
+    --n-hidden 256 --n-layers 3 \
+    --dropout 0.3 --lr 0.0005 --wd 0.0001 \
+    --n-runs 2 --seed 42 \
+    --n-epochs 1000 --early_stop_patience 20 \
+    --result_csv Results/efficiency/early_gnn_sage_reddit_m.csv \
+    --disable_wandb \
+    --gpu 0
+```
+
 > 注: Early_GNN 为早期融合基线（无编码器，raw concat），与 SUPRA/Late_GNN 架构完全不同。
 
-## 3. Late_GNN-GCN（3层，与Early_GNN参数一致）
+## 4. Late_GNN-GCN（3层，与Early_GNN参数一致）
 
 ```bash
 python -m GNN.Baselines.Late_GNN \
@@ -66,7 +84,7 @@ python -m GNN.Baselines.Late_GNN \
     --gpu 0
 ```
 
-## 4. Late_GNN-GAT（3层，lr=0.001）
+## 5. Late_GNN-GAT（3层，lr=0.001）
 
 ```bash
 python -m GNN.Baselines.Late_GNN \
@@ -85,7 +103,7 @@ python -m GNN.Baselines.Late_GNN \
     --gpu 0
 ```
 
-## 5. NTSFormer（lr=0.0005，sign_k=1，num_heads=2）
+## 6. NTSFormer（lr=0.0005，sign_k=1，num_heads=2）
 
 ```bash
 python -m GNN.Baselines.NTSFormer \
@@ -106,7 +124,7 @@ python -m GNN.Baselines.NTSFormer \
 
 > 注: NTSFormer 默认不使用 inductive（`inductive=False`），所以 `observe_graph == graph`（不移除边）。最佳参数: `--nts_num_heads=2`, `--nts_sign_k=1`（来自 gpu1_default_accuracy_best.csv）。
 
-## 6. MIG_GT（lr=0.001，k_t=3, k_v=2）
+## 7. MIG_GT（lr=0.001，k_t=3, k_v=2）
 
 ```bash
 python -m GNN.Baselines.MIG_GT \
@@ -157,6 +175,7 @@ Efficiency Profile: <ModelName> on <data_name>
 |------|------------|-----------------|----------------|-----------------|--------------|
 | SUPRA-GCN | 2.399 | 5614.67 ± 29.38 | 13.41 ± 2.51 | 0.0611 ± 0.0004 | 219.5 ± 39.5 |
 | Early_GNN-GCN | 2.176 | 12691.49 ± 0.00 | 8.43 ± 0.58 | 0.0505 ± 0.0077 | 167.0 ± 14.0 |
+| Early_GNN-GraphSAGE | — | — | — | — | — |
 | Late_GNN-GCN | 2.386 | 19472.71 ± 0.61 | 7.58 ± 1.67 | 0.0572 ± 0.0102 | 132.5 ± 5.5 |
 | Late_GNN-GAT | 11.041 | 20899.53 ± 3.79 | 17.14 ± 1.72 | 0.2005 ± 0.0095 | 85.5 ± 4.5 |
 | NTSFormer | — | — | — | — | — |
@@ -167,7 +186,8 @@ Efficiency Profile: <ModelName> on <data_name>
 | 模型 | n_layers | lr | wd | 特殊参数 |
 |------|----------|-----|-----|---------|
 | SUPRA-GCN | 3 | 0.0005 | 0.0001 | aux=0.1, mlp=ablate |
-| Early_GNN | 3 | 0.0005 | 0.0001 | 无编码器，raw concat |
+| Early_GNN-GCN | 3 | 0.0005 | 0.0001 | 无编码器，raw concat |
+| Early_GNN-GraphSAGE | 3 | 0.0005 | 0.0001 | 无编码器，raw concat |
 | Late_GNN-GCN | 3 | 0.0005 | 0.0001 | 无编码器，raw 各自 GNN |
 | Late_GNN-GAT | 3 | 0.001 | 0.0001 | heads=4, 无编码器 |
 | NTSFormer | 2 | 0.0005 | 0.0001 | sign_k=1, num_heads=2 |

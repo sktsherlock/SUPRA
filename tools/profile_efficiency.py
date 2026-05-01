@@ -322,6 +322,9 @@ def main():
     # Late_GNN specific
     parser.add_argument("--late_embed_dim", type=int, default=None)
     parser.add_argument("--mm_proj_dim", type=int, default=None)
+    # SUPRA specific
+    parser.add_argument("--aux_weight", type=float, default=0.0)
+    parser.add_argument("--mlp_variant", type=str, default="ablate", choices=["full", "ablate"])
     args = parser.parse_args()
 
     # Set model_name for Late_GNN backbone selection

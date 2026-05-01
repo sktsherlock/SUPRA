@@ -190,13 +190,16 @@ def infer(model, graph, text_feat, vis_feat, labels, val_idx, model_type, **kwar
     return acc
 
 
-def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
-    n_profile_epochs = int(getattr(args, "n_profile_epochs", 10))
-    n_total_epochs = int(args.n_epochs)
-    early_stop_patience = int(getattr(args, "early_stop_patience", 40))
-    label_smoothing = float(getattr(args, "label_smoothing", 0.1))
+def _profile_single_run(model_type, args, text_dim, vis_dim, n_classes, device,
+                       graph, labels, train_idx, val_idx, text_feat, visual_feat,
+                       n_profile_epochs, n_total_epochs, early_stop_patience, label_smoothing,
+                       rng_seed):
+    """Run a single profiling iteration and return metrics."""
+    # Set seed for reproducibility
+    th.manual_seed(rng_seed)
+    np.random.seed(rng_seed)
 
-    # Build model
+    # Build model (fresh each run)
     if model_type == "SUPRA":
         model = build_supra(args, text_dim, vis_dim, n_classes, device)
     elif model_type == "NTSFormer":
@@ -210,42 +213,11 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
-    n_params = count_params(model)
-
-    # Load data
-    graph, labels, train_idx, val_idx, test_idx = \
-        load_data(args.graph_path, train_ratio=float(args.train_ratio),
-                  val_ratio=float(args.val_ratio), name=args.data_name, fewshots=False)
-
-    # Apply undirected and selfloop (matching sweep script defaults)
-    undirected = getattr(args, "undirected", True)
-    selfloop = getattr(args, "selfloop", True)
-    if undirected:
-        srcs, dsts = graph.all_edges()
-        graph.add_edges(dsts, srcs)
-    if selfloop:
-        graph = graph.remove_self_loop().add_self_loop()
-    graph.create_formats_()
-    graph = graph.to(device)
-
-    labels = labels.to(device).long()
-    train_idx = train_idx.to(device).long()
-    val_idx = val_idx.to(device).long()
-
-    # For Late_GNN: use observe_graph (same as graph in non-inductive mode)
-    observe_graph = graph
-
-    # Load features from numpy files
-    text_feat = th.from_numpy(np.load(args.text_feature, mmap_mode="r").astype(np.float32)).to(device)
-    visual_feat = th.from_numpy(np.load(args.visual_feature, mmap_mode="r").astype(np.float32)).to(device)
-
-    # Pre-compute for NTSFormer
+    # Pre-compute for NTSFormer (per-run since model differs)
     text_h_list, vis_h_list = None, None
     if model_type == "NTSFormer":
-        text_h_list_dev = text_feat
-        vis_h_list_dev = visual_feat
         text_h_list, vis_h_list = sign_pre_compute_batched(
-            graph, [text_h_list_dev, vis_h_list_dev],
+            graph, [text_feat, visual_feat],
             k=int(getattr(args, "nts_sign_k", 2)),
             include_input=True, alpha=0.0, device=device
         )
@@ -260,13 +232,13 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
     epoch_times = []
     for epoch in range(1, n_profile_epochs + 1):
         tic = time.time()
-        loss = train_one_epoch(
+        train_one_epoch(
             model, graph, text_feat, visual_feat, labels, train_idx,
             optimizer, label_smoothing, model_type,
             text_h_list=text_h_list, vis_h_list=vis_h_list
         )
-        val_acc = infer(model, graph, text_feat, visual_feat, labels, val_idx, model_type,
-                        text_h_list=text_h_list, vis_h_list=vis_h_list)
+        infer(model, graph, text_feat, visual_feat, labels, val_idx, model_type,
+              text_h_list=text_h_list, vis_h_list=vis_h_list)
         toc = time.time()
         epoch_times.append(toc - tic)
 
@@ -276,14 +248,13 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
         peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
     # Estimate total training time based on early stopping
-    # Run a few more epochs with validation to estimate early stop point
     patience_counter = 0
     best_val = -1.0
     epochs_needed = n_profile_epochs
 
     for epoch in range(n_profile_epochs + 1, n_total_epochs + 1):
         tic = time.time()
-        loss = train_one_epoch(
+        train_one_epoch(
             model, graph, text_feat, visual_feat, labels, train_idx,
             optimizer, label_smoothing, model_type,
             text_h_list=text_h_list, vis_h_list=vis_h_list
@@ -307,13 +278,98 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
     total_time = epochs_needed * avg_epoch_time
 
     return {
-        "model": model_type,
-        "dataset": args.data_name,
-        "params_M": n_params / 1e6,
         "peak_memory_MB": peak_memory_mb,
         "total_time_s": total_time,
         "avg_epoch_time_s": avg_epoch_time,
         "epochs_needed": epochs_needed,
+    }
+
+
+def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
+    n_profile_epochs = int(getattr(args, "n_profile_epochs", 10))
+    n_total_epochs = int(args.n_epochs)
+    early_stop_patience = int(getattr(args, "early_stop_patience", 20))
+    label_smoothing = float(getattr(args, "label_smoothing", 0.1))
+    n_runs = int(getattr(args, "n_runs", 3))
+    base_seed = int(getattr(args, "seed", 42))
+
+    # Load data (once, shared across runs)
+    graph, labels, train_idx, val_idx, test_idx = \
+        load_data(args.graph_path, train_ratio=float(args.train_ratio),
+                  val_ratio=float(args.val_ratio), name=args.data_name, fewshots=False)
+
+    # Apply undirected and selfloop (matching sweep script defaults)
+    undirected = getattr(args, "undirected", True)
+    selfloop = getattr(args, "selfloop", True)
+    if undirected:
+        srcs, dsts = graph.all_edges()
+        graph.add_edges(dsts, srcs)
+    if selfloop:
+        graph = graph.remove_self_loop().add_self_loop()
+    graph.create_formats_()
+    graph = graph.to(device)
+
+    labels = labels.to(device).long()
+    train_idx = train_idx.to(device).long()
+    val_idx = val_idx.to(device).long()
+
+    # Load features from numpy files (once)
+    text_feat = th.from_numpy(np.load(args.text_feature, mmap_mode="r").astype(np.float32)).to(device)
+    visual_feat = th.from_numpy(np.load(args.visual_feature, mmap_mode="r").astype(np.float32)).to(device)
+
+    # Build model once to count params (deterministic)
+    if model_type == "SUPRA":
+        model = build_supra(args, text_dim, vis_dim, n_classes, device)
+    elif model_type == "NTSFormer":
+        model = build_ntsformer(args, text_dim, vis_dim, n_classes, device)
+    elif model_type == "MIG_GT":
+        model = build_miggt(args, text_dim, vis_dim, n_classes, device)
+    elif model_type in ("Late_GNN_GCN", "Late_GNN_GAT"):
+        model = build_late_gnn(args, text_dim, vis_dim, n_classes, device, backbone=model_type.replace("Late_GNN_", ""))
+    elif model_type == "Early_GNN_GCN":
+        model = build_early_gnn(args, text_dim, vis_dim, n_classes, device, backbone="GCN")
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
+    n_params = count_params(model)
+    del model  # Free memory before runs
+
+    # Run multiple times and collect per-run metrics
+    run_results = []
+    for run_idx in range(n_runs):
+        rng_seed = base_seed + run_idx
+        run_metrics = _profile_single_run(
+            model_type, args, text_dim, vis_dim, n_classes, device,
+            graph, labels, train_idx, val_idx, text_feat, visual_feat,
+            n_profile_epochs, n_total_epochs, early_stop_patience, label_smoothing,
+            rng_seed
+        )
+        run_results.append(run_metrics)
+
+    # Average across runs
+    avg_peak_memory = float(np.mean([r["peak_memory_MB"] for r in run_results]))
+    avg_total_time = float(np.mean([r["total_time_s"] for r in run_results]))
+    avg_epoch_time = float(np.mean([r["avg_epoch_time_s"] for r in run_results]))
+    avg_epochs_needed = float(np.mean([r["epochs_needed"] for r in run_results]))
+
+    # Std
+    std_peak_memory = float(np.std([r["peak_memory_MB"] for r in run_results]))
+    std_total_time = float(np.std([r["total_time_s"] for r in run_results]))
+    std_epoch_time = float(np.std([r["avg_epoch_time_s"] for r in run_results]))
+    std_epochs_needed = float(np.std([r["epochs_needed"] for r in run_results]))
+
+    return {
+        "model": model_type,
+        "dataset": args.data_name,
+        "params_M": n_params / 1e6,
+        "peak_memory_MB": avg_peak_memory,
+        "peak_memory_std": std_peak_memory,
+        "total_time_s": avg_total_time,
+        "total_time_std": std_total_time,
+        "avg_epoch_time_s": avg_epoch_time,
+        "avg_epoch_time_std": std_epoch_time,
+        "epochs_needed": avg_epochs_needed,
+        "epochs_needed_std": std_epochs_needed,
+        "n_runs": n_runs,
         "n_profile_epochs": n_profile_epochs,
     }
 
@@ -340,6 +396,9 @@ def main():
     parser.add_argument("--train_ratio", type=float, default=0.6)
     parser.add_argument("--val_ratio", type=float, default=0.2)
     parser.add_argument("--label_smoothing", type=float, default=0.1)
+    # Multi-run settings
+    parser.add_argument("--n_runs", type=int, default=2, help="Number of runs to average")
+    parser.add_argument("--seed", type=int, default=42, help="Base random seed")
     # GAT parameters
     parser.add_argument("--n_heads", type=int, default=4)
     parser.add_argument("--attn_drop", type=float, default=0.0)
@@ -382,13 +441,13 @@ def main():
     result = profile(args.model, args, text_dim, vis_dim, n_classes, device)
 
     print(f"\n{'='*50}")
-    print(f"Profile Result: {args.model} on {args.data_name}")
+    print(f"Profile Result: {args.model} on {args.data_name} ({result['n_runs']} runs avg)")
     print(f"{'='*50}")
     print(f"  Parameters:       {result['params_M']:.3f} M")
-    print(f"  Peak Memory:     {result['peak_memory_MB']:.2f} MB")
-    print(f"  Total Time(est): {result['total_time_s']:.2f} s  ({result['total_time_s']/60:.1f} min)")
-    print(f"  Avg Epoch:        {result['avg_epoch_time_s']:.4f} s/epoch")
-    print(f"  Epochs Needed:    {result['epochs_needed']}  (early_stop={args.early_stop_patience}, profile={args.n_profile_epochs}ep)")
+    print(f"  Peak Memory:     {result['peak_memory_MB']:.2f} ± {result['peak_memory_std']:.2f} MB")
+    print(f"  Total Time(est): {result['total_time_s']:.2f} ± {result['total_time_std']:.2f} s  ({result['total_time_s']/60:.1f} min)")
+    print(f"  Avg Epoch:        {result['avg_epoch_time_s']:.4f} ± {result['avg_epoch_time_std']:.4f} s/epoch")
+    print(f"  Epochs Needed:    {result['epochs_needed']:.1f} ± {result['epochs_needed_std']:.1f}  (early_stop={args.early_stop_patience}, profile={args.n_profile_epochs}ep)")
 
 
 if __name__ == "__main__":

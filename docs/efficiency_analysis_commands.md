@@ -115,7 +115,6 @@ python -m GNN.Baselines.NTSFormer \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --nts_num_heads 2 \
     --nts_sign_k 1 \
-    --eval_steps 5 \
     --n-runs 2 --seed 42 \
     --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/ntsformer_reddit_m.csv \
@@ -138,7 +137,6 @@ python -m GNN.Baselines.MIG_GT \
     --k_t 3 --k_v 2 \
     --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \
     --num_samples 10 --tur_weight 1.0 \
-    --eval_steps 5 \
     --n-runs 2 --seed 42 \
     --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/mig_gt_reddit_m.csv \

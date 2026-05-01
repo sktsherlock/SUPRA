@@ -160,10 +160,7 @@ def train_one_epoch(model, graph, text_feat, vis_feat, labels, train_idx, optimi
         fused = model.fuse_embeddings(text_h, vis_h)
         out = model.classifier(fused)
     elif model_type == "Early_GNN_GCN":
-        text_h = model.text_encoder(text_feat)
-        vis_h = model.visual_encoder(visual_feat)
-        feat = th.cat([text_h, vis_h], dim=1)
-        out = model.gnn(graph, feat)
+        out = model(graph, text_feat, visual_feat)
     loss = cross_entropy(out[train_idx], labels[train_idx], label_smoothing=label_smoothing)
     loss.backward()
     optimizer.step()
@@ -186,10 +183,7 @@ def infer(model, graph, text_feat, vis_feat, labels, val_idx, model_type, **kwar
         fused = model.fuse_embeddings(text_h, vis_h)
         out = model.classifier(fused)
     elif model_type == "Early_GNN_GCN":
-        text_h = model.text_encoder(text_feat)
-        vis_h = model.visual_encoder(visual_feat)
-        feat = th.cat([text_h, vis_h], dim=1)
-        out = model.gnn(graph, feat)
+        out = model(graph, text_feat, vis_feat)
     val_pred = out[val_idx].argmax(dim=1)
     val_true = labels[val_idx]
     acc = (val_pred == val_true).float().mean().item()

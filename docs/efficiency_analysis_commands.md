@@ -22,7 +22,7 @@ python tools/profile_efficiency.py \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --aux_weight 0.1 \
     --mlp_variant ablate \
-    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 50 \
+    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 20 \
     --gpu 0
 ```
 
@@ -37,7 +37,7 @@ python tools/profile_efficiency.py \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --embed_dim 256 --n_layers 3 --n_hidden 256 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 50 \
+    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 20 \
     --gpu 0
 ```
 
@@ -54,7 +54,7 @@ python tools/profile_efficiency.py \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --n_hidden 256 --n_layers 3 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 50 \
+    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 20 \
     --gpu 0
 ```
 
@@ -70,7 +70,7 @@ python tools/profile_efficiency.py \
     --n_hidden 256 --n_layers 3 \
     --dropout 0.3 --lr 0.001 --wd 0.0001 \
     --n_heads 4 --attn_drop 0.0 --edge_drop 0.0 \
-    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 50 \
+    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 20 \
     --gpu 0
 ```
 
@@ -87,7 +87,7 @@ python tools/profile_efficiency.py \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --n_heads 4 \
     --nts_sign_k 2 \
-    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 50 \
+    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 20 \
     --gpu 0
 ```
 
@@ -105,7 +105,7 @@ python tools/profile_efficiency.py \
     --k_t 3 --k_v 2 \
     --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \
     --num_samples 10 --tur_weight 1.0 \
-    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 50 \
+    --n_profile_epochs 10 --n_epochs 1000 --early_stop_patience 20 \
     --gpu 0
 ```
 
@@ -128,7 +128,7 @@ python tools/profile_efficiency.py \
 - `n_hidden`: 256
 - `n_profile_epochs`: 10（用于测量 per-epoch 时间和峰值显存）
 - `n_epochs`: 1000
-- `early_stop_patience`: 50
+- `early_stop_patience`: 20
 - `train_ratio`: 0.6
 - `val_ratio`: 0.2
 - `label_smoothing`: 0.1

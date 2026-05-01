@@ -302,7 +302,7 @@ def main():
     parser.add_argument("--n_epochs", type=int, default=1000)
     parser.add_argument("--n_profile_epochs", type=int, default=10,
                         help="Epochs to run for profiling (per-epoch time + peak memory)")
-    parser.add_argument("--early_stop_patience", type=int, default=40)
+    parser.add_argument("--early_stop_patience", type=int, default=20)
     parser.add_argument("--train_ratio", type=float, default=0.6)
     parser.add_argument("--val_ratio", type=float, default=0.2)
     parser.add_argument("--label_smoothing", type=float, default=0.1)

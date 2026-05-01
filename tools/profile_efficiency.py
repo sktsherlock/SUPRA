@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """
-Efficiency profiling for SUPRA, NTSFormer, and MIG_GT.
+Efficiency profiling for SUPRA, NTSFormer, MIG_GT, and Late_GNN (GCN/GAT).
 
 Measures:
 1. Number of parameters (M)
 2. Peak GPU memory during training (MB)
-3. Total training time + average per epoch (s)
+3. Estimated total training time + average per epoch (s)
 
 Usage:
     python tools/profile_efficiency.py \
@@ -14,7 +14,23 @@ Usage:
         --visual_feature /path/Movies_openai_clip-vit-large-patch14.npy \
         --graph_path /path/MoviesGraph.pt \
         --embed_dim 256 --n_layers 2 --n_hidden 256 \
-        --gpu 0 --n_epochs 50
+        --gpu 0 --n_epochs 1000
+
+    python tools/profile_efficiency.py \
+        --model Late_GNN_GCN --data_name Reddit-M \
+        --text_feature /path/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+        --visual_feature /path/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+        --graph_path /path/RedditMGraph.pt \
+        --n_hidden 256 --n_layers 2 --dropout 0.3 --lr 0.001 --wd 1e-4 \
+        --gpu 0 --n_epochs 1000
+
+    python tools/profile_efficiency.py \
+        --model Late_GNN_GAT --data_name Reddit-M \
+        --text_feature /path/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+        --visual_feature /path/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+        --graph_path /path/RedditMGraph.pt \
+        --n_hidden 256 --n_layers 2 --dropout 0.3 --lr 0.001 --wd 1e-4 \
+        --n_heads 4 --attn_drop 0.0 --gpu 0 --n_epochs 1000
 """
 import argparse
 import sys
@@ -30,6 +46,8 @@ import numpy as np
 from GNN.SUPRA import SUPRA
 from GNN.Baselines.NTSFormer import NTSFormerModel, sign_pre_compute_batched
 from GNN.Baselines.MIG_GT import MIGGT_NodeClassifier
+from GNN.Baselines import Late_GNN as late_gnn_module
+from GNN.Baselines import Early_GNN as mag_base
 from GNN.GraphData import load_data
 from GNN.Utils.LossFunction import cross_entropy
 
@@ -71,6 +89,33 @@ def build_miggt(args, text_dim, vis_dim, n_classes, device):
     return model
 
 
+def build_late_gnn(args, text_dim, vis_dim, n_classes, device, backbone):
+    """Late_GNN with GCN or GAT backbone."""
+    embed_dim = int(args.n_hidden)
+    proj_dim = embed_dim
+
+    # Build encoders
+    text_encoder = mag_base.ModalityEncoder(text_dim, proj_dim, float(args.dropout)).to(device)
+    visual_encoder = mag_base.ModalityEncoder(vis_dim, proj_dim, float(args.dropout)).to(device)
+
+    # Build GNN backbones
+    text_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
+    vis_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
+
+    classifier = nn.Linear(2 * embed_dim, n_classes).to(device)
+    model = late_gnn_module.LateFusionMAG(
+        text_encoder,
+        visual_encoder,
+        text_gnn,
+        vis_gnn,
+        classifier,
+        use_mlp_before_fusion=False,
+        use_no_encoder=False,
+    )
+    model.reset_parameters()
+    return model
+
+
 def train_one_epoch(model, graph, text_feat, vis_feat, labels, train_idx, optimizer, label_smoothing, model_type, **kwargs):
     """Train one full epoch and return loss."""
     model.train()
@@ -84,6 +129,10 @@ def train_one_epoch(model, graph, text_feat, vis_feat, labels, train_idx, optimi
     elif model_type == "MIG_GT":
         logits, _, _ = model(graph, text_feat, vis_feat)
         out = logits
+    elif model_type in ("Late_GNN_GCN", "Late_GNN_GAT"):
+        text_h, vis_h = model.forward_branches(graph, text_feat, vis_feat)
+        fused = model.fuse_embeddings(text_h, vis_h)
+        out = model.classifier(fused)
     loss = cross_entropy(out[train_idx], labels[train_idx], label_smoothing=label_smoothing)
     loss.backward()
     optimizer.step()
@@ -101,6 +150,10 @@ def infer(model, graph, text_feat, vis_feat, labels, val_idx, model_type, **kwar
         out = model(graph, text_feat, vis_feat, text_h_list, vis_h_list)
     elif model_type == "MIG_GT":
         out, _, _ = model(graph, text_feat, vis_feat)
+    elif model_type in ("Late_GNN_GCN", "Late_GNN_GAT"):
+        text_h, vis_h = model.forward_branches(graph, text_feat, vis_feat)
+        fused = model.fuse_embeddings(text_h, vis_h)
+        out = model.classifier(fused)
     val_pred = out[val_idx].argmax(dim=1)
     val_true = labels[val_idx]
     acc = (val_pred == val_true).float().mean().item()
@@ -120,6 +173,8 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
         model = build_ntsformer(args, text_dim, vis_dim, n_classes, device)
     elif model_type == "MIG_GT":
         model = build_miggt(args, text_dim, vis_dim, n_classes, device)
+    elif model_type in ("Late_GNN_GCN", "Late_GNN_GAT"):
+        model = build_late_gnn(args, text_dim, vis_dim, n_classes, device, backbone=model_type.replace("Late_GNN_", ""))
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
@@ -216,7 +271,7 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
 def main():
     parser = argparse.ArgumentParser("Efficiency Profiler")
     parser.add_argument("--model", type=str, required=True,
-                        choices=["SUPRA", "NTSFormer", "MIG_GT"])
+                        choices=["SUPRA", "NTSFormer", "MIG_GT", "Late_GNN_GCN", "Late_GNN_GAT"])
     parser.add_argument("--data_name", type=str, required=True)
     parser.add_argument("--graph_path", type=str, required=True)
     parser.add_argument("--text_feature", type=str, required=True)
@@ -235,12 +290,25 @@ def main():
     parser.add_argument("--train_ratio", type=float, default=0.6)
     parser.add_argument("--val_ratio", type=float, default=0.2)
     parser.add_argument("--label_smoothing", type=float, default=0.1)
+    # GAT parameters
+    parser.add_argument("--n_heads", type=int, default=4)
+    parser.add_argument("--attn_drop", type=float, default=0.0)
+    parser.add_argument("--edge_drop", type=float, default=0.0)
     # NTSFormer specific
     parser.add_argument("--nts_sign_k", type=int, default=2)
     # MIG_GT specific
     parser.add_argument("--k_t", type=int, default=3)
     parser.add_argument("--k_v", type=int, default=2)
+    # Late_GNN specific
+    parser.add_argument("--late_embed_dim", type=int, default=None)
+    parser.add_argument("--mm_proj_dim", type=int, default=None)
     args = parser.parse_args()
+
+    # Set model_name for Late_GNN backbone selection
+    if args.model == "Late_GNN_GCN":
+        args.model_name = "GCN"
+    elif args.model == "Late_GNN_GAT":
+        args.model_name = "GAT"
 
     device = th.device(f"cuda:{args.gpu}" if th.cuda.is_available() and args.gpu >= 0 else "cpu")
     print(f"Device: {device}")
@@ -264,7 +332,6 @@ def main():
     print(f"  Total Time(est): {result['total_time_s']:.2f} s  ({result['total_time_s']/60:.1f} min)")
     print(f"  Avg Epoch:        {result['avg_epoch_time_s']:.4f} s/epoch")
     print(f"  Epochs Needed:    {result['epochs_needed']}  (early_stop={args.early_stop_patience}, profile={args.n_profile_epochs}ep)")
-
 
 
 if __name__ == "__main__":

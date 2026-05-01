@@ -90,22 +90,19 @@ def build_miggt(args, text_dim, vis_dim, n_classes, device):
 
 
 def build_early_gnn(args, text_dim, vis_dim, n_classes, device, backbone):
-    """Early_GNN with GCN or GAT backbone - early fusion of encoded modalities."""
-    embed_dim = int(args.n_hidden)
-    proj_dim = embed_dim
+    """Early_GNN with GCN or GAT backbone - early fusion (NO encoder), raw concat to shared GNN."""
+    # No encoders - raw concat of features directly to shared GNN
+    text_encoder = None
+    visual_encoder = None
 
-    # Build encoders
-    text_encoder = mag_base.ModalityEncoder(text_dim, proj_dim, float(args.dropout)).to(device)
-    visual_encoder = mag_base.ModalityEncoder(vis_dim, proj_dim, float(args.dropout)).to(device)
-
-    # For early fusion (concat): downstream_in_dim = 2 * proj_dim
-    downstream_in_dim_gnn = 2 * proj_dim
+    # Raw concat dimension
+    downstream_in_dim_gnn = text_dim + vis_dim
 
     # Build GNN backbone
     args.model_name = backbone
     gnn = mag_base._build_gnn_backbone(args, downstream_in_dim_gnn, n_classes, device)
 
-    # Build Early_GNN model
+    # Build Early_GNN model (no encoders)
     model = mag_base.SimpleMAGGNN(
         text_encoder,
         visual_encoder,
@@ -113,24 +110,23 @@ def build_early_gnn(args, text_dim, vis_dim, n_classes, device, backbone):
         early_fuse="concat",
         single_modality=None,
         use_mlp_projection=False,
-        use_no_encoder=False,
+        use_no_encoder=True,
     )
     model.reset_parameters()
     return model
 
 
 def build_late_gnn(args, text_dim, vis_dim, n_classes, device, backbone):
-    """Late_GNN with GCN or GAT backbone."""
+    """Late_GNN with GCN or GAT backbone - NO encoders, raw features to separate GNN branches."""
     embed_dim = int(args.n_hidden)
-    proj_dim = embed_dim
 
-    # Build encoders
-    text_encoder = mag_base.ModalityEncoder(text_dim, proj_dim, float(args.dropout)).to(device)
-    visual_encoder = mag_base.ModalityEncoder(vis_dim, proj_dim, float(args.dropout)).to(device)
+    # No encoders - raw features directly to separate GNN branches
+    text_encoder = None
+    visual_encoder = None
 
-    # Build GNN backbones
-    text_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
-    vis_gnn = mag_base._build_gnn_backbone(args, proj_dim, embed_dim, device)
+    # Each modality GNN takes its raw feature dimension
+    text_gnn = mag_base._build_gnn_backbone(args, text_dim, embed_dim, device)
+    vis_gnn = mag_base._build_gnn_backbone(args, vis_dim, embed_dim, device)
 
     classifier = nn.Linear(2 * embed_dim, n_classes).to(device)
     model = late_gnn_module.LateFusionMAG(
@@ -140,7 +136,7 @@ def build_late_gnn(args, text_dim, vis_dim, n_classes, device, backbone):
         vis_gnn,
         classifier,
         use_mlp_before_fusion=False,
-        use_no_encoder=False,
+        use_no_encoder=True,
     )
     model.reset_parameters()
     return model

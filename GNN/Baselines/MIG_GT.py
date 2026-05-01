@@ -372,10 +372,14 @@ def main():
     if getattr(args, "result_csv", None) or getattr(args, "result_csv_all", None):
         degrade_text = float(np.mean(run_degrade_text_results)) if run_degrade_text_results else None
         degrade_visual = float(np.mean(run_degrade_visual_results)) if run_degrade_visual_results else None
+        degrade_text_std = float(np.std(run_degrade_text_results)) if run_degrade_text_results else None
+        degrade_visual_std = float(np.std(run_degrade_visual_results)) if run_degrade_visual_results else None
         row = build_result_row(args=args, method="MIG_GT", full_metric=test_mean,
                                degrade_text=degrade_text, degrade_visual=degrade_visual,
                                extra={
                                    "full_std": test_std,
+                                   "degrade_text_std": degrade_text_std,
+                                   "degrade_visual_std": degrade_visual_std,
                                    "k_t": getattr(args, "k_t", ""),
                                    "k_v": getattr(args, "k_v", ""),
                                    "num_samples": getattr(args, "num_samples", ""),

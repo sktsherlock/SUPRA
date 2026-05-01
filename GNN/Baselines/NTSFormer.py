@@ -880,10 +880,14 @@ def main():
         test_std = float(np.std(test_results))
         degrade_text = float(np.mean(run_degrade_text_results)) if run_degrade_text_results else None
         degrade_visual = float(np.mean(run_degrade_visual_results)) if run_degrade_visual_results else None
+        degrade_text_std = float(np.std(run_degrade_text_results)) if run_degrade_text_results else None
+        degrade_visual_std = float(np.std(run_degrade_visual_results)) if run_degrade_visual_results else None
         row = build_result_row(args=args, method="NTSFormer", full_metric=test_mean,
                                degrade_text=degrade_text, degrade_visual=degrade_visual,
                                extra={
                                    "full_std": test_std,
+                                   "degrade_text_std": degrade_text_std,
+                                   "degrade_visual_std": degrade_visual_std,
                                    "nts_sign_k": getattr(args, "nts_sign_k", ""),
                                    "nts_sign_alpha": getattr(args, "nts_sign_alpha", ""),
                                    "nts_num_tf_layers": getattr(args, "nts_num_tf_layers", ""),

@@ -262,7 +262,7 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
     if th.cuda.is_available():
         th.cuda.reset_peak_memory_stats(device)
 
-    # Profile: run n_profile_epochs to measure per-epoch time and peak memory
+    # Profile: run n_profile_epochs to measure per-epoch time and peak memory (train + eval)
     epoch_times = []
     for epoch in range(1, n_profile_epochs + 1):
         tic = time.time()
@@ -271,6 +271,8 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
             optimizer, label_smoothing, model_type,
             text_h_list=text_h_list, vis_h_list=vis_h_list
         )
+        val_acc = infer(model, graph, text_feat, visual_feat, labels, val_idx, model_type,
+                        text_h_list=text_h_list, vis_h_list=vis_h_list)
         toc = time.time()
         epoch_times.append(toc - tic)
 

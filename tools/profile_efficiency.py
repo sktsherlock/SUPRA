@@ -196,9 +196,9 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
     graph.create_formats_()
     graph = graph.to(device)
 
-    labels = labels.to(device)
-    train_idx = train_idx.to(device)
-    val_idx = val_idx.to(device)
+    labels = labels.to(device).long()
+    train_idx = train_idx.to(device).long()
+    val_idx = val_idx.to(device).long()
 
     # For Late_GNN: use observe_graph (same as graph in non-inductive mode)
     observe_graph = graph

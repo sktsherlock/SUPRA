@@ -907,15 +907,19 @@ def main():
     print(f"Average test {args.metric}: {np.mean(test_results):.4f} ± {np.std(test_results):.4f}")
 
     # Efficiency profiling summary
-    all_epoch_times = [t for run_times in efficiency_runs['epoch_times'] for t in run_times]
-    avg_epoch_time = float(np.mean(all_epoch_times)) if all_epoch_times else 0
-    std_epoch_time = float(np.std(all_epoch_times)) if all_epoch_times else 0
-    avg_epochs_needed = float(np.mean(efficiency_runs['epochs_needed']))
-    std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
-    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
-    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
-    avg_total_time = avg_epochs_needed * avg_epoch_time
-    std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']]))
+    # epoch_times: each entry is total time (train+eval) for one evaluated epoch
+    # total_time = sum of all epoch times; avg_epoch_time = mean per evaluated epoch
+    total_times_per_run = [sum(run_times) for run_times in efficiency_runs['epoch_times']]
+    avg_total_time = float(np.mean(total_times_per_run)) if total_times_per_run else 0
+    std_total_time = float(np.std(total_times_per_run)) if len(total_times_per_run) > 1 else 0
+    # epochs_needed: actual epochs trained (includes non-eval epochs)
+    actual_epochs_per_run = [len(run_times) for run_times in efficiency_runs['epoch_times']]
+    avg_epochs_needed = float(np.mean(actual_epochs_per_run))
+    std_epochs_needed = float(np.std(actual_epochs_per_run)) if len(actual_epochs_per_run) > 1 else 0
+    avg_epoch_time = avg_total_time / avg_epochs_needed if avg_epochs_needed > 0 else 0
+    std_epoch_time = float(np.std([t / e for t, e in zip(total_times_per_run, actual_epochs_per_run)])) if len(total_times_per_run) > 1 else 0
+    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB'])) if efficiency_runs['peak_memory_MB'] else 0
+    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB'])) if len(efficiency_runs['peak_memory_MB']) > 1 else 0
 
     print(f"\n{'='*60}")
     print(f"Efficiency Profile: NTSFormer on {args.data_name}")

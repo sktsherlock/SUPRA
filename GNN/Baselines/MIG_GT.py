@@ -286,7 +286,9 @@ def main():
         if report_drop:
             best_test_degrade = {alpha: (None, None) for alpha in degrade_alphas}
         total_time = 0
-        epoch_times = []  # track full epoch time (train + eval)
+        train_step_times = []  # train time per actual step (every epoch)
+        eval_step_times = []   # eval time per eval step
+        epoch_times = []       # avg epoch time per eval interval
         epochs_needed = args.n_epochs  # will be updated if early stop triggered
         last_eval_epoch = 0
 
@@ -294,10 +296,12 @@ def main():
             tic = time.time()
             model.train()
             optimizer.zero_grad()
+
+            t_fwd_start = time.time()
             
             # 1. 全图前向传播
             logits, final_h, z_memory_h = model(graph, text_feature, visual_feature)
-            
+
             # 2. 主任务 Loss (仅限 train_idx)
             loss = cross_entropy(logits[train_idx], labels[train_idx], label_smoothing=args.label_smoothing)
 
@@ -311,20 +315,22 @@ def main():
                 if args.tur_sample_edges > 0 and src.size(0) > args.tur_sample_edges:
                     perm = th.randperm(src.size(0), device=device)[:args.tur_sample_edges]
                     src, dst = src[perm], dst[perm]
-                
+
                 pos_h = final_h[src]
                 pos_z_mem = z_memory_h[dst]
-                
+
                 # 完全还原原版公式：unsqueeze(1) @ permute(0,2,1)
                 unsmooth_logits = (pos_h.unsqueeze(1) @ pos_z_mem.permute(0, 2, 1)).squeeze(1)
                 tur_loss = F.cross_entropy(unsmooth_logits, th.zeros(src.size(0), dtype=th.long, device=device))
-                
+
                 loss = loss + args.tur_weight * tur_loss
 
             loss.backward()
             optimizer.step()
+            train_step_times.append(time.time() - t_fwd_start)
 
             if epoch % args.eval_steps == 0:
+                t_eval_start = time.time()
                 model.eval()
                 with th.no_grad():
                     logits_e, _, _ = model(graph, text_feature, visual_feature)
@@ -339,6 +345,8 @@ def main():
                 test_score = get_metric(test_pred, labels[test_idx], args.metric, average=args.average)
                 val_score = float(np.asarray(val_score).mean())
                 test_score = float(np.asarray(test_score).mean())
+
+                eval_step_times.append(time.time() - t_eval_start)
 
                 if (wandb is not None) and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
                     wandb.log({
@@ -386,6 +394,14 @@ def main():
         print(f"Run: {run+1}/{args.n_runs} | Best Val {args.metric}: {best_val_result:.4f} | Final Test: {final_test_result:.4f}")
         if th.cuda.is_available():
             print(f"  [MEMORY] peak={peak_memory_mb:.2f} MB")
+        # Detailed time breakdown
+        t_train_total = sum(train_step_times) if train_step_times else 0.0
+        t_eval_total = sum(eval_step_times) if eval_step_times else 0.0
+        actual_epochs = len(train_step_times)
+        avg_train = t_train_total / actual_epochs if actual_epochs > 0 else 0
+        avg_eval = t_eval_total / len(eval_step_times) if eval_step_times else 0
+        print(f"  [TIME] train_total={t_train_total:.1f}s(avg={avg_train:.3f}s×{actual_epochs}ep)  "
+              f"eval_total={t_eval_total:.1f}s(avg={avg_eval:.3f}s×{len(eval_step_times)}ep)")
         if report_drop and best_test_degrade:
             alpha0 = degrade_alphas[0]
             dt, dv = best_test_degrade[alpha0]
@@ -398,7 +414,7 @@ def main():
         # Collect efficiency profiling data
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
         efficiency_runs['epoch_times'].append(epoch_times)
-        efficiency_runs['epochs_needed'].append(epochs_needed)
+        efficiency_runs['epochs_needed'].append(len(epoch_times) * args.eval_steps)  # actual epochs trained
 
     test_mean = float(np.mean(test_results))
     test_std = float(np.std(test_results))
@@ -408,15 +424,18 @@ def main():
         print(f"Best test degrade (alpha={alpha0}): text={np.mean(run_degrade_text_results):.4f}, visual={np.mean(run_degrade_visual_results):.4f}")
 
     # Efficiency profiling summary
-    all_epoch_times = [t for run_times in efficiency_runs['epoch_times'] for t in run_times]
-    avg_epoch_time = float(np.mean(all_epoch_times)) if all_epoch_times else 0
-    std_epoch_time = float(np.std(all_epoch_times)) if all_epoch_times else 0
-    avg_epochs_needed = float(np.mean(efficiency_runs['epochs_needed']))
-    std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
-    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
-    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
-    avg_total_time = avg_epochs_needed * avg_epoch_time
-    std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']]))
+    # epoch_times: each entry is avg epoch time (interval_total / eval_steps) per eval interval
+    # actual epochs = n_intervals * eval_steps; actual total time = sum(epoch_times) * eval_steps
+    actual_epochs_per_run = [len(rt) * args.eval_steps for rt in efficiency_runs['epoch_times']]
+    total_times_per_run = [sum(rt) * args.eval_steps for rt in efficiency_runs['epoch_times']]
+    avg_epochs_needed = float(np.mean(actual_epochs_per_run))
+    std_epochs_needed = float(np.std(actual_epochs_per_run)) if len(actual_epochs_per_run) > 1 else 0
+    avg_total_time = float(np.mean(total_times_per_run)) if total_times_per_run else 0
+    std_total_time = float(np.std(total_times_per_run)) if len(total_times_per_run) > 1 else 0
+    avg_epoch_time = avg_total_time / avg_epochs_needed if avg_epochs_needed > 0 else 0
+    std_epoch_time = float(np.std([t / e for t, e in zip(total_times_per_run, actual_epochs_per_run)])) if len(total_times_per_run) > 1 else 0
+    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB'])) if efficiency_runs['peak_memory_MB'] else 0
+    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB'])) if len(efficiency_runs['peak_memory_MB']) > 1 else 0
 
     print(f"\n{'='*60}")
     print(f"Efficiency Profile: MIG_GT on {args.data_name}")

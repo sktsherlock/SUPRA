@@ -725,6 +725,25 @@ def main():
     run_degrade_text_results = []
     run_degrade_visual_results = []
 
+    # Efficiency profiling: collect per-run metrics
+    efficiency_runs = {
+        'peak_memory_MB': [],
+        'epoch_times': [],  # list of list: each run has list of epoch times
+        'epochs_needed': [],
+    }
+
+    # Build one model to count params (before the run loop)
+    _model_for_count = _build_ntsformer_model(
+        args,
+        text_feat_dim=text_feat.shape[1],
+        vis_feat_dim=vis_feat.shape[1],
+        n_classes=n_classes,
+        device=device,
+    )
+    n_params = sum(p.numel() for p in _model_for_count.parameters() if p.requires_grad)
+    n_params_M = n_params / 1e6
+    del _model_for_count
+
     for run in range(args.n_runs):
         set_seed(args.seed + run)
 
@@ -743,13 +762,21 @@ def main():
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
+        # Peak memory tracking (reset after model init and optimizer creation)
+        peak_memory_mb = 0.0
+        if th.cuda.is_available():
+            th.cuda.reset_peak_memory_stats(device)
+            th.cuda.empty_cache()
+
         train_step_times = []
         eval_step_times = []
         degrade_times = []
+        epoch_times = []  # track full epoch time (train + eval)
 
         best_val_score = -1.0
         final_test_result = 0.0
         best_test_degrade = None
+        epochs_needed = args.n_epochs  # will be updated if early stop triggered
         if report_drop:
             best_test_degrade = {alpha: (None, None) for alpha in degrade_alphas}
 
@@ -786,6 +813,7 @@ def main():
 
                 toc = time.time()
                 total_time = toc - tic
+                epoch_times.append(total_time)  # track full epoch time for efficiency profiling
 
                 if val_result > best_val_score:
                     best_val_score = float(val_result)
@@ -829,6 +857,7 @@ def main():
                         degrade_times.append(time.time() - t_degrade_start)
 
                 if stopper and stopper.step(val_result):
+                    epochs_needed = epoch
                     break
 
                 log_progress(
@@ -838,7 +867,13 @@ def main():
                     best_val_score, final_test_result,
                 )
 
+        # Record peak memory after training
+        if th.cuda.is_available():
+            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
+
         print(f"Run {run+1}: Best Val {args.metric}={best_val_score:.4f}, Final Test {args.metric}={final_test_result:.4f}")
+        if th.cuda.is_available():
+            print(f"  [MEMORY] peak={peak_memory_mb:.2f} MB")
         t_run_total = time.time() - t_run_start
         t_train_total = sum(train_step_times)
         t_eval_total = sum(eval_step_times)
@@ -859,12 +894,38 @@ def main():
         val_results.append(best_val_score)
         test_results.append(final_test_result)
 
+        # Collect efficiency profiling data
+        efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
+        efficiency_runs['epoch_times'].append(epoch_times)
+        efficiency_runs['epochs_needed'].append(epochs_needed)
+
         if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
             wandb.log({f'Val_{args.metric}': best_val_score, f'Test_{args.metric}': final_test_result})
 
     print(f"\nRunned {args.n_runs} times")
     print(f"Average val {args.metric}: {np.mean(val_results):.4f} ± {np.std(val_results):.4f}")
     print(f"Average test {args.metric}: {np.mean(test_results):.4f} ± {np.std(test_results):.4f}")
+
+    # Efficiency profiling summary
+    all_epoch_times = [t for run_times in efficiency_runs['epoch_times'] for t in run_times]
+    avg_epoch_time = float(np.mean(all_epoch_times)) if all_epoch_times else 0
+    std_epoch_time = float(np.std(all_epoch_times)) if all_epoch_times else 0
+    avg_epochs_needed = float(np.mean(efficiency_runs['epochs_needed']))
+    std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
+    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
+    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
+    avg_total_time = avg_epochs_needed * avg_epoch_time
+    std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']]))
+
+    print(f"\n{'='*60}")
+    print(f"Efficiency Profile: NTSFormer on {args.data_name}")
+    print(f"{'='*60}")
+    print(f"  Parameters:       {n_params_M:.3f} M")
+    print(f"  Peak Memory:     {avg_peak_memory:.2f} ± {std_peak_memory:.2f} MB")
+    print(f"  Total Time(est): {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
+    print(f"  Avg Epoch:        {avg_epoch_time:.4f} ± {std_epoch_time:.4f} s/epoch")
+    print(f"  Epochs Needed:    {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")
+    print(f"{'='*60}")
     if report_drop:
         alpha0 = degrade_alphas[0]
         print(f"Best test degrade (alpha={alpha0}): text={np.mean(run_degrade_text_results):.4f}, visual={np.mean(run_degrade_visual_results):.4f}")

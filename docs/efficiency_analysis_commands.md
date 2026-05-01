@@ -123,7 +123,7 @@ python tools/profile_efficiency.py \
 | 模型 | Params (M) | Peak Memory (MB) | Total Time (s) | Avg Epoch (s/ep) | Epochs Needed |
 |------|------------|-----------------|----------------|-----------------|--------------|
 | SUPRA-GCN | 2.399 | 4772.53 ± 0.00 | 3.63 ± 0.07 | 0.0579 ± 0.0047 | 63.0 ± 4.0 |
-| Early_GNN-GCN | — | — | — | — | — |
+| Early_GNN-GCN | 2.176 | 10048.46 ± 0.00 | 2.94 ± 1.29 | 0.0548 ± 0.0017 | 53.0 ± 22.0 |
 | Late_GNN-GCN | — | — | — | — | — |
 | Late_GNN-GAT | — | — | — | — | — |
 | NTSFormer | — | — | — | — | — |

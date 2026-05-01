@@ -93,12 +93,12 @@ python -m GNN.Baselines.NTSFormer \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --n_hidden 256 --n_layers 2 \
+    --n-hidden 256 --n-layers 2 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --nts_num_heads 2 \
     --nts_sign_k 1 \
-    --n_runs 2 --seed 42 \
-    --n_epochs 1000 --early_stop_patience 20 \
+    --n-runs 2 --seed 42 \
+    --n-epochs 1000 --early_stop_patience 20 \
     --result_csv Results/efficiency/ntsformer_reddit_m.csv \
     --disable_wandb \
     --gpu 0

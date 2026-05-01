@@ -200,6 +200,9 @@ def args_init():
     
     parser.add_argument("--disable_wandb", action="store_true", help="Disable wandb logging")
 
+    parser.add_argument("--export_predictions", type=str, default=None,
+                        help="Path to save test predictions as torch.Tensor (argmax, shape=[N_test])")
+
     return parser
 
 def main():
@@ -282,6 +285,7 @@ def main():
             th.cuda.empty_cache()
 
         best_val_score, best_val_result, final_test_result = -1.0, 0.0, 0.0
+        best_test_logits = None
         best_test_degrade = None
         if report_drop:
             best_test_degrade = {alpha: (None, None) for alpha in degrade_alphas}
@@ -367,6 +371,7 @@ def main():
                     best_val_score = float(val_score)
                     best_val_result = float(val_score)
                     final_test_result = float(test_score)
+                    best_test_logits = logits_e[test_idx].detach().clone()
                     best_test_degrade = None
                     if report_drop:
                         def forward_for_degrade(g, text_f, vis_f):
@@ -410,6 +415,14 @@ def main():
             run_degrade_visual_results.append(dv)
         val_results.append(best_val_result)
         test_results.append(final_test_result)
+
+        if getattr(args, 'export_predictions', None) and best_test_logits is not None:
+            pred_path = str(args.export_predictions)
+            if args.n_runs > 1:
+                root, ext = os.path.splitext(pred_path)
+                pred_path = f"{root}_run{run+1}{ext}"
+            th.save(th.argmax(best_test_logits, dim=1), pred_path)
+            print(f"[Export] Test predictions → {pred_path}")
 
         # Collect efficiency profiling data
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)

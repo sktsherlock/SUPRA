@@ -33,70 +33,122 @@ Stage 2: 语义归因分析  ─────────────────
 
 ## 二、Stage 1 — 训练 & 导出预测
 
-### 2.1 Text MLP（Reddit-M）
+所有模型统一使用原始训练脚本，通过 `--export_predictions` 参数在训练结束后自动导出测试集预测文件。
+
+### 2.1 基础模型（Text MLP / Image MLP / Early_GNN / Late_GNN）
+
+使用 `Early_GNN` 脚本跑单模态 MLP 和早期/晚期融合基线：
 
 ```bash
-python -c "
-import torch as th, numpy as np, argparse
-from GNN.GraphData import load_data
-from GNN.Baselines.Early_GNN import EarlyFusionModel, SimpleEncoder, MLPHead
-
-# Config
-data_name = 'Reddit-M'
-graph_path = '/mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt'
-text_feat_path = '/mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy'
-visual_feat_path = '/mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy'
-out_path = 'Results/attribution/Reddit-M/text_mlp_test_pred.pt'
-
-graph, labels, train_idx, val_idx, test_idx = load_data(graph_path, train_ratio=0.6, val_ratio=0.2, name=data_name)
-text_feat = th.tensor(np.load(text_feat_path), dtype=th.float32)
-labels_test = labels[test_idx]
-
 # Text MLP
-in_d = text_feat.shape[1]
-model = th.nn.Sequential(
-    th.nn.Linear(in_d, 256), th.nn.ReLU(), th.nn.Dropout(0.3),
-    th.nn.Linear(256, 256), th.nn.ReLU(), th.nn.Dropout(0.3),
-    th.nn.Linear(256, int(labels.max())+1)
-)
-# ... train with EarlyStopping, save best test pred as torch tensor ...
-# Run 3 times with seed 42,43,44, average logits, then argmax
-print(f'Text MLP test accuracy: {(pred == labels_test).float().mean():.4f}')
-th.save(pred, out_path)
-"
-```
-
-> 注: 上述为示意代码。完整训练脚本见 `scripts/attribution/export_single_modality.py`
-
-### 2.2 简化方案：使用现有训练脚本 + 推理钩子
-
-**推荐使用独立推理脚本** `scripts/attribution/export_predictions.py`，统一导出所有模型的测试集预测。
-
-```bash
-# Reddit-M
-python scripts/attribution/export_predictions.py \
+python -m GNN.Baselines.Early_GNN \
     --data_name Reddit-M \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --pred_dir Results/attribution/Reddit-M/ \
-    --models text_mlp image_mlp late_gnn_gcn late_gnn_gat early_gnn_gcn supra ntsformer mig_gt \
-    --gpu 0
+    --backend mlp --single_modality text \
+    --result_csv Results/attribution/Reddit-M/text_mlp_best.csv \
+    --export_predictions Results/attribution/Reddit-M/text_mlp_test_pred.pt \
+    --disable_wandb --gpu 0
 
-# Grocery
-python scripts/attribution/export_predictions.py \
-    --data_name Grocery \
-    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_openai_clip-vit-large-patch14.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --pred_dir Results/attribution/Grocery/ \
-    --models text_mlp image_mlp late_gnn_gcn late_gnn_gat early_gnn_gcn supra ntsformer mig_gt \
-    --gpu 0
+# Image MLP
+python -m GNN.Baselines.Early_GNN \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --backend mlp --single_modality visual \
+    --result_csv Results/attribution/Reddit-M/image_mlp_best.csv \
+    --export_predictions Results/attribution/Reddit-M/image_mlp_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# Late_GNN-GCN（无编码器基线，raw concat → 各自 GNN）
+python -m GNN.Baselines.Late_GNN \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --model_name GCN \
+    --late_no_encoder true \
+    --result_csv Results/attribution/Reddit-M/late_gnn_gcn_best.csv \
+    --export_predictions Results/attribution/Reddit-M/late_gnn_gcn_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# Late_GNN-GAT
+python -m GNN.Baselines.Late_GNN \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --model_name GAT --late_no_encoder true \
+    --result_csv Results/attribution/Reddit-M/late_gnn_gat_best.csv \
+    --export_predictions Results/attribution/Reddit-M/late_gnn_gat_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# Early_GNN-GCN（无编码器基线，raw concat → GNN）
+python -m GNN.Baselines.Early_GNN \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --backend gnn --model_name GCN --early_no_encoder true \
+    --result_csv Results/attribution/Reddit-M/early_gnn_gcn_best.csv \
+    --export_predictions Results/attribution/Reddit-M/early_gnn_gcn_test_pred.pt \
+    --disable_wandb --gpu 0
+```
+
+### 2.2 SUPRA / NTSFormer / MIG_GT
+
+使用各自主训练脚本：
+
+```bash
+# SUPRA
+python -m GNN.SUPRA \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --embed_dim 256 --n_layers 3 --n_hidden 256 \
+    --dropout 0.3 --lr 0.0005 --wd 0.0001 \
+    --aux_weight 0.1 --mlp_variant ablate \
+    --result_csv Results/attribution/Reddit-M/supra_best.csv \
+    --export_predictions Results/attribution/Reddit-M/supra_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# NTSFormer
+python -m GNN.Baselines.NTSFormer \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --n_hidden 256 --n_layers 2 \
+    --dropout 0.3 --lr 0.0005 --wd 0.0001 \
+    --nts_num_heads 2 --nts_sign_k 1 \
+    --result_csv Results/attribution/Reddit-M/ntsformer_best.csv \
+    --export_predictions Results/attribution/Reddit-M/ntsformer_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# MIG_GT
+python -m GNN.Baselines.MIG_GT \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --n_hidden 256 --n_layers 2 \
+    --dropout 0.3 --lr 0.001 --wd 0.0001 \
+    --k_t 3 --k_v 2 \
+    --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \
+    --num_samples 10 --tur_weight 1.0 \
+    --result_csv Results/attribution/Reddit-M/mig_gt_best.csv \
+    --export_predictions Results/attribution/Reddit-M/mig_gt_test_pred.pt \
+    --disable_wandb --gpu 0
 ```
 
 ---
 
 ## 三、Stage 2 — 语义归因可视化
+
+所有预测文件齐全后，一键运行归因分析：
 
 ```bash
 # Reddit-M

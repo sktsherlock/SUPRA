@@ -457,6 +457,8 @@ def args_init():
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
     parser.add_argument("--save_checkpoint", type=str, default=None,
                         help="Path to save best model checkpoint after training")
+    parser.add_argument("--export_predictions", type=str, default=None,
+                        help="Path to save test predictions as torch.Tensor (argmax, shape=[N_test])")
     parser.add_argument("--analyze_gradients", action="store_true",
                         help="Enable gradient SVD analysis during training")
     parser.add_argument("--gradient_csv", type=str, default=None,
@@ -592,6 +594,7 @@ def main():
     # Global best model state across all runs (for checkpoint saving)
     global_best_model_state = None
     global_best_val_score = -1.0
+    global_best_test_logits = None
 
     # Gradient analyzer setup (initialized once, persists across runs)
     gradient_analyzer = None
@@ -642,7 +645,6 @@ def main():
 
         best_val_score, final_test_result, best_val_result, total_time = -1.0, 0.0, -1.0, 0.0
         run_best_logits = None
-        best_model_state = None
         epochs_needed = args.n_epochs  # will be updated if early stop triggered
 
         for epoch in range(1, args.n_epochs + 1):
@@ -683,6 +685,7 @@ def main():
                     if val_score > global_best_val_score:
                         global_best_val_score = float(val_score)
                         global_best_model_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+                        global_best_test_logits = logits_e[test_idx].detach().clone()
                     # Compute degrade metrics if enabled
                     if report_drop and degrade_alphas:
                         for alpha in degrade_alphas:
@@ -861,6 +864,12 @@ def main():
             'n_classes': n_classes,
         }, args.save_checkpoint)
         print(f"Checkpoint saved to {args.save_checkpoint}")
+
+    # Export predictions if requested
+    if getattr(args, 'export_predictions', None) and global_best_test_logits is not None:
+        pred_path = str(args.export_predictions)
+        th.save(th.argmax(global_best_test_logits, dim=1), pred_path)
+        print(f"[Export] Test predictions → {pred_path}")
 
 if __name__ == "__main__":
     main()

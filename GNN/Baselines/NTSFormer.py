@@ -655,6 +655,8 @@ def args_init():
 
     parser.add_argument("--disable_wandb", action="store_true", help="Disable wandb logging")
     parser.add_argument("--local_log", type=str, default=None, help="Optional CSV file to upsert local results")
+    parser.add_argument("--export_predictions", type=str, default=None,
+                        help="Path to save test predictions as torch.Tensor (argmax, shape=[N_test])")
 
     return parser
 
@@ -774,6 +776,7 @@ def main():
         epoch_times = []  # track full epoch time (train + eval)
 
         best_val_score = -1.0
+        best_test_logits = None
         final_test_result = 0.0
         best_test_degrade = None
         epochs_needed = args.n_epochs  # will be updated if early stop triggered
@@ -818,6 +821,7 @@ def main():
                 if val_result > best_val_score:
                     best_val_score = float(val_result)
                     final_test_result = float(test_result)
+                    best_test_logits = logits[test_idx].detach().clone()
                     best_test_degrade = None
                     if report_drop:
                         t_degrade_start = time.time()
@@ -893,6 +897,15 @@ def main():
             run_degrade_visual_results.append(dv)
         val_results.append(best_val_score)
         test_results.append(final_test_result)
+
+        if getattr(args, 'export_predictions', None) and best_test_logits is not None:
+            # Build output filename: if n_runs > 1, append _run{k}
+            pred_path = str(args.export_predictions)
+            if args.n_runs > 1:
+                root, ext = os.path.splitext(pred_path)
+                pred_path = f"{root}_run{run+1}{ext}"
+            th.save(th.argmax(best_test_logits, dim=1), pred_path)
+            print(f"[Export] Test predictions → {pred_path}")
 
         # Collect efficiency profiling data
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)

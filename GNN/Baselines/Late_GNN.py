@@ -264,6 +264,8 @@ def args_init():
         default=None,
         help="Optional path to save best checkpoint per run (weights-only + args). If multiple runs, appends _run{k}.pt.",
     )
+    parser.add_argument("--export_predictions", type=str, default=None,
+                        help="Path to save test predictions as torch.Tensor (argmax, shape=[N_test])")
     parser.add_argument(
         "--late_mlp_before_fusion",
         type=str2bool,
@@ -601,6 +603,20 @@ def main():
 
         val_results.append(best_val_result)
         test_results.append(final_test_result)
+        if getattr(args, 'export_predictions', None) and best_state_dict is not None:
+            model.load_state_dict({k: v.to(device) for k, v in best_state_dict.items()})
+            model.eval()
+            with th.no_grad():
+                text_h, vis_h = model.forward_branches(graph, text_feat, vis_feat)
+                fused = model.fuse_embeddings(text_h, vis_h)
+                logits_e = model.classifier(fused)
+                test_logits = logits_e[test_idx]
+            pred_path = str(args.export_predictions)
+            if args.n_runs > 1:
+                root, ext = os.path.splitext(pred_path)
+                pred_path = f"{root}_run{run+1}{ext}"
+            th.save(th.argmax(test_logits, dim=1), pred_path)
+            print(f"[Export] Test predictions → {pred_path}")
         if best_test_degrade is not None:
             for alpha in degrade_alphas:
                 if alpha not in best_test_degrade:

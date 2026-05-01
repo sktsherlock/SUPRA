@@ -421,6 +421,8 @@ def args_init():
         default=None,
         help="Optional path to save best checkpoint per run (weights-only + args). If multiple runs, appends _run{k}.pt.",
     )
+    parser.add_argument("--export_predictions", type=str, default=None,
+                        help="Path to save test predictions as torch.Tensor (argmax, shape=[N_test])")
 
     # GCNII arguments
     parser.add_argument("--gcnii_lamda", type=float, default=0.5, help="GCNII damping factor (lambda)")
@@ -495,6 +497,7 @@ def _mag_classification_mmcl(
     degrade_alphas = _parse_degrade_alphas(args)
     best_test_degrade = None
     best_state_dict = None
+    best_test_logits = None
 
     # Efficiency tracking
     peak_memory_mb = 0.0
@@ -606,6 +609,7 @@ def _mag_classification_mmcl(
                 best_val_result = val_result
                 final_test_result = test_result
                 best_state_dict = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+                best_test_logits = pred[test_idx].detach().clone()
                 if report_drop:
                     if report_drop_mode == "best":
                         best_test_degrade = {}
@@ -708,6 +712,7 @@ def _mag_classification_mmcl(
             "best_val_metric": _as_scalar_float(best_val_result),
             "best_test_metric": _as_scalar_float(final_test_result),
             "best_state_dict": best_state_dict,
+            "best_test_logits": best_test_logits,
             "peak_memory_mb": peak_memory_mb,
             "avg_epoch_time": avg_epoch_time,
             "epochs_needed": epochs_needed,
@@ -954,6 +959,20 @@ def main():
             os.makedirs(os.path.dirname(ckpt_path) or ".", exist_ok=True)
             th.save({"state_dict": best_state_dict, "args": vars(args)}, ckpt_path)
             print(f"[Info] Saved best checkpoint to {ckpt_path}")
+
+        if best_state_dict is not None and getattr(args, "export_predictions", None):
+            # Re-run forward pass with best model to get test predictions
+            model.load_state_dict({k: v.to(device) for k, v in best_state_dict.items()})
+            model.eval()
+            with th.no_grad():
+                best_pred = model(graph, text_feature, visual_feature)
+                test_logits = best_pred[test_idx]
+            pred_path = str(args.export_predictions)
+            if args.n_runs > 1:
+                root, ext = os.path.splitext(pred_path)
+                pred_path = f"{root}_run{run+1}{ext}"
+            th.save(th.argmax(test_logits, dim=1), pred_path)
+            print(f"[Export] Test predictions → {pred_path}")
 
         # Collect efficiency profiling data from extra
         if isinstance(extra, dict):

@@ -49,7 +49,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend mlp --single_modality text \
-    --n-layers 2 \
+    --n-layers 2 --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/text_mlp_best.csv \
     --export_predictions Results/attribution/Reddit-M/text_mlp_test_pred.pt \
@@ -62,7 +62,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend mlp --single_modality visual \
-    --n-layers 3 \
+    --n-layers 3 --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/image_mlp_best.csv \
     --export_predictions Results/attribution/Reddit-M/image_mlp_test_pred.pt \
@@ -75,7 +75,7 @@ python -m GNN.Baselines.Late_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --model_name GCN \
-    --n-layers 2 \
+    --n-layers 2 --early_stop_patience 25 \
     --late_no_encoder true \
     --n-runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/late_gnn_gcn_best.csv \
@@ -89,7 +89,7 @@ python -m GNN.Baselines.Late_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --model_name GAT \
-    --n-layers 2 \
+    --n-layers 2 --early_stop_patience 25 \
     --late_no_encoder true \
     --n-runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/late_gnn_gat_best.csv \
@@ -103,7 +103,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend gnn --model_name GCN --early_no_encoder true \
-    --n-layers 2 --lr 0.001 \
+    --n-layers 2 --lr 0.001 --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/early_gnn_gcn_best.csv \
     --export_predictions Results/attribution/Reddit-M/early_gnn_gcn_test_pred.pt \
@@ -123,7 +123,7 @@ python -m GNN.SUPRA \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --embed_dim 256 --n-layers 4 --n_hidden 256 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --aux_weight 0.1 --mlp_variant ablate \
+    --aux_weight 0.1 --mlp_variant ablate --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/supra_best.csv \
     --export_predictions Results/attribution/Reddit-M/supra_test_pred.pt \
@@ -137,7 +137,7 @@ python -m GNN.Baselines.NTSFormer \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --n_hidden 256 --n-layers 1 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --nts_sign_k 1 \
+    --nts_sign_k 1 --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/ntsformer_best.csv \
     --export_predictions Results/attribution/Reddit-M/ntsformer_test_pred.pt \
@@ -153,7 +153,7 @@ python -m GNN.Baselines.MIG_GT \
     --dropout 0.3 --lr 0.001 --wd 0.0001 \
     --k_t 3 --k_v 2 \
     --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \
-    --num_samples 10 --tur_weight 1.0 \
+    --num_samples 10 --tur_weight 1.0 --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/mig_gt_best.csv \
     --export_predictions Results/attribution/Reddit-M/mig_gt_test_pred.pt \

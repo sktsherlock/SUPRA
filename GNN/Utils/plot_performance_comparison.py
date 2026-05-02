@@ -142,17 +142,8 @@ def plot_comparison(save_path: str = None) -> None:
         if ax_idx == 0:
             ax.set_ylabel("Accuracy (%)", fontsize=11)
 
-    # Global legend below figure
-    fig.legend(
-        ENCODERS,
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.06),
-        ncol=2,
-        framealpha=0.9,
-        fontsize=10,
-    )
-
-    plt.subplots_adjust(bottom=0.25)
+        # Legend inside each subplot (upper right)
+        ax.legend(loc="upper left", fontsize=9, framealpha=0.9)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

@@ -133,6 +133,9 @@ def plot_stacked_bar(
       Visual-Unique(橙)— 仅视觉 MLP 预测正确
       Synergy(黄)      — 两者都错的节点
     """
+    # 设置全局字体（学术期刊常用 serif）
+    plt.rcParams["font.family"] = "serif"
+
     # 固定顺序：MGCN/MGAT 替代 Late_GNN-GCN/GAT，移除 Early_GNN-GCN，SUPRA 放最后
     ordered = [
         "Text MLP",
@@ -146,12 +149,19 @@ def plot_stacked_bar(
     models = [m for m in ordered if m in results]
     n_models = len(models)
 
-    # 学术配色：蓝/橙/灰/黄
+    # 学术柔和配色 + alpha 透明度
     colors = {
-        "shared":   "#A6A6A6",   # gray
-        "t_unique": "#4472B4",   # blue
-        "v_unique": "#ED7D31",   # orange
-        "hard":     "#FFC000",   # yellow
+        "shared":   "#E6E6E6",   # 浅灰
+        "t_unique": "#7294D4",   # 柔和蓝
+        "v_unique": "#FFD966",   # 浅金黄
+        "hard":     "#A9D18E",   # 抹茶绿
+    }
+    # 花纹（Hatch patterns）增强层次感
+    hatches = {
+        "shared":   "",
+        "t_unique": "////",
+        "v_unique": "....",
+        "hard":     "xxx",
     }
     labels_text = {
         "shared":   "Shared Semantics",
@@ -163,9 +173,9 @@ def plot_stacked_bar(
     bar_width = 0.55
     x = np.arange(n_models)
 
-    # 断裂 Y 轴：height_ratios=[4, 1]，上半部分占 4/5 空间
-    fig = plt.figure(figsize=(max(10, n_models * 1.4), 6))
-    gs = GridSpec(2, 1, height_ratios=[4, 1], hspace=0.08)
+    # 断裂 Y 轴：height_ratios=[3.5, 1]
+    fig = plt.figure(figsize=(max(8, n_models * 1.3), 6))
+    gs = GridSpec(2, 1, height_ratios=[3.5, 1], hspace=0.1)
     ax_top = fig.add_subplot(gs[0])
     ax_bot = fig.add_subplot(gs[1], sharex=ax_top)
 
@@ -175,59 +185,65 @@ def plot_stacked_bar(
         for set_key in ["shared", "t_unique", "v_unique", "hard"]:
             heights = [results[m][set_key] for m in models]
             ax.bar(x, heights, bar_width, bottom=bottom,
-                   label=labels_text[set_key], color=colors[set_key],
-                   edgecolor="white", linewidth=0.5)
+                   label=labels_text[set_key],
+                   color=colors[set_key],
+                   hatch=hatches[set_key],
+                   edgecolor="white",
+                   linewidth=1,
+                   alpha=0.85)
             bottom += np.array(heights)
 
-    # 上半轴：专注主要数据范围
-    ax_top.set_ylim(0.30, 0.95)
-    # 下半轴：展示 0 ~ 10% 的基准区间
+    # 上半轴：主要数据范围（从 50% 开始）
+    all_totals = [results[m]["total"] for m in models]
+    y_max_top = max(all_totals) * 1.1
+    ax_top.set_ylim(0.50, y_max_top)
+    # 下半轴：0 ~ 10% 基准区间
     ax_bot.set_ylim(0, 0.10)
 
     # 隐藏不需要的脊柱，制造断裂效果
     ax_top.spines["bottom"].set_visible(False)
     ax_bot.spines["top"].set_visible(False)
-    ax_top.xaxis.tick_top()
-    ax_top.tick_params(labeltop=False)
-    ax_bot.xaxis.tick_bottom()
+    ax_top.tick_params(labeltop=False, bottom=False)
 
-    # 绘制断裂斜杠标记
-    d = 0.012
-    kwargs = dict(transform=ax_top.transAxes, color="black", clip_on=False, lw=1)
-    ax_top.plot((-d, +d), (-d, +d), **kwargs)
-    ax_top.plot((1 - d, 1 + d), (-d, +d), **kwargs)
+    # 绘制断裂斜杠（仅左侧，避免右侧悬空）
+    d = 0.015
+    kwargs = dict(transform=ax_top.transAxes, color="black", clip_on=False, lw=1.2)
+    ax_top.plot((-d, +d), (-d, +d), **kwargs)        # 左上斜杠
     kwargs.update(transform=ax_bot.transAxes)
-    ax_bot.plot((-d, +d), (1 - d, 1 + d), **kwargs)
-    ax_bot.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)
+    ax_bot.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # 左下斜杠
 
     # 总准确率标注（仅在顶部轴上方）
     for i, m in enumerate(models):
         total_val = results[m]["total"]
-        ax_top.text(i, total_val + 0.008, f"{total_val:.1%}",
-                    ha="center", va="bottom", fontsize=9, fontweight="bold")
+        ax_top.text(i, total_val + 0.01, f"{total_val:.1%}",
+                    ha="center", va="bottom", fontsize=10, fontweight="bold")
 
     # X 轴
     ax_bot.set_xticks(x)
-    ax_bot.set_xticklabels(models, rotation=30, ha="right", fontsize=10)
+    ax_bot.set_xticklabels(models, rotation=25, ha="right", fontsize=10)
     ax_bot.tick_params(axis="x", length=0)
 
-    # Y 轴百分比格式 + 网格
+    # Y 轴百分比格式 + 网格 + 加粗外框
     for ax in [ax_top, ax_bot]:
+        for spine in ax.spines.values():
+            spine.set_linewidth(1.5)
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
-        ax.yaxis.grid(True, linestyle="--", alpha=0.4)
+        ax.yaxis.grid(True, linestyle="--", alpha=0.5, zorder=0)
         ax.set_axisbelow(True)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
 
-    # 下半轴只留一个 0% 刻度线，视觉更干净
+    # 下半轴只留 0% 刻度
     ax_bot.set_yticks([0])
 
-    # 左侧统一 Y 轴标签
-    fig.text(0.02, 0.5, "Accuracy Contribution", va="center", rotation="vertical", fontsize=11)
+    # 标题
+    fig.suptitle(data_name, fontsize=16, fontweight="bold", y=0.95)
+    fig.text(0.02, 0.5, "Accuracy Contribution", va="center", rotation="vertical", fontsize=12)
 
-    # 图例放在顶部子图左上角
+    # 图例（反转顺序与堆叠一致，放在左上角）
     handles, lbls = ax_top.get_legend_handles_labels()
-    ax_top.legend(handles, lbls, loc="upper left", fontsize=8, framealpha=0.9)
+    ax_top.legend(handles[::-1], lbls[::-1], loc="upper left", fontsize=9,
+                  framealpha=1, edgecolor="black")
+
+    plt.tight_layout(rect=[0.05, 0.03, 1, 0.95])
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

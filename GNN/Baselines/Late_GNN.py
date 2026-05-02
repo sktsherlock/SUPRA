@@ -501,8 +501,6 @@ def main():
                     )
                 lr_scheduler.step(_as_scalar_float(total_loss))
 
-                total_time += time.time() - tic
-
                 val_pred = th.argmax(logits_e[val_idx], dim=1)
                 val_true = labels[val_idx]
                 val_score = get_metric(val_pred, val_true, select_metric, average=select_average)
@@ -569,6 +567,8 @@ def main():
                     best_val_result,
                     final_test_result,
                 )
+
+            total_time += time.time() - tic
 
         print_final_results(best_val_result, final_test_result, args)
 

@@ -121,7 +121,7 @@ python -m GNN.SUPRA \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --embed_dim 256 --n-layers 4 --n_hidden 256 \
+    --embed_dim 256 --n-layers 4 --n-hidden 256 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --aux_weight 0.1 --mlp_variant ablate --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
@@ -135,7 +135,7 @@ python -m GNN.Baselines.NTSFormer \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --n_hidden 256 --n-layers 1 \
+    --n-hidden 256 --n-layers 1 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --nts_sign_k 1 --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
@@ -149,7 +149,7 @@ python -m GNN.Baselines.MIG_GT \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --n_hidden 256 --n-layers 1 \
+    --n-hidden 256 --n-layers 1 \
     --dropout 0.3 --lr 0.001 --wd 0.0001 \
     --k_t 3 --k_v 2 \
     --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \

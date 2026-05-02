@@ -569,9 +569,6 @@ def _mag_classification_mmcl(
                 )
             lr_scheduler.step(_as_scalar_float(loss))
 
-            toc = time.time()
-            total_time += toc - tic
-
             val_pred = th.argmax(pred[val_idx], dim=1)
             val_true = labels[val_idx]
             val_score = get_metric(val_pred, val_true, select_metric, average=select_average)
@@ -644,6 +641,9 @@ def _mag_classification_mmcl(
                 if stopper.step(val_score):
                     epochs_needed = epoch
                     break
+
+            toc = time.time()
+            total_time += toc - tic
 
             if epoch % args.log_every == 0:
                 avg_epoch_time = float(total_time) / float(epoch)

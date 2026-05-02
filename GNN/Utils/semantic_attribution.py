@@ -170,11 +170,12 @@ def plot_stacked_bar(
         "hard":     "Synergy",
     }
 
-    bar_width = 0.40
-    x = np.arange(n_models)
+    bar_width = 0.30
+    # 压缩柱子中心间距（原来间距为1，现在压缩到0.7）
+    x = np.linspace(0, (n_models - 1) * 0.7, n_models)
 
     # 断裂 Y 轴：height_ratios=[15, 1]，底部极窄形成强压缩感
-    fig = plt.figure(figsize=(max(8, n_models * 1.3), 6))
+    fig = plt.figure(figsize=(max(6, n_models * 0.9), 5.5))
     gs = GridSpec(2, 1, height_ratios=[15, 1], hspace=0.05)
     ax_top = fig.add_subplot(gs[0])
     ax_bot = fig.add_subplot(gs[1], sharex=ax_top)
@@ -237,16 +238,15 @@ def plot_stacked_bar(
     # 下半轴只留 0% 刻度
     ax_bot.set_yticks([0])
 
-    # 标题
-    fig.suptitle(data_name, fontsize=16, fontweight="bold", y=0.95)
-    fig.text(0.02, 0.5, "Accuracy Contribution", va="center", rotation="vertical", fontsize=12)
+    # Y轴标签（靠近Y轴）
+    fig.text(0.01, 0.5, "Accuracy Contribution", va="center", rotation="vertical", fontsize=12)
 
     # 图例（反转顺序与堆叠一致，放在左上角）
     handles, lbls = ax_top.get_legend_handles_labels()
     ax_top.legend(handles[::-1], lbls[::-1], loc="upper left", fontsize=9,
                   framealpha=1, edgecolor="black")
 
-    plt.tight_layout(rect=[0.05, 0.03, 1, 0.95])
+    plt.tight_layout(rect=[0.04, 0.03, 1, 0.98])
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

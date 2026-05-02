@@ -200,17 +200,20 @@ def plot_stacked_bar(
     # 下半轴：0 ~ 10% 基准区间
     ax_bot.set_ylim(0, 0.10)
 
-    # 隐藏不需要的脊柱，制造断裂效果
+    # 隐藏不需要的脊柱和刻度，制造断裂效果
     ax_top.spines["bottom"].set_visible(False)
     ax_bot.spines["top"].set_visible(False)
-    ax_top.tick_params(labeltop=False, bottom=False)
+    ax_top.tick_params(labeltop=False, labelbottom=False)
+    ax_bot.tick_params(labeltop=False)
 
-    # 绘制断裂斜杠（仅左侧，避免右侧悬空）
-    d = 0.015
-    kwargs = dict(transform=ax_top.transAxes, color="black", clip_on=False, lw=1.2)
-    ax_top.plot((-d, +d), (-d, +d), **kwargs)        # 左上斜杠
+    # 绘制断裂斜杠（左右两侧都要有）
+    d = 0.010
+    kwargs = dict(transform=ax_top.transAxes, color="black", clip_on=False, lw=1.0)
+    ax_top.plot((-d, +d), (-d, +d), **kwargs)          # 左上
+    ax_top.plot((1 - d, 1 + d), (-d, +d), **kwargs)    # 右上
     kwargs.update(transform=ax_bot.transAxes)
-    ax_bot.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # 左下斜杠
+    ax_bot.plot((-d, +d), (1 - d, 1 + d), **kwargs)    # 左下
+    ax_bot.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # 右下
 
     # 总准确率标注（仅在顶部轴上方）
     for i, m in enumerate(models):

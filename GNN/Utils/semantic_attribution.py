@@ -132,7 +132,18 @@ def plot_stacked_bar(
       Visual-Unique(橙)— 仅视觉 MLP 预测正确
       Hard/绿        — 两者都错的节点
     """
-    models = list(results.keys())
+    # 固定顺序：SUPRA 放最后
+    ordered = [
+        "Text MLP",
+        "Image MLP",
+        "Late_GNN-GCN",
+        "Late_GNN-GAT",
+        "Early_GNN-GCN",
+        "NTSFormer",
+        "MIG_GT",
+        "SUPRA",
+    ]
+    models = [m for m in ordered if m in results]
     n_models = len(models)
 
     colors = {
@@ -170,7 +181,10 @@ def plot_stacked_bar(
     ax.set_xticklabels(models, rotation=30, ha="right", fontsize=10)
     ax.set_ylabel("Absolute Accuracy Contribution", fontsize=11)
     ax.set_title(f"Semantic Attribution Analysis — {data_name}", fontsize=13, fontweight="bold")
-    ax.set_ylim(0, min(bottom.max() * 1.18, 1.0))
+    # Y 轴从 Shared 最低分附近开始，拉开一定间距
+    shared_min = min(results[m]["shared"] for m in models)
+    y_lo = max(0, shared_min - 0.06)
+    ax.set_ylim(y_lo, min(bottom.max() * 1.18, 1.0))
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
     ax.legend(loc="upper right", framealpha=0.9)
     ax.set_axisbelow(True)
@@ -180,7 +194,7 @@ def plot_stacked_bar(
 
     # 底部标注节点集合分布
     for i, (k, v) in enumerate(set_sizes.items()):
-        ax.text(i, -0.06, f"{labels_text[k]}: {v:.1%}",
+        ax.text(i, y_lo - 0.01, f"{labels_text[k]}: {v:.1%}",
                 ha="center", va="top", fontsize=7, color=colors[k],
                 transform=ax.get_xaxis_transform())
 
@@ -188,8 +202,10 @@ def plot_stacked_bar(
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        fig.savefig(save_path, dpi=150, bbox_inches="tight")
-        print(f"\n[Saved] Plot → {save_path}")
+        # 保存为 PDF 矢量格式
+        pdf_path = os.path.splitext(save_path)[0] + ".pdf"
+        fig.savefig(pdf_path, dpi=300, bbox_inches="tight", format="pdf")
+        print(f"\n[Saved] Plot → {pdf_path}")
     else:
         plt.show()
 

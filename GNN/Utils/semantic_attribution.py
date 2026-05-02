@@ -104,7 +104,7 @@ def load_predictions(pred_dir: str) -> Dict[str, th.Tensor]:
     for key, fname in mapping.items():
         fpath = os.path.join(pred_dir, fname)
         if os.path.exists(fpath):
-            preds[key] = th.load(fpath)
+            preds[key] = th.load(fpath).cpu()
             print(f"  [Loaded] {key}: {preds[key].shape}")
         else:
             print(f"  [Skip]   {key} ({fname} not found)")

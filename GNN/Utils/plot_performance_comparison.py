@@ -2,7 +2,7 @@
 Performance Comparison Plot — Faceted Grouped Bar Chart
 =====================================================
 
-展示不同特征质量（clip-roberta vs llama）下，各模型在 Movies / Grocery / RedditM 上的性能对比。
+展示不同特征质量（Low-Conf vs High-Conf）下，各模型在 Movies / RedditM 上的性能对比。
 用于论文 Intro，说明高质量特征下多模态图学习收益递减的现象。
 
 Usage:
@@ -23,69 +23,52 @@ import numpy as np
 # Structure: data[dataset][encoder] = {model: accuracy}
 DATA: Dict[str, Dict[str, Dict[str, float]]] = {
     "Movies": {
-        "clip-roberta": {
+        "Low-Conf": {
             "MLP": 51.29,
             "MGCN": 53.95,
             "MGAT": 53.88,
             "MIGGT": 49.89,
-            "NTSFormer": 54.07,
+            "NTS": 54.07,
         },
-        "llama": {
+        "High-Conf": {
             "MLP": 57.51,
             "MGCN": 55.19,
             "MGAT": 54.44,
             "MIGGT": 55.93,
-            "NTSFormer": 56.14,
-        },
-    },
-    "Grocery": {
-        "clip-roberta": {
-            "MLP": 80.62,
-            "MGCN": 81.53,
-            "MGAT": 81.40,
-            "MIGGT": 80.04,
-            "NTSFormer": 83.47,
-        },
-        "llama": {
-            "MLP": 86.51,
-            "MGCN": 84.56,
-            "MGAT": 84.28,
-            "MIGGT": 85.82,
-            "NTSFormer": 87.03,
+            "NTS": 56.14,
         },
     },
     "RedditM": {
-        "clip-roberta": {
+        "Low-Conf": {
             "MLP": 83.20,
             "MGCN": 78.46,
             "MGAT": 78.11,
             "MIGGT": 82.91,
-            "NTSFormer": 86.13,
+            "NTS": 86.13,
         },
-        "llama": {
+        "High-Conf": {
             "MLP": 84.80,
             "MGCN": 79.25,
             "MGAT": 77.90,
             "MIGGT": 84.69,
-            "NTSFormer": 87.28,
+            "NTS": 87.28,
         },
     },
 }
 
-MODELS = ["MLP", "MGCN", "MGAT", "MIGGT", "NTSFormer"]
-DATASETS = ["Movies", "Grocery", "RedditM"]
-ENCODERS = ["clip-roberta", "llama"]
+MODELS = ["MLP", "MGCN", "MGAT", "MIGGT", "NTS"]
+DATASETS = ["Movies", "RedditM"]
+ENCODERS = ["Low-Conf", "High-Conf"]
 
 # Y-axis ranges per dataset (independent scales)
 Y_RANGES = {
     "Movies":  (45, 62),
-    "Grocery": (78, 90),
     "RedditM": (75, 90),
 }
 
 COLORS = {
-    "clip-roberta": "#4C72B0",  # blue
-    "llama":        "#DD8452",  # orange
+    "Low-Conf":  "#4C72B0",  # blue
+    "High-Conf": "#DD8452",  # orange
 }
 
 
@@ -103,8 +86,8 @@ def plot_comparison(save_path: str = None) -> None:
 
     fig, axes = plt.subplots(
         1, n_datasets,
-        figsize=(14, 4.5),
-        gridspec_kw={"wspace": 0.35},
+        figsize=(9, 4.5),
+        gridspec_kw={"wspace": 0.30},
     )
     if n_datasets == 1:
         axes = [axes]
@@ -130,9 +113,9 @@ def plot_comparison(save_path: str = None) -> None:
                 edgecolor="white",
                 linewidth=0.5,
             )
-            # NTSFormer: bold outline
+            # NTS: bold outline
             for bar in bars:
-                if bar.get_label() == "NTSFormer":
+                if bar.get_label() == "NTS":
                     bar.set_edgecolor("#333333")
                     bar.set_linewidth(1.5)
 

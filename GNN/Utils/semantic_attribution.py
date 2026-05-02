@@ -219,12 +219,12 @@ def plot_stacked_bar(
     # 总准确率标注（仅在顶部轴上方）
     for i, m in enumerate(models):
         total_val = results[m]["total"]
-        ax_top.text(i, total_val + 0.01, f"{total_val:.1%}",
-                    ha="center", va="bottom", fontsize=10, fontweight="bold")
+        ax_top.text(x[i], total_val + 0.01, f"{total_val:.1%}",
+                    ha="center", va="bottom", fontsize=9, fontweight="bold")
 
     # X 轴
     ax_bot.set_xticks(x)
-    ax_bot.set_xticklabels(models, rotation=25, ha="right", fontsize=10)
+    ax_bot.set_xticklabels(models, rotation=15, ha="right", fontsize=10)
     ax_bot.tick_params(axis="x", length=0)
 
     # Y 轴百分比格式 + 网格 + 加粗外框

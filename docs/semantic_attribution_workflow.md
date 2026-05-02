@@ -129,7 +129,7 @@ python -m GNN.SUPRA \
     --export_predictions Results/attribution/Reddit-M/supra_test_pred.pt \
     --disable_wandb --gpu 0
 
-# NTSFormer
+# NTSFormer（仅 nts_sign_k=1 是 sweep 最优，其余用代码默认值）
 python -m GNN.Baselines.NTSFormer \
     --data_name Reddit-M \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
@@ -137,7 +137,7 @@ python -m GNN.Baselines.NTSFormer \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --n_hidden 256 --n_layers 1 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --nts_num_heads 2 --nts_sign_k 1 \
+    --nts_sign_k 1 \
     --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/ntsformer_best.csv \
     --export_predictions Results/attribution/Reddit-M/ntsformer_test_pred.pt \

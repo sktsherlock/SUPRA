@@ -4,7 +4,7 @@ Semantic Attribution Analysis — Inference & Visualization
 
 此脚本仅负责：
 1. 从 .pt 文件加载各模型在测试集上的预测结果
-2. 按节点集合（Shared / T-Unique / V-Unique / Hard）分解准确率
+2. 按节点集合（Shared / T-Unique / V-Unique / Synergy）分解准确率
 3. 绘制堆叠柱状图
 
 训练和各模型预测导出需使用各自的主训练脚本（见 docs/semantic_attribution_workflow.md）
@@ -25,6 +25,7 @@ from typing import Dict, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import torch as th
+from matplotlib.gridspec import GridSpec
 
 from GNN.GraphData import load_data
 
@@ -122,15 +123,15 @@ def plot_stacked_bar(
     save_path: Optional[str] = None,
 ):
     """
-    绘制堆叠柱状图。
+    绘制堆叠柱状图（断裂 Y 轴设计）。
 
     X轴: 模型名称
     Y轴: 绝对准确率贡献（各堆叠块之和 = 模型总准确率）
     颜色:
-      Shared(灰)      — 文本和视觉 MLP 都预测正确的节点
-      Text-Unique(蓝) — 仅文本 MLP 预测正确
+      Shared(灰)       — 文本和视觉 MLP 都预测正确的节点
+      Text-Unique(蓝)  — 仅文本 MLP 预测正确
       Visual-Unique(橙)— 仅视觉 MLP 预测正确
-      Hard/绿        — 两者都错的节点
+      Synergy(黄)      — 两者都错的节点
     """
     # 固定顺序：MGCN/MGAT 替代 Late_GNN-GCN/GAT，移除 Early_GNN-GCN，SUPRA 放最后
     ordered = [
@@ -145,7 +146,7 @@ def plot_stacked_bar(
     models = [m for m in ordered if m in results]
     n_models = len(models)
 
-    # 参考图配色：蓝/橙/灰/黄
+    # 学术配色：蓝/橙/灰/黄
     colors = {
         "shared":   "#A6A6A6",   # gray
         "t_unique": "#4472B4",   # blue
@@ -159,47 +160,77 @@ def plot_stacked_bar(
         "hard":     "Synergy",
     }
 
-    bar_width = 0.6
+    bar_width = 0.55
     x = np.arange(n_models)
 
-    fig, ax = plt.subplots(figsize=(max(10, n_models * 1.6), 6))
+    # 断裂 Y 轴：height_ratios=[4, 1]，上半部分占 4/5 空间
+    fig = plt.figure(figsize=(max(10, n_models * 1.4), 6))
+    gs = GridSpec(2, 1, height_ratios=[4, 1], hspace=0.08)
+    ax_top = fig.add_subplot(gs[0])
+    ax_bot = fig.add_subplot(gs[1], sharex=ax_top)
 
-    bottom = np.zeros(n_models)
-    for set_key in ["shared", "t_unique", "v_unique", "hard"]:
-        heights = [results[m][set_key] for m in models]
-        ax.bar(x, heights, bar_width, bottom=bottom,
-               label=labels_text[set_key], color=colors[set_key],
-               edgecolor="white", linewidth=0.5)
-        bottom += np.array(heights)
+    # 在上下两个子图绘制相同数据
+    for ax in [ax_top, ax_bot]:
+        bottom = np.zeros(n_models)
+        for set_key in ["shared", "t_unique", "v_unique", "hard"]:
+            heights = [results[m][set_key] for m in models]
+            ax.bar(x, heights, bar_width, bottom=bottom,
+                   label=labels_text[set_key], color=colors[set_key],
+                   edgecolor="white", linewidth=0.5)
+            bottom += np.array(heights)
 
-    # Y 轴从 Shared 最低分附近开始，留足顶部空间给总准确率标注
-    shared_min = min(results[m]["shared"] for m in models)
-    y_lo = max(0, shared_min - 0.06)
-    y_top = bottom.max()
-    ax.set_ylim(y_lo, y_top * 1.18)
+    # 上半轴：专注主要数据范围
+    ax_top.set_ylim(0.30, 0.95)
+    # 下半轴：展示 0 ~ 10% 的基准区间
+    ax_bot.set_ylim(0, 0.10)
 
-    # 顶部标注总准确率
+    # 隐藏不需要的脊柱，制造断裂效果
+    ax_top.spines["bottom"].set_visible(False)
+    ax_bot.spines["top"].set_visible(False)
+    ax_top.xaxis.tick_top()
+    ax_top.tick_params(labeltop=False)
+    ax_bot.xaxis.tick_bottom()
+
+    # 绘制断裂斜杠标记
+    d = 0.012
+    kwargs = dict(transform=ax_top.transAxes, color="black", clip_on=False, lw=1)
+    ax_top.plot((-d, +d), (-d, +d), **kwargs)
+    ax_top.plot((1 - d, 1 + d), (-d, +d), **kwargs)
+    kwargs.update(transform=ax_bot.transAxes)
+    ax_bot.plot((-d, +d), (1 - d, 1 + d), **kwargs)
+    ax_bot.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)
+
+    # 总准确率标注（仅在顶部轴上方）
     for i, m in enumerate(models):
-        ax.text(i, bottom[i] + y_top * 0.015, f"{results[m]['total']:.1%}",
-                ha="center", va="bottom", fontsize=9, fontweight="bold")
+        total_val = results[m]["total"]
+        ax_top.text(i, total_val + 0.008, f"{total_val:.1%}",
+                    ha="center", va="bottom", fontsize=9, fontweight="bold")
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(models, rotation=30, ha="right", fontsize=10)
-    ax.set_ylabel("Accuracy Contribution", fontsize=11)
-    ax.set_title("Semantic Attribution Analysis", fontsize=13, fontweight="bold")
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2, framealpha=0.9)
-    ax.set_axisbelow(True)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.4)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+    # X 轴
+    ax_bot.set_xticks(x)
+    ax_bot.set_xticklabels(models, rotation=30, ha="right", fontsize=10)
+    ax_bot.tick_params(axis="x", length=0)
 
-    plt.tight_layout()
-    plt.subplots_adjust(bottom=0.28)
+    # Y 轴百分比格式 + 网格
+    for ax in [ax_top, ax_bot]:
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
+        ax.yaxis.grid(True, linestyle="--", alpha=0.4)
+        ax.set_axisbelow(True)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+    # 下半轴只留一个 0% 刻度线，视觉更干净
+    ax_bot.set_yticks([0])
+
+    # 左侧统一 Y 轴标签
+    fig.text(0.02, 0.5, "Accuracy Contribution", va="center", rotation="vertical", fontsize=11)
+
+    # 图例放在顶部子图左上角
+    handles, lbls = ax_top.get_legend_handles_labels()
+    ax_top.legend(handles, lbls, loc="upper left", fontsize=8, framealpha=0.9)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        # 保存为 PDF 矢量格式
         pdf_path = os.path.splitext(save_path)[0] + ".pdf"
         fig.savefig(pdf_path, dpi=300, bbox_inches="tight", format="pdf")
         print(f"\n[Saved] Plot → {pdf_path}")
@@ -241,7 +272,6 @@ def run_attribution(args):
     print(f"\n[Results]")
     print(f"{'Model':<22} {'Shared':>8} {'T-Unique':>9} {'V-Unique':>9} {'Hard':>8} {'Total':>8}")
     print("-" * 70)
-    # display_name → prediction file key（late_gnn_gcn/gat 映射到 MGCN/MGAT）
     display_to_key = {
         "Text MLP":   "text_mlp",
         "Image MLP":  "image_mlp",

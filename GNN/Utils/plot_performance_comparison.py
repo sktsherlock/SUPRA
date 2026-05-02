@@ -152,8 +152,7 @@ def plot_comparison(save_path: str = None) -> None:
         fontsize=10,
     )
 
-    plt.tight_layout()
-    plt.subplots_adjust(bottom=0.22)
+    plt.subplots_adjust(bottom=0.25)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

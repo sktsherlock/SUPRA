@@ -193,12 +193,12 @@ def plot_stacked_bar(
                    alpha=0.85)
             bottom += np.array(heights)
 
-    # 上半轴：主要数据范围（从 50% 开始）
+    # 上半轴：主要数据范围（从 30% 开始，覆盖中高准确率区间）
     all_totals = [results[m]["total"] for m in models]
     y_max_top = max(all_totals) * 1.1
-    ax_top.set_ylim(0.50, y_max_top)
-    # 下半轴：0 ~ 10% 基准区间
-    ax_bot.set_ylim(0, 0.10)
+    ax_top.set_ylim(0.30, y_max_top)
+    # 下半轴：0 ~ 35%，展示各通道的底层构成
+    ax_bot.set_ylim(0, 0.35)
 
     # 隐藏不需要的脊柱和刻度，制造断裂效果
     ax_top.spines["bottom"].set_visible(False)
@@ -234,8 +234,8 @@ def plot_stacked_bar(
         ax.yaxis.grid(True, linestyle="--", alpha=0.5, zorder=0)
         ax.set_axisbelow(True)
 
-    # 下半轴只留 0% 刻度
-    ax_bot.set_yticks([0])
+    # 下半轴刻度
+    ax_bot.set_yticks([0, 0.10, 0.20, 0.30])
 
     # 标题
     fig.suptitle(data_name, fontsize=16, fontweight="bold", y=0.95)

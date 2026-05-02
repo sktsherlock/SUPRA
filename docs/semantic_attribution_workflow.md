@@ -49,6 +49,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend mlp --single_modality text \
+    --n_layers 2 \
     --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/text_mlp_best.csv \
     --export_predictions Results/attribution/Reddit-M/text_mlp_test_pred.pt \
@@ -61,6 +62,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend mlp --single_modality visual \
+    --n_layers 3 \
     --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/image_mlp_best.csv \
     --export_predictions Results/attribution/Reddit-M/image_mlp_test_pred.pt \
@@ -73,6 +75,7 @@ python -m GNN.Baselines.Late_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --model_name GCN \
+    --n_layers 2 \
     --late_no_encoder true \
     --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/late_gnn_gcn_best.csv \
@@ -85,7 +88,9 @@ python -m GNN.Baselines.Late_GNN \
     --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
-    --model_name GAT --late_no_encoder true \
+    --model_name GAT \
+    --n_layers 2 \
+    --late_no_encoder true \
     --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/late_gnn_gat_best.csv \
     --export_predictions Results/attribution/Reddit-M/late_gnn_gat_test_pred.pt \
@@ -98,6 +103,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend gnn --model_name GCN --early_no_encoder true \
+    --n_layers 2 --lr 0.001 \
     --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/early_gnn_gcn_best.csv \
     --export_predictions Results/attribution/Reddit-M/early_gnn_gcn_test_pred.pt \

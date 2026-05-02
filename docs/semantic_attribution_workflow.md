@@ -35,6 +35,8 @@ Stage 2: 语义归因分析  ─────────────────
 
 所有模型统一使用原始训练脚本，通过 `--export_predictions` 参数在训练结束后自动导出测试集预测文件。
 
+> **重要**：所有模型使用相同的 `--n_runs 1 --seed 42`，保证测试集划分完全一致，预测才可比较。
+
 ### 2.1 基础模型（Text MLP / Image MLP / Early_GNN / Late_GNN）
 
 使用 `Early_GNN` 脚本跑单模态 MLP 和早期/晚期融合基线：
@@ -47,6 +49,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend mlp --single_modality text \
+    --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/text_mlp_best.csv \
     --export_predictions Results/attribution/Reddit-M/text_mlp_test_pred.pt \
     --disable_wandb --gpu 0
@@ -58,6 +61,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend mlp --single_modality visual \
+    --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/image_mlp_best.csv \
     --export_predictions Results/attribution/Reddit-M/image_mlp_test_pred.pt \
     --disable_wandb --gpu 0
@@ -70,6 +74,7 @@ python -m GNN.Baselines.Late_GNN \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --model_name GCN \
     --late_no_encoder true \
+    --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/late_gnn_gcn_best.csv \
     --export_predictions Results/attribution/Reddit-M/late_gnn_gcn_test_pred.pt \
     --disable_wandb --gpu 0
@@ -81,6 +86,7 @@ python -m GNN.Baselines.Late_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --model_name GAT --late_no_encoder true \
+    --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/late_gnn_gat_best.csv \
     --export_predictions Results/attribution/Reddit-M/late_gnn_gat_test_pred.pt \
     --disable_wandb --gpu 0
@@ -92,6 +98,7 @@ python -m GNN.Baselines.Early_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
     --backend gnn --model_name GCN --early_no_encoder true \
+    --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/early_gnn_gcn_best.csv \
     --export_predictions Results/attribution/Reddit-M/early_gnn_gcn_test_pred.pt \
     --disable_wandb --gpu 0
@@ -111,6 +118,7 @@ python -m GNN.SUPRA \
     --embed_dim 256 --n_layers 3 --n_hidden 256 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --aux_weight 0.1 --mlp_variant ablate \
+    --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/supra_best.csv \
     --export_predictions Results/attribution/Reddit-M/supra_test_pred.pt \
     --disable_wandb --gpu 0
@@ -124,6 +132,7 @@ python -m GNN.Baselines.NTSFormer \
     --n_hidden 256 --n_layers 2 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --nts_num_heads 2 --nts_sign_k 1 \
+    --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/ntsformer_best.csv \
     --export_predictions Results/attribution/Reddit-M/ntsformer_test_pred.pt \
     --disable_wandb --gpu 0
@@ -139,6 +148,7 @@ python -m GNN.Baselines.MIG_GT \
     --k_t 3 --k_v 2 \
     --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \
     --num_samples 10 --tur_weight 1.0 \
+    --n_runs 1 --seed 42 \
     --result_csv Results/attribution/Reddit-M/mig_gt_best.csv \
     --export_predictions Results/attribution/Reddit-M/mig_gt_test_pred.pt \
     --disable_wandb --gpu 0

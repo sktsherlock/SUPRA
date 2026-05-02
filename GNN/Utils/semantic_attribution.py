@@ -144,7 +144,7 @@ def plot_stacked_bar(
         "MGAT",
         "MIG-GT",
         "NTS",
-        "SUPRA",
+        "SUPA",
     ]
     models = [m for m in ordered if m in results]
     n_models = len(models)
@@ -298,10 +298,10 @@ def run_attribution(args):
         "MGAT":       "late_gnn_gat",
         "NTS":        "ntsformer",
         "MIG-GT":     "mig_gt",
-        "SUPRA":      "supra",
+        "SUPA":      "supra",
     }
     ordered = [
-        "T-MLP", "V-MLP", "MGCN", "MGAT", "MIG-GT", "NTS", "SUPRA",
+        "T-MLP", "V-MLP", "MGCN", "MGAT", "MIG-GT", "NTS", "SUPA",
     ]
     for name in ordered:
         key = display_to_key.get(name, name)

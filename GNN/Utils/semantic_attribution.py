@@ -173,9 +173,9 @@ def plot_stacked_bar(
     bar_width = 0.55
     x = np.arange(n_models)
 
-    # 断裂 Y 轴：height_ratios=[3.5, 1]
+    # 断裂 Y 轴：height_ratios=[15, 1]，底部极窄形成强压缩感
     fig = plt.figure(figsize=(max(8, n_models * 1.3), 6))
-    gs = GridSpec(2, 1, height_ratios=[3.5, 1], hspace=0.1)
+    gs = GridSpec(2, 1, height_ratios=[15, 1], hspace=0.05)
     ax_top = fig.add_subplot(gs[0])
     ax_bot = fig.add_subplot(gs[1], sharex=ax_top)
 
@@ -193,12 +193,12 @@ def plot_stacked_bar(
                    alpha=0.85)
             bottom += np.array(heights)
 
-    # 上半轴：主要数据范围（从 30% 开始，覆盖中高准确率区间）
+    # 上半轴：从 40% 开始，照顾 Shared Semantics 最低得分
     all_totals = [results[m]["total"] for m in models]
     y_max_top = max(all_totals) * 1.1
-    ax_top.set_ylim(0.30, y_max_top)
-    # 下半轴：0 ~ 35%，展示各通道的底层构成
-    ax_bot.set_ylim(0, 0.35)
+    ax_top.set_ylim(0.40, y_max_top)
+    # 下半轴：仅展示 0% 附近的极窄区域，形成强压缩感
+    ax_bot.set_ylim(0, 0.01)
 
     # 隐藏不需要的脊柱和刻度，制造断裂效果
     ax_top.spines["bottom"].set_visible(False)
@@ -234,8 +234,8 @@ def plot_stacked_bar(
         ax.yaxis.grid(True, linestyle="--", alpha=0.5, zorder=0)
         ax.set_axisbelow(True)
 
-    # 下半轴刻度
-    ax_bot.set_yticks([0, 0.10, 0.20, 0.30])
+    # 下半轴只留 0% 刻度
+    ax_bot.set_yticks([0])
 
     # 标题
     fig.suptitle(data_name, fontsize=16, fontweight="bold", y=0.95)

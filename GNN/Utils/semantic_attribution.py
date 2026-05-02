@@ -132,31 +132,31 @@ def plot_stacked_bar(
       Visual-Unique(橙)— 仅视觉 MLP 预测正确
       Hard/绿        — 两者都错的节点
     """
-    # 固定顺序：SUPRA 放最后
+    # 固定顺序：MGCN/MGAT 替代 Late_GNN-GCN/GAT，移除 Early_GNN-GCN，SUPRA 放最后
     ordered = [
         "Text MLP",
         "Image MLP",
-        "Late_GNN-GCN",
-        "Late_GNN-GAT",
-        "Early_GNN-GCN",
+        "MGCN",
+        "MGAT",
         "NTSFormer",
-        "MIG_GT",
+        "MIG-GT",
         "SUPRA",
     ]
     models = [m for m in ordered if m in results]
     n_models = len(models)
 
+    # 参考图配色：蓝/橙/灰/黄
     colors = {
-        "shared":   "#A0A0A0",   # gray
-        "t_unique": "#4C72B0",   # blue
-        "v_unique": "#DD8452",   # orange
-        "hard":     "#55A868",   # green
+        "shared":   "#A6A6A6",   # gray
+        "t_unique": "#4472B4",   # blue
+        "v_unique": "#ED7D31",   # orange
+        "hard":     "#FFC000",   # yellow
     }
     labels_text = {
         "shared":   "Shared Semantics",
         "t_unique": "Text-Unique",
         "v_unique": "Visual-Unique",
-        "hard":     "Hard / Synergy",
+        "hard":     "Synergy",
     }
 
     bar_width = 0.6
@@ -172,19 +172,21 @@ def plot_stacked_bar(
                edgecolor="white", linewidth=0.5)
         bottom += np.array(heights)
 
+    # Y 轴从 Shared 最低分附近开始，留足顶部空间给总准确率标注
+    shared_min = min(results[m]["shared"] for m in models)
+    y_lo = max(0, shared_min - 0.06)
+    y_top = bottom.max()
+    ax.set_ylim(y_lo, y_top * 1.15)
+
     # 顶部标注总准确率
     for i, m in enumerate(models):
-        ax.text(i, bottom[i] + 0.005, f"{results[m]['total']:.1%}",
+        ax.text(i, bottom[i] + y_top * 0.015, f"{results[m]['total']:.1%}",
                 ha="center", va="bottom", fontsize=9, fontweight="bold")
 
     ax.set_xticks(x)
     ax.set_xticklabels(models, rotation=30, ha="right", fontsize=10)
-    ax.set_ylabel("Absolute Accuracy Contribution", fontsize=11)
+    ax.set_ylabel("Accuracy Contribution", fontsize=11)
     ax.set_title(f"Semantic Attribution Analysis — {data_name}", fontsize=13, fontweight="bold")
-    # Y 轴从 Shared 最低分附近开始，拉开一定间距
-    shared_min = min(results[m]["shared"] for m in models)
-    y_lo = max(0, shared_min - 0.06)
-    ax.set_ylim(y_lo, min(bottom.max() * 1.18, 1.0))
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
     ax.legend(loc="upper right", framealpha=0.9)
     ax.set_axisbelow(True)
@@ -244,16 +246,21 @@ def run_attribution(args):
     print(f"\n[Results]")
     print(f"{'Model':<22} {'Shared':>8} {'T-Unique':>9} {'V-Unique':>9} {'Hard':>8} {'Total':>8}")
     print("-" * 70)
-    for name, key in [
-        ("Text MLP",        "text_mlp"),
-        ("Image MLP",       "image_mlp"),
-        ("Late_GNN-GCN",    "late_gnn_gcn"),
-        ("Late_GNN-GAT",    "late_gnn_gat"),
-        ("Early_GNN-GCN",   "early_gnn_gcn"),
-        ("SUPRA",           "supra"),
-        ("NTSFormer",       "ntsformer"),
-        ("MIG_GT",          "mig_gt"),
-    ]:
+    # display_name → prediction file key（late_gnn_gcn/gat 映射到 MGCN/MGAT）
+    display_to_key = {
+        "Text MLP":   "text_mlp",
+        "Image MLP":  "image_mlp",
+        "MGCN":       "late_gnn_gcn",
+        "MGAT":       "late_gnn_gat",
+        "NTSFormer":  "ntsformer",
+        "MIG-GT":     "mig_gt",
+        "SUPRA":      "supra",
+    }
+    ordered = [
+        "Text MLP", "Image MLP", "MGCN", "MGAT", "NTSFormer", "MIG-GT", "SUPRA",
+    ]
+    for name in ordered:
+        key = display_to_key.get(name, name)
         if key not in preds:
             print(f"{name:<22}  [SKIP — prediction file not found]")
             continue

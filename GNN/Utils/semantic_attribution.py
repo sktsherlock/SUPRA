@@ -136,14 +136,14 @@ def plot_stacked_bar(
     # 设置全局字体（学术期刊常用 serif）
     plt.rcParams["font.family"] = "serif"
 
-    # 固定顺序：MGCN/MGAT 替代 Late_GNN-GCN/GAT，移除 Early_GNN-GCN，SUPRA 放最后
+    # 固定顺序：T-MLP/V-MLP 替代 Text/Image MLP，SUPRA 放最后
     ordered = [
-        "Text MLP",
-        "Image MLP",
+        "T-MLP",
+        "V-MLP",
         "MGCN",
         "MGAT",
         "MIG-GT",
-        "NTSFormer",
+        "NTS",
         "SUPRA",
     ]
     models = [m for m in ordered if m in results]
@@ -170,7 +170,7 @@ def plot_stacked_bar(
         "hard":     "Synergy",
     }
 
-    bar_width = 0.55
+    bar_width = 0.40
     x = np.arange(n_models)
 
     # 断裂 Y 轴：height_ratios=[15, 1]，底部极窄形成强压缩感
@@ -292,16 +292,16 @@ def run_attribution(args):
     print(f"{'Model':<22} {'Shared':>8} {'T-Unique':>9} {'V-Unique':>9} {'Hard':>8} {'Total':>8}")
     print("-" * 70)
     display_to_key = {
-        "Text MLP":   "text_mlp",
-        "Image MLP":  "image_mlp",
+        "T-MLP":      "text_mlp",
+        "V-MLP":      "image_mlp",
         "MGCN":       "late_gnn_gcn",
         "MGAT":       "late_gnn_gat",
-        "NTSFormer":  "ntsformer",
+        "NTS":        "ntsformer",
         "MIG-GT":     "mig_gt",
         "SUPRA":      "supra",
     }
     ordered = [
-        "Text MLP", "Image MLP", "MGCN", "MGAT", "MIG-GT", "NTSFormer", "SUPRA",
+        "T-MLP", "V-MLP", "MGCN", "MGAT", "MIG-GT", "NTS", "SUPRA",
     ]
     for name in ordered:
         key = display_to_key.get(name, name)

@@ -2,7 +2,7 @@
 Performance Comparison Plot — Faceted Grouped Bar Chart
 =====================================================
 
-展示不同特征质量（Low-Conf vs High-Conf）下，各模型在 Movies / RedditM 上的性能对比。
+展示不同特征质量（Roberta + CLIP vs LLaMA Vision）下，各模型在 Movies / RedditM 上的性能对比。
 用于论文 Intro，说明高质量特征下多模态图学习收益递减的现象。
 
 Usage:
@@ -23,14 +23,14 @@ import numpy as np
 # Structure: data[dataset][encoder] = {model: accuracy}
 DATA: Dict[str, Dict[str, Dict[str, float]]] = {
     "Movies": {
-        "Low-Conf": {
+        "Roberta + CLIP": {
             "MLP": 51.29,
             "MGCN": 53.95,
             "MGAT": 53.88,
             "MIGGT": 49.89,
             "NTS": 54.07,
         },
-        "High-Conf": {
+        "LLaMA Vision": {
             "MLP": 57.51,
             "MGCN": 55.19,
             "MGAT": 54.44,
@@ -39,14 +39,14 @@ DATA: Dict[str, Dict[str, Dict[str, float]]] = {
         },
     },
     "RedditM": {
-        "Low-Conf": {
+        "Roberta + CLIP": {
             "MLP": 83.20,
             "MGCN": 78.46,
             "MGAT": 78.11,
             "MIGGT": 82.91,
             "NTS": 86.13,
         },
-        "High-Conf": {
+        "LLaMA Vision": {
             "MLP": 84.80,
             "MGCN": 79.25,
             "MGAT": 77.90,
@@ -58,7 +58,7 @@ DATA: Dict[str, Dict[str, Dict[str, float]]] = {
 
 MODELS = ["MLP", "MGCN", "MGAT", "MIGGT", "NTS"]
 DATASETS = ["Movies", "RedditM"]
-ENCODERS = ["Low-Conf", "High-Conf"]
+ENCODERS = ["Roberta + CLIP", "LLaMA Vision"]
 
 # Y-axis ranges per dataset (independent scales)
 Y_RANGES = {
@@ -67,8 +67,8 @@ Y_RANGES = {
 }
 
 COLORS = {
-    "Low-Conf":  "#4C72B0",  # blue
-    "High-Conf": "#DD8452",  # orange
+    "Roberta + CLIP":  "#4C72B0",  # blue
+    "LLaMA Vision": "#DD8452",  # orange
 }
 
 

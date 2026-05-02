@@ -176,7 +176,7 @@ def plot_stacked_bar(
     shared_min = min(results[m]["shared"] for m in models)
     y_lo = max(0, shared_min - 0.06)
     y_top = bottom.max()
-    ax.set_ylim(y_lo, y_top * 1.15)
+    ax.set_ylim(y_lo, y_top * 1.18)
 
     # 顶部标注总准确率
     for i, m in enumerate(models):
@@ -186,21 +186,16 @@ def plot_stacked_bar(
     ax.set_xticks(x)
     ax.set_xticklabels(models, rotation=30, ha="right", fontsize=10)
     ax.set_ylabel("Accuracy Contribution", fontsize=11)
-    ax.set_title(f"Semantic Attribution Analysis — {data_name}", fontsize=13, fontweight="bold")
+    ax.set_title("Semantic Attribution Analysis", fontsize=13, fontweight="bold")
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
-    ax.legend(loc="upper right", framealpha=0.9)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2, framealpha=0.9)
     ax.set_axisbelow(True)
     ax.yaxis.grid(True, linestyle="--", alpha=0.4)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    # 底部标注节点集合分布
-    for i, (k, v) in enumerate(set_sizes.items()):
-        ax.text(i, y_lo - 0.01, f"{labels_text[k]}: {v:.1%}",
-                ha="center", va="top", fontsize=7, color=colors[k],
-                transform=ax.get_xaxis_transform())
-
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.28)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

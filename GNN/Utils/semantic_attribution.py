@@ -138,8 +138,8 @@ def plot_stacked_bar(
         "Image MLP",
         "MGCN",
         "MGAT",
-        "NTSFormer",
         "MIG-GT",
+        "NTSFormer",
         "SUPRA",
     ]
     models = [m for m in ordered if m in results]
@@ -252,7 +252,7 @@ def run_attribution(args):
         "SUPRA":      "supra",
     }
     ordered = [
-        "Text MLP", "Image MLP", "MGCN", "MGAT", "NTSFormer", "MIG-GT", "SUPRA",
+        "Text MLP", "Image MLP", "MGCN", "MGAT", "MIG-GT", "NTSFormer", "SUPRA",
     ]
     for name in ordered:
         key = display_to_key.get(name, name)

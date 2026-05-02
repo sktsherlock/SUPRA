@@ -868,6 +868,7 @@ def main():
     # Export predictions if requested
     if getattr(args, 'export_predictions', None) and global_best_test_logits is not None:
         pred_path = str(args.export_predictions)
+        os.makedirs(os.path.dirname(pred_path), exist_ok=True)
         th.save(th.argmax(global_best_test_logits, dim=1), pred_path)
         print(f"[Export] Test predictions → {pred_path}")
 

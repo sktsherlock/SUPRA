@@ -971,6 +971,7 @@ def main():
             if args.n_runs > 1:
                 root, ext = os.path.splitext(pred_path)
                 pred_path = f"{root}_run{run+1}{ext}"
+            os.makedirs(os.path.dirname(pred_path), exist_ok=True)
             th.save(th.argmax(test_logits, dim=1), pred_path)
             print(f"[Export] Test predictions → {pred_path}")
 

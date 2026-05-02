@@ -160,6 +160,135 @@ python -m GNN.Baselines.MIG_GT \
     --disable_wandb --gpu 0
 ```
 
+### 2.2 Grocery 数据集
+
+**特征路径**:
+- Text: `/mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy`
+- Visual: `/mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy`
+- Graph: `/mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt`
+
+**最优超参数**（来自 sweep）:
+- Text MLP / Image MLP: `n-layers=2, lr=0.001`
+- Late_GNN-GCN: `n-layers=1, lr=0.0005`（LateFusion 无编码器基线）
+- Late_GNN-GAT: `n-layers=2, lr=0.001`（LateFusion 无编码器基线）
+- Early_GNN-GCNII: `n-layers=4, lr=0.0005`（EarlyFusion 早期融合基线，GCNII 为 sweep 最优）
+- SUPRA: `n-layers=2, aux-weight=0.5, lr=0.001`（GCN backbone）
+- NTSFormer: `n-layers=1, lr=0.001`（nts-sign-k=1 同 Reddit-M 最优）
+- MIG_GT: `n-layers=1, lr=0.001`（k-t=3, k-v=2, mgdcf-alpha=0.1, mgdcf-beta=0.9）
+
+```bash
+# Text MLP
+python -m GNN.Baselines.Early_GNN \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --backend mlp --single_modality text \
+    --n-layers 2 --lr 0.001 --early_stop_patience 25 \
+    --n-runs 1 --seed 42 \
+    --result_csv Results/attribution/Grocery/text_mlp_best.csv \
+    --export_predictions Results/attribution/Grocery/text_mlp_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# Image MLP
+python -m GNN.Baselines.Early_GNN \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --backend mlp --single_modality visual \
+    --n-layers 2 --lr 0.001 --early_stop_patience 25 \
+    --n-runs 1 --seed 42 \
+    --result_csv Results/attribution/Grocery/image_mlp_best.csv \
+    --export_predictions Results/attribution/Grocery/image_mlp_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# Late_GNN-GCN（无编码器基线）
+python -m GNN.Baselines.Late_GNN \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --model_name GCN \
+    --n-layers 1 --lr 0.0005 --early_stop_patience 25 \
+    --late_no_encoder true \
+    --n-runs 1 --seed 42 \
+    --result_csv Results/attribution/Grocery/late_gnn_gcn_best.csv \
+    --export_predictions Results/attribution/Grocery/late_gnn_gcn_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# Late_GNN-GAT（无编码器基线）
+python -m GNN.Baselines.Late_GNN \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --model_name GAT \
+    --n-layers 2 --lr 0.001 --early_stop_patience 25 \
+    --late_no_encoder true \
+    --n-runs 1 --seed 42 \
+    --result_csv Results/attribution/Grocery/late_gnn_gat_best.csv \
+    --export_predictions Results/attribution/Grocery/late_gnn_gat_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# Early_GNN-GCNII（无编码器基线，concat → GCNII）
+python -m GNN.Baselines.Early_GNN \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --backend gnn --model_name GCNII --early_no_encoder true \
+    --n-layers 4 --lr 0.0005 --early_stop_patience 25 \
+    --n-runs 1 --seed 42 \
+    --result_csv Results/attribution/Grocery/early_gnn_gcnii_best.csv \
+    --export_predictions Results/attribution/Grocery/early_gnn_gcnii_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# SUPRA
+python -m GNN.SUPRA \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --embed_dim 256 --n-layers 2 --n-hidden 256 \
+    --dropout 0.3 --lr 0.001 --wd 0.0001 \
+    --aux_weight 0.5 --mlp_variant ablate --early_stop_patience 25 \
+    --n-runs 1 --seed 42 \
+    --result_csv Results/attribution/Grocery/supra_best.csv \
+    --export_predictions Results/attribution/Grocery/supra_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# NTSFormer
+python -m GNN.Baselines.NTSFormer \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --n-hidden 256 --n-layers 1 \
+    --dropout 0.3 --lr 0.001 --wd 0.0001 \
+    --nts_sign_k 1 --early_stop_patience 25 \
+    --n-runs 1 --seed 42 \
+    --result_csv Results/attribution/Grocery/ntsformer_best.csv \
+    --export_predictions Results/attribution/Grocery/ntsformer_test_pred.pt \
+    --disable_wandb --gpu 0
+
+# MIG_GT
+python -m GNN.Baselines.MIG_GT \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --n-hidden 256 --n-layers 1 \
+    --dropout 0.3 --lr 0.001 --wd 0.0001 \
+    --k_t 3 --k_v 2 \
+    --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \
+    --num_samples 10 --tur_weight 1.0 --early_stop_patience 25 \
+    --n-runs 1 --seed 42 \
+    --result_csv Results/attribution/Grocery/mig_gt_best.csv \
+    --export_predictions Results/attribution/Grocery/mig_gt_test_pred.pt \
+    --disable_wandb --gpu 0
+```
+
 ---
 
 ## 三、Stage 2 — 语义归因可视化
@@ -211,7 +340,7 @@ python -m GNN.Utils.semantic_attribution \
 | `image_mlp_test_pred.pt` | Image MLP |
 | `late_gnn_gcn_test_pred.pt` | Late_GNN-GCN |
 | `late_gnn_gat_test_pred.pt` | Late_GNN-GAT |
-| `early_gnn_gcn_test_pred.pt` | Early_GNN-GCN |
+| `early_gnn_gcnii_test_pred.pt` | Early_GNN-GCNII（Grocery 用，Reddit-M 用 `early_gnn_gcn_test_pred.pt`） |
 | `supra_test_pred.pt` | SUPRA |
 | `ntsformer_test_pred.pt` | NTSFormer |
 | `mig_gt_test_pred.pt` | MIG_GT |

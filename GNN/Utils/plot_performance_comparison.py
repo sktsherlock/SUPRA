@@ -86,8 +86,8 @@ def plot_comparison(save_path: str = None) -> None:
 
     fig, axes = plt.subplots(
         1, n_datasets,
-        figsize=(9, 4.5),
-        gridspec_kw={"wspace": 0.30},
+        figsize=(7, 4.5),
+        gridspec_kw={"wspace": 0.15},
     )
     if n_datasets == 1:
         axes = [axes]

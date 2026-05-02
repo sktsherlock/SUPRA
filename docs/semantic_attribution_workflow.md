@@ -171,7 +171,7 @@ python -m GNN.Baselines.MIG_GT \
 - Text MLP / Image MLP: `n-layers=2, lr=0.001`
 - Late_GNN-GCN: `n-layers=1, lr=0.0005`（LateFusion 无编码器基线）
 - Late_GNN-GAT: `n-layers=2, lr=0.001`（LateFusion 无编码器基线）
-- Early_GNN-GCNII: `n-layers=4, lr=0.0005`（EarlyFusion 早期融合基线，GCNII 为 sweep 最优）
+- Early_GNN-GCN: `n-layers=1, lr=0.0005`（EarlyFusion 早期融合基线）
 - SUPRA: `n-layers=2, aux-weight=0.5, lr=0.001`（GCN backbone）
 - NTSFormer: `n-layers=1, lr=0.001`（nts-sign-k=1 同 Reddit-M 最优）
 - MIG_GT: `n-layers=1, lr=0.001`（k-t=3, k-v=2, mgdcf-alpha=0.1, mgdcf-beta=0.9）
@@ -231,17 +231,17 @@ python -m GNN.Baselines.Late_GNN \
     --export_predictions Results/attribution/Grocery/late_gnn_gat_test_pred.pt \
     --disable_wandb --gpu 0
 
-# Early_GNN-GCNII（无编码器基线，concat → GCNII）
+# Early_GNN-GCN（无编码器基线，concat → GCN）
 python -m GNN.Baselines.Early_GNN \
     --data_name Grocery \
     --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --backend gnn --model_name GCNII --early_no_encoder true \
-    --n-layers 4 --lr 0.0005 --early_stop_patience 25 \
+    --backend gnn --model_name GCN --early_no_encoder true \
+    --n-layers 1 --lr 0.0005 --early_stop_patience 25 \
     --n-runs 1 --seed 42 \
-    --result_csv Results/attribution/Grocery/early_gnn_gcnii_best.csv \
-    --export_predictions Results/attribution/Grocery/early_gnn_gcnii_test_pred.pt \
+    --result_csv Results/attribution/Grocery/early_gnn_gcn_best.csv \
+    --export_predictions Results/attribution/Grocery/early_gnn_gcn_test_pred.pt \
     --disable_wandb --gpu 0
 
 # SUPRA
@@ -340,7 +340,7 @@ python -m GNN.Utils.semantic_attribution \
 | `image_mlp_test_pred.pt` | Image MLP |
 | `late_gnn_gcn_test_pred.pt` | Late_GNN-GCN |
 | `late_gnn_gat_test_pred.pt` | Late_GNN-GAT |
-| `early_gnn_gcnii_test_pred.pt` | Early_GNN-GCNII（Grocery 用，Reddit-M 用 `early_gnn_gcn_test_pred.pt`） |
+| `early_gnn_gcn_test_pred.pt` | Early_GNN-GCN |
 | `supra_test_pred.pt` | SUPRA |
 | `ntsformer_test_pred.pt` | NTSFormer |
 | `mig_gt_test_pred.pt` | MIG_GT |

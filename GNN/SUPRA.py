@@ -634,6 +634,9 @@ def main():
             gradient_analyzer = GradientAnalyzer(model, layer_names=analyzer_layer_names)
             gradient_analyzer.attach()
 
+        # Per-epoch gradient L2 norm history (for starvation verification)
+        grad_history = {'enc_t': [], 'enc_v': [], 'gnn': []}
+
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
@@ -658,6 +661,22 @@ def main():
             # Pure joint loss with spectral orthogonalization
             total_loss, loss_logs = _compute_losses(out=out, labels=labels, train_idx=train_idx, args=args, graph=observe_graph)
             total_loss.backward()
+
+            # Record gradient L2 norms for gradient starvation verification
+            if getattr(args, 'analyze_gradients', False):
+                def _grad_norm(m):
+                    return th.sqrt(sum(
+                        p.grad.float().norm(2).pow(2)
+                        for p in m.parameters()
+                        if p.grad is not None
+                    )).item()
+                grad_history['enc_t'].append(_grad_norm(model.enc_t))
+                grad_history['enc_v'].append(_grad_norm(model.enc_v))
+                gnn_norm_sq = sum(
+                    _grad_norm(layer).pow(2) for layer in model.mp_C
+                )
+                grad_history['gnn'].append(th.sqrt(gnn_norm_sq).item())
+
             optimizer.step()
 
             if epoch % args.eval_steps == 0:
@@ -745,6 +764,19 @@ def main():
             best_logits_Uv_all = run_best_logits['Uv']
             best_logits_C_all = run_best_logits['C']
             best_labels_all = labels.clone()
+
+        # Save per-epoch gradient L2 norm for this run (gradient starvation verification)
+        if getattr(args, 'analyze_gradients', False) and getattr(args, 'gradient_csv', None):
+            import csv
+            grad_csv_path = args.gradient_csv.replace('.csv', f'_l2_norm_run{run+1}.csv')
+            with open(grad_csv_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['epoch', 'enc_t', 'enc_v', 'gnn'])
+                for epoch_idx, (et, ev, g) in enumerate(
+                    zip(grad_history['enc_t'], grad_history['enc_v'], grad_history['gnn']), start=1
+                ):
+                    writer.writerow([epoch_idx, et, ev, g])
+            print(f"[Run {run+1}] Gradient L2 norm saved to {grad_csv_path}")
 
     def _mean_std(values): return float(np.mean(values)), float(np.std(values))
     def _fmt_pct(values):

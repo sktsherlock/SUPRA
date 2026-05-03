@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import gc
 import os
 import sys
 import time
@@ -745,6 +746,7 @@ def main():
 
         # Record peak memory after training
         if th.cuda.is_available():
+            th.cuda.synchronize()
             peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
         print(f"Run {run+1} Final Test Score: {final_test_result:.4f}")
@@ -787,6 +789,11 @@ def main():
                 ):
                     writer.writerow([epoch_idx, et, ev, g])
             print(f"[Run {run+1}] Gradient L2 norm saved to {grad_csv_path}")
+
+        # Clean up GPU memory between runs to prevent allocator cache accumulation
+        gc.collect()
+        if th.cuda.is_available():
+            th.cuda.empty_cache()
 
     def _mean_std(values): return float(np.mean(values)), float(np.std(values))
     def _fmt_pct(values):

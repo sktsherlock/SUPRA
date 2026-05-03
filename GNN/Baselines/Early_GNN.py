@@ -1,5 +1,6 @@
 import argparse
 import copy
+import gc
 import os
 import sys
 import time
@@ -700,6 +701,7 @@ def _mag_classification_mmcl(
     if return_extra:
         # Record peak memory after training
         if th.cuda.is_available():
+            th.cuda.synchronize()
             peak_memory_mb = th.cuda.max_memory_allocated() / 1048576.0
         # Compute avg epoch time
         if epochs_needed > 0:
@@ -982,6 +984,11 @@ def main():
             avg_ep_time = extra.get('avg_epoch_time', 0.0)
             ep_needed = extra.get('epochs_needed', args.n_epochs)
             efficiency_runs['epoch_times'].append([avg_ep_time] * ep_needed)
+
+        # Clean up GPU memory between runs to prevent allocator cache accumulation
+        gc.collect()
+        if th.cuda.is_available():
+            th.cuda.empty_cache()
 
     def _mean_std(values):
         mean = float(np.mean(values))

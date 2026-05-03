@@ -1,4 +1,5 @@
 import argparse
+import gc
 import os
 import sys
 import time
@@ -394,6 +395,7 @@ def main():
 
         # Record peak memory after training
         if th.cuda.is_available():
+            th.cuda.synchronize()
             peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
         print(f"Run: {run+1}/{args.n_runs} | Best Val {args.metric}: {best_val_result:.4f} | Final Test: {final_test_result:.4f}")
@@ -429,6 +431,11 @@ def main():
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
         efficiency_runs['epoch_times'].append(epoch_times)
         efficiency_runs['epochs_needed'].append(len(epoch_times) * args.eval_steps)  # actual epochs trained
+
+        # Clean up GPU memory between runs to prevent allocator cache accumulation
+        gc.collect()
+        if th.cuda.is_available():
+            th.cuda.empty_cache()
 
     test_mean = float(np.mean(test_results))
     test_std = float(np.std(test_results))

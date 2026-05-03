@@ -33,8 +33,9 @@ Usage:
         --n_heads 4 --attn_drop 0.0 --gpu 0 --n_epochs 1000
 """
 import argparse
-import sys
+import gc
 import os
+import sys
 import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -247,6 +248,7 @@ def _profile_single_run(model_type, args, text_dim, vis_dim, n_classes, device,
     avg_epoch_time = np.mean(epoch_times)
     peak_memory_mb = 0.0
     if th.cuda.is_available():
+        th.cuda.synchronize()
         peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
     # Estimate total training time based on early stopping
@@ -338,6 +340,9 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
     # Run multiple times and collect per-run metrics
     run_results = []
     for run_idx in range(n_runs):
+        gc.collect()
+        if th.cuda.is_available():
+            th.cuda.empty_cache()
         rng_seed = base_seed + run_idx
         run_metrics = _profile_single_run(
             model_type, args, text_dim, vis_dim, n_classes, device,
@@ -346,6 +351,9 @@ def profile(model_type: str, args, text_dim, vis_dim, n_classes, device):
             rng_seed
         )
         run_results.append(run_metrics)
+        gc.collect()
+        if th.cuda.is_available():
+            th.cuda.empty_cache()
 
     # Average across runs
     avg_peak_memory = float(np.mean([r["peak_memory_MB"] for r in run_results]))

@@ -1,5 +1,6 @@
 import argparse
 import copy
+import gc
 import os
 import sys
 import time
@@ -665,6 +666,7 @@ def main():
 
         # Collect efficiency profiling data
         if th.cuda.is_available():
+            th.cuda.synchronize()
             peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
         avg_epoch_time = float(total_time) / float(epochs_needed) if epochs_needed > 0 else 0.0
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
@@ -684,6 +686,11 @@ def main():
                 ):
                     writer.writerow([epoch_idx, te, ve, mg])
             print(f"[Run {run+1}] Gradient L2 norm saved to {grad_csv_path}")
+
+        # Clean up GPU memory between runs to prevent allocator cache accumulation
+        gc.collect()
+        if th.cuda.is_available():
+            th.cuda.empty_cache()
 
         # metric-only reporting
 

@@ -13,6 +13,7 @@ Key features:
 """
 import argparse
 import copy
+import gc
 import os
 import sys
 import time
@@ -873,6 +874,7 @@ def main():
 
         # Record peak memory after training
         if th.cuda.is_available():
+            th.cuda.synchronize()
             peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
         print(f"Run {run+1}: Best Val {args.metric}={best_val_score:.4f}, Final Test {args.metric}={final_test_result:.4f}")
@@ -915,6 +917,11 @@ def main():
 
         if wandb is not None and (os.environ.get("WANDB_DISABLED", "").lower() not in ("true", "1", "yes")):
             wandb.log({f'Val_{args.metric}': best_val_score, f'Test_{args.metric}': final_test_result})
+
+        # Clean up GPU memory between runs to prevent allocator cache accumulation
+        gc.collect()
+        if th.cuda.is_available():
+            th.cuda.empty_cache()
 
     print(f"\nRunned {args.n_runs} times")
     print(f"Average val {args.metric}: {np.mean(val_results):.4f} ± {np.std(val_results):.4f}")

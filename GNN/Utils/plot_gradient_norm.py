@@ -46,17 +46,17 @@ def load_supa_csv(csv_path: str) -> Dict[str, List[float]]:
 
 
 def load_late_csv(csv_path: str) -> Dict[str, List[float]]:
-    """Load Late_GNN (MMGCN) gradient CSV (text_enc, vis_enc, mmgnn)."""
+    """Load Late_GNN (MMGCN) gradient CSV (text_gnn, vis_gnn, mmgnn)."""
     import csv
-    epochs, text_enc, vis_enc, mmgnn = [], [], [], []
+    epochs, text_gnn, vis_gnn, mmgnn = [], [], [], []
     with open(csv_path, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             epochs.append(int(row["epoch"]))
-            text_enc.append(float(row["text_enc"]))
-            vis_enc.append(float(row["vis_enc"]))
+            text_gnn.append(float(row["text_gnn"]))
+            vis_gnn.append(float(row["vis_gnn"]))
             mmgnn.append(float(row["mmgnn"]))
-    return dict(epochs=epochs, text_enc=text_enc, vis_enc=vis_enc, mmgnn=mmgnn)
+    return dict(epochs=epochs, text_gnn=text_gnn, vis_gnn=vis_gnn, mmgnn=mmgnn)
 
 
 def truncate(data: Dict, max_epoch: int) -> None:
@@ -182,21 +182,21 @@ def plot_4group(
     }
 
     late_styles = {
-        "text_enc": {"color": "#7294D4", "linestyle": "-",  "linewidth": 1.8, "marker": "o", "markersize": 3},
-        "vis_enc":  {"color": "#FFD966", "linestyle": "-",  "linewidth": 1.8, "marker": "s", "markersize": 3},
+        "text_gnn": {"color": "#7294D4", "linestyle": "-",  "linewidth": 1.8, "marker": "o", "markersize": 3},
+        "vis_gnn":  {"color": "#FFD966", "linestyle": "-",  "linewidth": 1.8, "marker": "s", "markersize": 3},
         "mmgnn":    {"color": "#A9D18E", "linestyle": "--", "linewidth": 2.0, "marker": "^", "markersize": 3},
     }
     late_legend = {
-        "text_enc": "Text Encoder",
-        "vis_enc":  "Visual Encoder",
-        "mmgnn":    "Modality-Specific GNN",
+        "text_gnn": "Text GNN",
+        "vis_gnn":  "Visual GNN",
+        "mmgnn":    "Modality-Specific GNN (sum)",
     }
 
     for idx, (csv_path, mode, label) in enumerate(configs):
         ax = axes[idx // 2, idx % 2]
         if mode == "late":
             data = load_late_csv(csv_path)
-            keys = ["text_enc", "vis_enc", "mmgnn"]
+            keys = ["text_gnn", "vis_gnn", "mmgnn"]
             styles_map = late_styles
             legend_map = late_legend
         else:

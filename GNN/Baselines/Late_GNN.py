@@ -401,7 +401,7 @@ def main():
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
         # Per-epoch gradient L2 norm history (for gradient starvation verification)
-        grad_history = {'text_enc': [], 'vis_enc': [], 'mmgnn': []}
+        grad_history = {'text_gnn': [], 'vis_gnn': [], 'mmgnn': []}
 
         total_time = 0
         best_val_result, final_test_result = -1.0, 0.0
@@ -454,17 +454,18 @@ def main():
             total_loss.backward()
 
             # Record gradient L2 norms for gradient starvation verification
+            # MMGCN: text/visual features → concat → modality-specific GNN
+            # Encoders (text_encoder/visual_encoder) may not exist when late_no_encoder=True
+            # So we always track the GNN layers: text_gnn and vis_gnn
             if getattr(args, 'analyze_gradients', False):
                 def _grad_norm_sq(m):
-                    if m is None:
-                        return 0.0
                     return sum(
                         p.grad.float().norm(2).pow(2).item()
                         for p in m.parameters()
                         if p.grad is not None
                     )
-                grad_history['text_enc'].append(_grad_norm_sq(model.text_encoder) ** 0.5)
-                grad_history['vis_enc'].append(_grad_norm_sq(model.visual_encoder) ** 0.5)
+                grad_history['text_gnn'].append(_grad_norm_sq(model.text_gnn) ** 0.5)
+                grad_history['vis_gnn'].append(_grad_norm_sq(model.vis_gnn) ** 0.5)
                 mmgnn_sq = _grad_norm_sq(model.text_gnn) + _grad_norm_sq(model.vis_gnn)
                 grad_history['mmgnn'].append(mmgnn_sq ** 0.5)
 
@@ -677,7 +678,7 @@ def main():
             os.makedirs(os.path.dirname(grad_csv_path), exist_ok=True)
             with open(grad_csv_path, 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['epoch', 'text_enc', 'vis_enc', 'mmgnn'])
+                writer.writerow(['epoch', 'text_gnn', 'vis_gnn', 'mmgnn'])
                 for epoch_idx, (te, ve, mg) in enumerate(
                     zip(grad_history['text_enc'], grad_history['vis_enc'], grad_history['mmgnn']), start=1
                 ):

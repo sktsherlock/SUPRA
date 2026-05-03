@@ -8,7 +8,7 @@
 
 | 组别 | 模型 | 配置 | 追踪目标 |
 |------|------|------|---------|
-| **Group 1** | MMGCN (Late_GNN) | 传统多模态 GNN，各模态独立 GNN 聚合后融合 | text_enc, vis_enc, mmgnn |
+| **Group 1** | MMGCN (Late_GNN) | 传统多模态 GNN，各模态独立 GNN 聚合后融合 | text_gnn, vis_gnn, mmgnn（两模态 GNN 梯度 L2 范数） |
 | **Group 2** | SUPRA (No Bypass) | `ablate_bypass`：强制 `logits_final = logits_C`，去除 Ut/Uv 分支 | enc_t, enc_v, gnn |
 | **Group 3** | SUPRA Base | `aux_weight = 0`：三通道融合但无辅助损失 | enc_t, enc_v, gnn |
 | **Group 4** | SUPRA Full | `aux_weight > 0`：三通道 + 辅助损失 | enc_t, enc_v, gnn |

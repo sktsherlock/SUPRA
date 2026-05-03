@@ -118,7 +118,7 @@ def plot_2group(
                 marker=s["marker"], markersize=s["markersize"],
                 markevery=max(1, len(epochs) // 12),
             )
-        ax.set_title(title, fontsize=11, fontweight="bold", pad=6)
+        ax.set_title(title.replace("\\n", "\n"), fontsize=11, fontweight="bold", pad=6)
         ax.set_xlabel("Epoch", fontsize=10)
         ax.yaxis.grid(True, linestyle="--", alpha=0.4)
         ax.set_axisbelow(True)
@@ -220,7 +220,7 @@ def plot_4group(
                 markevery=max(1, len(epochs) // 12),
             )
 
-        ax.set_title(label, fontsize=11, fontweight="bold", pad=6)
+        ax.set_title(label.replace("\\n", "\n"), fontsize=11, fontweight="bold", pad=6)
         ax.set_xlabel("Epoch", fontsize=10)
         ax.yaxis.grid(True, linestyle="--", alpha=0.4)
         ax.set_axisbelow(True)

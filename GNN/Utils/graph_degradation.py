@@ -13,8 +13,9 @@ Usage:
 """
 
 import random
-from typing import Tuple
+from typing import Any, Tuple
 
+import dgl
 import numpy as np
 import torch as th
 
@@ -62,7 +63,7 @@ def rewire_edges(
     dgl_graph,
     ratio: float,
     seed: int,
-) -> dgl_graph:
+) -> Any:
     """
     Randomly rewire a fraction of edges in the graph.
 
@@ -83,8 +84,6 @@ def rewire_edges(
     Returns:
         A new DGL graph with rewired edges (original graph is not modified)
     """
-    import dgl
-
     if ratio <= 0.0:
         return dgl_graph
 

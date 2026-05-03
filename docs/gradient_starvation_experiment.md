@@ -48,15 +48,15 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
     --backbone GCN \
-    --n_layers 3 \
+    --n-layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
     --wd 0.0001 \
     --dropout 0.3 \
     --aux_weight 0.0 \
     --mlp_variant ablate \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --analyze_gradients \
     --gradient_csv Results/gradient_starvation/grocery_base.csv

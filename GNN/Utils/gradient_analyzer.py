@@ -51,9 +51,8 @@ class GradientAnalyzer:
     def _register_hook(self, name: str, param: nn.Parameter):
         if not param.requires_grad:
             return
-        handle = param.register_post_backward_hook(
-            lambda p, g: self._hook_fn(name, g)
-        )
+        # register_hook on Parameter registers a backward hook (receives gradient)
+        handle = param.register_hook(lambda grad: self._hook_fn(name, grad))
         self.hooks.append(handle)
 
     def _hook_fn(self, name: str, grad: th.Tensor):

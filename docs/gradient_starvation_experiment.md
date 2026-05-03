@@ -47,17 +47,17 @@ python -m GNN.SUPRA \
     --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --backbone GCN \
-    --n-layers 3 \
+    --n_layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
     --wd 0.0001 \
     --dropout 0.3 \
     --aux_weight 0.0 \
     --mlp_variant ablate \
-    --n-epochs 300 \
-    --n-runs 1 \
+    --n_epochs 300 \
+    --n_runs 1 \
     --eval_steps 1 \
+    --early_stop_patience 50 \
     --analyze_gradients \
     --gradient_csv Results/gradient_starvation/grocery_base.csv
 ```
@@ -70,7 +70,6 @@ python -m GNN.SUPRA \
     --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
     --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --backbone GCN \
     --n_layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
@@ -81,6 +80,7 @@ python -m GNN.SUPRA \
     --n_epochs 300 \
     --n_runs 1 \
     --eval_steps 1 \
+    --early_stop_patience 50 \
     --analyze_gradients \
     --gradient_csv Results/gradient_starvation/grocery_aux.csv
 ```
@@ -100,6 +100,7 @@ python -m GNN.Utils.plot_gradient_norm \
     --csv_base Results/gradient_starvation/grocery_base_l2_norm_run1.csv \
     --csv_aux Results/gradient_starvation/grocery_aux_l2_norm_run1.csv \
     --aux_label "aux_weight=0.7" \
+    --max_epoch 50 \
     --save_plot Results/gradient_starvation/grocery_gradient_starvation.pdf
 ```
 

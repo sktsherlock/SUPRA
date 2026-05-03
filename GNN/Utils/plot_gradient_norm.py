@@ -157,10 +157,22 @@ if __name__ == "__main__":
         default=None,
         help="Path to save the plot (PDF format)",
     )
+    parser.add_argument(
+        "--max_epoch",
+        type=int,
+        default=None,
+        help="Only plot the first N epochs (truncates data to this length)",
+    )
     args = parser.parse_args()
 
     data_base = load_gradient_csv(args.csv_base)
     data_aux = load_gradient_csv(args.csv_aux)
+
+    if args.max_epoch is not None:
+        for d in [data_base, data_aux]:
+            for key in ["enc_t", "enc_v", "gnn"]:
+                d[key] = d[key][:args.max_epoch]
+            d["epochs"] = list(range(1, len(d[key]) + 1))
 
     plot_gradient_comparison(
         data_base=data_base,

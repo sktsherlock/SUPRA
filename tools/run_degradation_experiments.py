@@ -166,7 +166,7 @@ def train_and_evaluate(
                 logits = model.classifier(fused)
             elif model_type == "supra":
                 out = model.forward_multiple(graph, text_feat, visual_feat)
-                logits = out.logits_final
+                logits = out.logits_final_0
 
             val_pred = th.argmax(logits[val_idx], dim=1)
             test_pred = th.argmax(logits[test_idx], dim=1)

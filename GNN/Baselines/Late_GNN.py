@@ -278,6 +278,10 @@ def args_init():
         default=True,
         help="Skip per-modality encoders and pass raw features directly to GNN (default: True).",
     )
+    parser.add_argument("--analyze_gradients", action="store_true",
+                        help="Enable per-epoch gradient L2 norm tracking")
+    parser.add_argument("--gradient_csv", type=str, default=None,
+                        help="Path to save gradient L2 norm CSV")
     return parser
 
 
@@ -396,6 +400,9 @@ def main():
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
+        # Per-epoch gradient L2 norm history (for gradient starvation verification)
+        grad_history = {'text_enc': [], 'vis_enc': [], 'mmgnn': []}
+
         total_time = 0
         best_val_result, final_test_result = -1.0, 0.0
         best_val_score = -1.0
@@ -445,6 +452,22 @@ def main():
                 )
             total_loss = train_loss + mmcl_weight * con_loss + kd_weight * kd_loss
             total_loss.backward()
+
+            # Record gradient L2 norms for gradient starvation verification
+            if getattr(args, 'analyze_gradients', False):
+                def _grad_norm_sq(m):
+                    if m is None:
+                        return 0.0
+                    return sum(
+                        p.grad.float().norm(2).pow(2).item()
+                        for p in m.parameters()
+                        if p.grad is not None
+                    )
+                grad_history['text_enc'].append(_grad_norm_sq(model.text_encoder) ** 0.5)
+                grad_history['vis_enc'].append(_grad_norm_sq(model.visual_encoder) ** 0.5)
+                mmgnn_sq = _grad_norm_sq(model.text_gnn) + _grad_norm_sq(model.vis_gnn)
+                grad_history['mmgnn'].append(mmgnn_sq ** 0.5)
+
             optimizer.step()
 
             if epoch % args.eval_steps == 0:
@@ -646,6 +669,21 @@ def main():
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
         efficiency_runs['epoch_times'].append([avg_epoch_time] * epochs_needed)
         efficiency_runs['epochs_needed'].append(epochs_needed)
+
+        # Save per-epoch gradient L2 norm for this run (Group 1: MMGCN)
+        if getattr(args, 'analyze_gradients', False) and getattr(args, 'gradient_csv', None):
+            import csv
+            grad_csv_path = args.gradient_csv.replace('.csv', f'_l2_norm_run{run+1}.csv')
+            os.makedirs(os.path.dirname(grad_csv_path), exist_ok=True)
+            with open(grad_csv_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['epoch', 'text_enc', 'vis_enc', 'mmgnn'])
+                for epoch_idx, (te, ve, mg) in enumerate(
+                    zip(grad_history['text_enc'], grad_history['vis_enc'], grad_history['mmgnn']), start=1
+                ):
+                    writer.writerow([epoch_idx, te, ve, mg])
+            print(f"[Run {run+1}] Gradient L2 norm saved to {grad_csv_path}")
+
         # metric-only reporting
 
     def _mean_std(values):

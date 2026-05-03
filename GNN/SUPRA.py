@@ -384,7 +384,15 @@ def _compute_losses(*, out: ForwardMultiOutputs, labels: th.Tensor, train_idx: t
     idx = train_idx
     ls = float(getattr(args, "label_smoothing", 0.0))
 
-    # Use logits_final_0 which already includes gating if enabled
+    # [Group 2] Force C-only forward: logits_final = logits_C
+    ablate_bypass = getattr(args, "ablate_bypass", False)
+    if ablate_bypass:
+        logits_final = out.logits_C_0
+        total_task_loss = cross_entropy(logits_final[idx], labels[idx], label_smoothing=ls)
+        logs = {"loss/task": float(total_task_loss.detach().cpu().item())}
+        return total_task_loss, logs
+
+    # Normal SUPRA: logits_final includes all channels
     logits_final = out.logits_final_0
     total_task_loss = cross_entropy(logits_final[idx], labels[idx], label_smoothing=ls)
 
@@ -455,6 +463,9 @@ def args_init():
     supra.add_argument("--enc_hidden_dim", type=int, default=1024,
                         help="Hidden dimension for deep residual modality encoder (default 1024, designed for high-dim 4096d LLM features)")
     supra.add_argument("--use_gate", action="store_true", help="Enable learnable channel gate for adaptive fusion")
+    supra.add_argument("--ablate_bypass", action="store_true",
+                        help="[Group 2] Ablate bypass branches: force logits_final=logits_C only, "
+                             "removing Ut/Uv channels to isolate shared GNN gradient dynamics")
     parser.add_argument("--save_checkpoint", type=str, default=None,
                         help="Path to save best model checkpoint after training")
     parser.add_argument("--export_predictions", type=str, default=None,

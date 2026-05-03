@@ -76,47 +76,63 @@ rewire_ratios = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 
 ## 运行命令
 
-### 快速测试（Toys 数据集）
+### Toys 数据集
 
 ```bash
 python tools/run_degradation_experiments.py \
     --data_name Toys \
-    --text_feature /path/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
-    --visual_feature /path/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /path/ToysGraph.pt \
+    --text_feature /mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Toys/ToysGraph.pt \
+    --embed_dim 256 \
+    --n_layers 2 \
+    --lr 0.0005 \
+    --wd 0.0001 \
+    --dropout 0.3 \
+    --aux_weight 0.7 \
+    --n_runs 3 \
+    --n_epochs 300 \
     --save_dir Results/degradation \
-    --n_runs 3 --n_epochs 300 \
     --gpu 0
 ```
 
-### 完整实验（Movies 数据集）
+### Movies 数据集
 
 ```bash
 python tools/run_degradation_experiments.py \
     --data_name Movies \
-    --text_feature /path/Movies_roberta_base_512_mean.npy \
-    --visual_feature /path/Movies_openai_clip-vit-large-patch14.npy \
-    --graph_path /path/MoviesGraph.pt \
-    --embed_dim 256 --n_layers 3 --lr 0.001 --dropout 0.3 \
+    --text_feature /mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
+    --embed_dim 256 \
+    --n_layers 3 \
+    --lr 0.001 \
+    --wd 0.0001 \
+    --dropout 0.3 \
     --aux_weight 0.7 \
+    --n_runs 3 \
+    --n_epochs 300 \
     --save_dir Results/degradation \
-    --n_runs 3 --n_epochs 300 \
     --gpu 0
 ```
 
-### Reddit-M 数据集
+### Grocery 数据集
 
 ```bash
 python tools/run_degradation_experiments.py \
-    --data_name Reddit-M \
-    --text_feature /path/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
-    --visual_feature /path/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /path/RedditMGraph.pt \
-    --embed_dim 256 --n_layers 3 --lr 0.0005 --dropout 0.3 \
+    --data_name Grocery \
+    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
+    --embed_dim 256 \
+    --n_layers 3 \
+    --lr 0.001 \
+    --wd 0.0001 \
+    --dropout 0.3 \
     --aux_weight 0.7 \
-    --save_dir Results/degradation \
-    --n_ratios 5 --n_epochs 500 \
     --n_runs 3 \
+    --n_epochs 300 \
+    --save_dir Results/degradation \
     --gpu 0
 ```
 
@@ -181,21 +197,19 @@ tools/run_degradation_experiments.py  # 主实验脚本
 
 ## 超参数一致性
 
-所有三个模型共用以下超参数（来自 `add_common_args`）：
+三个模型共用以下超参数，数据集间仅 lr 和 n_layers 不同：
 
-| 参数 | 值 | 说明 |
-|------|-----|------|
-| `embed_dim` | 256 | 嵌入维度 |
-| `n_hidden` | 256 | 隐层维度 |
-| `n_layers` | 3 | GNN 层数 |
-| `dropout` | 0.3 | Dropout 比例 |
-| `lr` | 0.001 | 学习率（Movies/Grocery） |
-| `wd` | 0.0001 | Weight decay |
-| `label_smoothing` | 0.1 | 标签平滑 |
-| `early_stop_patience` | 50 | 早停耐心值 |
-| `eval_steps` | 1 | 每 epoch 评估 |
-| `n_runs` | 3 | 每次条件运行次数 |
-| `base_seed` | 42 | 随机种子基准 |
+| 参数 | Toys | Movies | Grocery | 说明 |
+|------|------|--------|--------|------|
+| `embed_dim` | 256 | 256 | 256 | 嵌入维度 |
+| `n_layers` | 2 | 3 | 3 | GNN 层数 |
+| `lr` | 0.0005 | 0.001 | 0.001 | 学习率 |
+| `wd` | 0.0001 | 0.0001 | 0.0001 | Weight decay |
+| `dropout` | 0.3 | 0.3 | 0.3 | Dropout 比例 |
+| `aux_weight` | 0.7 | 0.7 | 0.7 | SUPRA 辅助损失权重 |
+| `n_epochs` | 300 | 300 | 300 | 最大训练轮数 |
+| `n_runs` | 3 | 3 | 3 | 每次条件运行次数 |
+| `base_seed` | 42 | 42 | 42 | 随机种子基准 |
 
 ---
 

@@ -99,7 +99,7 @@ def build_late_gnn(args, text_dim, vis_dim, n_classes, device):
         in_feats=embed_dim, n_hidden=args.n_hidden, n_classes=args.n_hidden,
         n_layers=args.n_layers, activation=nn.ReLU(), dropout=args.dropout,
     ).to(device)
-    classifier = nn.Linear(args.n_hidden, n_classes).to(device)
+    classifier = nn.Linear(args.n_hidden * 2, n_classes).to(device)
     model = LateFusionMAG(
         text_encoder, visual_encoder, text_gnn, vis_gnn, classifier,
         use_mlp_before_fusion=False, use_no_encoder=False,

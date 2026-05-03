@@ -11,7 +11,7 @@ import wandb
 def split_graph(nodes_num, train_ratio, val_ratio, labels, fewshots=None):
     np.random.seed(42)
     indices = np.random.permutation(nodes_num)
-    if fewshots is not None:
+    if fewshots:
         train_ids = []
 
         unique_labels = np.unique(labels)  # 获取唯一的类别标签

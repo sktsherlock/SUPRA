@@ -47,14 +47,12 @@ def inject_feature_noise(
     if ratio <= 0.0:
         return text_feat, visual_feat
 
-    generator = th.Generator().manual_seed(int(seed))
-
     # Per-dimension std across all nodes; clamp to avoid degenerate zero-std dims
     text_std = text_feat.std(dim=0, unbiased=False).clamp_min(1e-8)
     vis_std = visual_feat.std(dim=0, unbiased=False).clamp_min(1e-8)
 
-    noise_text = th.randn_like(text_feat, generator=generator) * text_std * ratio
-    noise_vis = th.randn_like(visual_feat, generator=generator) * vis_std * ratio
+    noise_text = th.randn_like(text_feat) * text_std * ratio
+    noise_vis = th.randn_like(visual_feat) * vis_std * ratio
 
     return text_feat + noise_text, visual_feat + noise_vis
 

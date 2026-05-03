@@ -96,8 +96,9 @@ def rewire_edges(
     rng_state = th.get_rng_state()
     th.manual_seed(seed)
 
-    # Select edges to rewire
-    rewire_eids = th.randperm(num_edges, generator=th.manual_seed(seed))[:num_to_rewire]
+    # Select edges to rewire — th.manual_seed(seed) already called at caller side;
+    # randperm output defaults to CPU so move to graph device for remove_edges compatibility
+    rewire_eids = th.randperm(num_edges)[:num_to_rewire].to(src.device)
     old_src = src[rewire_eids].clone()
     old_dst = dst[rewire_eids].clone()
 

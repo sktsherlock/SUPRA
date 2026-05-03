@@ -664,18 +664,16 @@ def main():
 
             # Record gradient L2 norms for gradient starvation verification
             if getattr(args, 'analyze_gradients', False):
-                def _grad_norm(m):
-                    return th.sqrt(sum(
-                        p.grad.float().norm(2).pow(2)
+                def _grad_norm_sq(m):
+                    return sum(
+                        p.grad.float().norm(2).pow(2).item()
                         for p in m.parameters()
                         if p.grad is not None
-                    )).item()
-                grad_history['enc_t'].append(_grad_norm(model.enc_t))
-                grad_history['enc_v'].append(_grad_norm(model.enc_v))
-                gnn_norm_sq = sum(
-                    _grad_norm(layer).pow(2) for layer in model.mp_C
-                )
-                grad_history['gnn'].append(th.sqrt(gnn_norm_sq).item())
+                    )
+                grad_history['enc_t'].append(_grad_norm_sq(model.enc_t) ** 0.5)
+                grad_history['enc_v'].append(_grad_norm_sq(model.enc_v) ** 0.5)
+                gnn_norm_sq = sum(_grad_norm_sq(layer) for layer in model.mp_C)
+                grad_history['gnn'].append(gnn_norm_sq ** 0.5)
 
             optimizer.step()
 

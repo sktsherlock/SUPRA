@@ -120,11 +120,11 @@ def plot_2group(
             )
         ax.set_title(title.replace("\\n", "\n"), fontsize=11, fontweight="bold", pad=6)
         ax.set_xlabel("Epoch", fontsize=10)
-        ax.yaxis.grid(True, linestyle="--", alpha=0.4)
+        ax.yaxis.grid(True, linestyle="--", alpha=0.3)
         ax.set_axisbelow(True)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
-        ax.tick_params(labelsize=9)
+        ax.tick_params(labelsize=9, labelleft=True)
 
     axes[0].set_ylabel("Gradient L2 Norm", fontsize=10)
     fig.legend(
@@ -159,7 +159,7 @@ def plot_4group(
     """4组对比：MMGCN → SUPRA(No Bypass) → SUPRA(Base) → SUPRA(Full)。"""
     plt.rcParams["font.family"] = "serif"
     fig, axes = plt.subplots(1, 4, figsize=(16, 3.5), sharey=True)
-    plt.subplots_adjust(wspace=0.25)
+    plt.subplots_adjust(wspace=0.30)
 
     # csv_1 = Late_GNN (MMGCN): text_enc, vis_enc, mmgnn
     # csv_2,3,4 = SUPRA: enc_t, enc_v, gnn
@@ -221,11 +221,11 @@ def plot_4group(
 
         ax.set_title(label, fontsize=11, fontweight="bold", pad=6)
         ax.set_xlabel("Epoch", fontsize=10)
-        ax.yaxis.grid(True, linestyle="--", alpha=0.4)
+        ax.yaxis.grid(True, linestyle="--", alpha=0.3)
         ax.set_axisbelow(True)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
-        ax.tick_params(labelsize=9)
+        ax.tick_params(labelsize=9, labelleft=True)
         if idx == 0:
             ax.set_ylabel("Gradient L2 Norm", fontsize=10)
 

@@ -466,7 +466,7 @@ def main():
                     )
                 grad_history['text_gnn'].append(_grad_norm_sq(model.text_gnn) ** 0.5)
                 grad_history['vis_gnn'].append(_grad_norm_sq(model.visual_gnn) ** 0.5)
-                mmgnn_sq = _grad_norm_sq(model.text_gnn) + _grad_norm_sq(model.vis_gnn)
+                mmgnn_sq = _grad_norm_sq(model.text_gnn) + _grad_norm_sq(model.visual_gnn)
                 grad_history['mmgnn'].append(mmgnn_sq ** 0.5)
 
             optimizer.step()

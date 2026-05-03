@@ -231,12 +231,10 @@ def plot_4group(
 
         ax.legend(
             handles, list(legend_map.values()),
-            loc="upper center", bbox_to_anchor=(0.5, -0.14),
-            ncol=3, framealpha=0.9, fontsize=7,
+            loc="best", framealpha=0.9, fontsize=7,
         )
 
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.20)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

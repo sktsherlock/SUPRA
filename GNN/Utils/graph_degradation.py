@@ -132,9 +132,18 @@ def rewire_edges(
 
     th.set_rng_state(rng_state)
 
-    # Clone original graph and remove selected edges
-    new_graph = dgl_graph.clone()
-    new_graph = new_graph.remove_edges(rewire_eids)
+    # Build mask of edges to keep (all except the ones being rewired)
+    keep_mask = th.ones(num_edges, dtype=th.bool)
+    keep_mask[rewire_eids] = False
+    keep_eids = keep_mask.nonzero(as_tuple=True)[0]
+
+    # Keep edges that are NOT being rewired
+    keep_src = src[keep_eids]
+    keep_dst = dst[keep_eids]
+
+    # Rebuild graph from kept edges (avoids clone+remove_edges None issue on CUDA)
+    new_graph = dgl.graph((keep_src, keep_dst), num_nodes=num_nodes)
+    new_graph = new_graph.add_edges(keep_dst, keep_src)  # undirected
 
     # Add rewired edges
     if new_src_list:

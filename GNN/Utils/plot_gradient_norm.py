@@ -158,8 +158,8 @@ def plot_4group(
 ):
     """4组对比：MMGCN → SUPRA(No Bypass) → SUPRA(Base) → SUPRA(Full)。"""
     plt.rcParams["font.family"] = "serif"
-    fig, axes = plt.subplots(2, 2, figsize=(10, 7))
-    plt.subplots_adjust(hspace=0.40, wspace=0.30)
+    fig, axes = plt.subplots(1, 4, figsize=(16, 3.5))
+    plt.subplots_adjust(wspace=0.25)
 
     # csv_1 = Late_GNN (MMGCN): text_enc, vis_enc, mmgnn
     # csv_2,3,4 = SUPRA: enc_t, enc_v, gnn
@@ -193,7 +193,7 @@ def plot_4group(
     }
 
     for idx, (csv_path, mode, label) in enumerate(configs):
-        ax = axes[idx // 2, idx % 2]
+        ax = axes[idx]
         if mode == "late":
             data = load_late_csv(csv_path)
             keys = ["text_gnn", "vis_gnn", "mmgnn"]
@@ -227,18 +227,18 @@ def plot_4group(
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.tick_params(labelsize=9)
-        if idx % 2 == 0:
+        if idx == 0:
             ax.set_ylabel("Gradient L2 Norm", fontsize=10)
 
     # Global legend at bottom
     all_labels = list(supra_legend.values())
     fig.legend(
         all_labels,
-        loc="upper center", bbox_to_anchor=(0.5, -0.01),
-        ncol=3, framealpha=0.9, fontsize=9,
+        loc="upper center", bbox_to_anchor=(0.5, -0.08),
+        ncol=3, framealpha=0.9, fontsize=8,
     )
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.10, hspace=0.40)
+    plt.subplots_adjust(bottom=0.22)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

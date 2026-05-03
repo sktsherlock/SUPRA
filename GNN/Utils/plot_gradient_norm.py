@@ -176,9 +176,9 @@ def plot_4group(
         "gnn":   {"color": "#A9D18E", "linestyle": "--", "linewidth": 2.0, "marker": "^", "markersize": 3},
     }
     supra_legend = {
-        "enc_t": "Text Projector (enc_t)",
-        "enc_v": "Visual Projector (enc_v)",
-        "gnn":   "Shared GNN (mp_C)",
+        "enc_t": "Text Projector",
+        "enc_v": "Visual Projector",
+        "gnn":   "Shared GNN",
     }
 
     late_styles = {
@@ -190,7 +190,6 @@ def plot_4group(
         "vis_gnn":  "Visual GNN",
     }
 
-    supra_handles = []
     for idx, (csv_path, mode, label) in enumerate(configs):
         ax = axes[idx]
         if mode == "late":
@@ -219,8 +218,6 @@ def plot_4group(
                 markevery=max(1, len(epochs) // 12),
             )
             handles.append(line)
-            if mode != "late":
-                supra_handles.append(line)
 
         ax.set_title(label, fontsize=11, fontweight="bold", pad=6)
         ax.set_xlabel("Epoch", fontsize=10)
@@ -232,22 +229,14 @@ def plot_4group(
         if idx == 0:
             ax.set_ylabel("Gradient L2 Norm", fontsize=10)
 
-        # Per-subplot legend for MMGCN (only 2 curves)
-        if mode == "late":
-            ax.legend(
-                handles, list(legend_map.values()),
-                loc="upper center", bbox_to_anchor=(0.5, -0.14),
-                ncol=2, framealpha=0.9, fontsize=7,
-            )
+        ax.legend(
+            handles, list(legend_map.values()),
+            loc="upper center", bbox_to_anchor=(0.5, -0.14),
+            ncol=3, framealpha=0.9, fontsize=7,
+        )
 
-    # Global SUPRA legend at bottom (only SUPRA lines)
-    fig.legend(
-        supra_handles, list(supra_legend.values()),
-        loc="upper center", bbox_to_anchor=(0.5, -0.02),
-        ncol=3, framealpha=0.9, fontsize=8,
-    )
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.18)
+    plt.subplots_adjust(bottom=0.20)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

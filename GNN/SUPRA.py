@@ -767,6 +767,7 @@ def main():
         if getattr(args, 'analyze_gradients', False) and getattr(args, 'gradient_csv', None):
             import csv
             grad_csv_path = args.gradient_csv.replace('.csv', f'_l2_norm_run{run+1}.csv')
+            os.makedirs(os.path.dirname(grad_csv_path), exist_ok=True)
             with open(grad_csv_path, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(['epoch', 'enc_t', 'enc_v', 'gnn'])

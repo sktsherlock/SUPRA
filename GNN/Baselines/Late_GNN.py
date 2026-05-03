@@ -680,7 +680,7 @@ def main():
                 writer = csv.writer(f)
                 writer.writerow(['epoch', 'text_gnn', 'vis_gnn', 'mmgnn'])
                 for epoch_idx, (te, ve, mg) in enumerate(
-                    zip(grad_history['text_enc'], grad_history['vis_enc'], grad_history['mmgnn']), start=1
+                    zip(grad_history['text_gnn'], grad_history['vis_gnn'], grad_history['mmgnn']), start=1
                 ):
                     writer.writerow([epoch_idx, te, ve, mg])
             print(f"[Run {run+1}] Gradient L2 norm saved to {grad_csv_path}")

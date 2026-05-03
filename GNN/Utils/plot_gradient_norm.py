@@ -158,7 +158,7 @@ def plot_4group(
 ):
     """4组对比：MMGCN → SUPRA(No Bypass) → SUPRA(Base) → SUPRA(Full)。"""
     plt.rcParams["font.family"] = "serif"
-    fig, axes = plt.subplots(1, 4, figsize=(16, 3.5))
+    fig, axes = plt.subplots(1, 4, figsize=(16, 3.5), sharey=True)
     plt.subplots_adjust(wspace=0.25)
 
     # csv_1 = Late_GNN (MMGCN): text_enc, vis_enc, mmgnn

@@ -184,19 +184,18 @@ def plot_4group(
     late_styles = {
         "text_gnn": {"color": "#7294D4", "linestyle": "-",  "linewidth": 1.8, "marker": "o", "markersize": 3},
         "vis_gnn":  {"color": "#FFD966", "linestyle": "-",  "linewidth": 1.8, "marker": "s", "markersize": 3},
-        "mmgnn":    {"color": "#A9D18E", "linestyle": "--", "linewidth": 2.0, "marker": "^", "markersize": 3},
     }
     late_legend = {
         "text_gnn": "Text GNN",
         "vis_gnn":  "Visual GNN",
-        "mmgnn":    "Modality-Specific GNN (sum)",
     }
 
+    supra_handles = []
     for idx, (csv_path, mode, label) in enumerate(configs):
         ax = axes[idx]
         if mode == "late":
             data = load_late_csv(csv_path)
-            keys = ["text_gnn", "vis_gnn", "mmgnn"]
+            keys = ["text_gnn", "vis_gnn"]
             styles_map = late_styles
             legend_map = late_legend
         else:
@@ -209,18 +208,21 @@ def plot_4group(
             truncate(data, max_epoch)
 
         epochs = data["epochs"]
+        handles = []
         for key in keys:
             s = styles_map[key]
-            ax.plot(
+            line, = ax.plot(
                 epochs, data[key],
-                label=legend_map[key],
                 color=s["color"], linestyle=s["linestyle"],
                 linewidth=s["linewidth"],
                 marker=s["marker"], markersize=s["markersize"],
                 markevery=max(1, len(epochs) // 12),
             )
+            handles.append(line)
+            if mode != "late":
+                supra_handles.append(line)
 
-        ax.set_title(label.replace("\\n", "\n"), fontsize=11, fontweight="bold", pad=6)
+        ax.set_title(label, fontsize=11, fontweight="bold", pad=6)
         ax.set_xlabel("Epoch", fontsize=10)
         ax.yaxis.grid(True, linestyle="--", alpha=0.4)
         ax.set_axisbelow(True)
@@ -230,15 +232,22 @@ def plot_4group(
         if idx == 0:
             ax.set_ylabel("Gradient L2 Norm", fontsize=10)
 
-    # Global legend at bottom
-    all_labels = list(supra_legend.values())
+        # Per-subplot legend for MMGCN (only 2 curves)
+        if mode == "late":
+            ax.legend(
+                handles, list(legend_map.values()),
+                loc="upper center", bbox_to_anchor=(0.5, -0.14),
+                ncol=2, framealpha=0.9, fontsize=7,
+            )
+
+    # Global SUPRA legend at bottom (only SUPRA lines)
     fig.legend(
-        all_labels,
-        loc="upper center", bbox_to_anchor=(0.5, -0.08),
+        supra_handles, list(supra_legend.values()),
+        loc="upper center", bbox_to_anchor=(0.5, -0.02),
         ncol=3, framealpha=0.9, fontsize=8,
     )
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.22)
+    plt.subplots_adjust(bottom=0.18)
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)

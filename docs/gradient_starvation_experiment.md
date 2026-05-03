@@ -24,7 +24,7 @@
 | 参数 | 值 |
 |------|-----|
 | Backbone | GCN |
-| n_layers | 3 |
+| n-layers | 3 |
 | embed_dim | 256 |
 | lr | 0.001 |
 | wd | 0.0001 |
@@ -40,13 +40,13 @@ python -m GNN.Baselines.Late_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
     --model_name GCN \
-    --n_layers 3 \
-    --n_hidden 256 \
+    --n-layers 3 \
+    --n-hidden 256 \
     --dropout 0.3 \
     --lr 0.001 \
     --wd 0.0001 \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --early_stop_patience 50 \
     --analyze_gradients \
@@ -63,7 +63,7 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
     --model_name GCN \
-    --n_layers 3 \
+    --n-layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
     --wd 0.0001 \
@@ -71,8 +71,8 @@ python -m GNN.SUPRA \
     --aux_weight 0.0 \
     --mlp_variant ablate \
     --ablate_bypass \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --early_stop_patience 50 \
     --analyze_gradients \
@@ -89,15 +89,15 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
     --model_name GCN \
-    --n_layers 3 \
+    --n-layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
     --wd 0.0001 \
     --dropout 0.3 \
     --aux_weight 0.0 \
     --mlp_variant ablate \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --early_stop_patience 50 \
     --analyze_gradients \
@@ -114,15 +114,15 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
     --model_name GCN \
-    --n_layers 3 \
+    --n-layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
     --wd 0.0001 \
     --dropout 0.3 \
     --aux_weight 0.7 \
     --mlp_variant ablate \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --early_stop_patience 50 \
     --analyze_gradients \
@@ -147,7 +147,7 @@ Results/gradient_starvation/grocery_g4_full_l2_norm_run1.csv
 | 参数 | 值 |
 |------|-----|
 | Backbone | GCN |
-| n_layers | 2 |
+| n-layers | 2 |
 | embed_dim | 256 |
 | lr | 0.0005 |
 | wd | 0.0001 |
@@ -164,13 +164,13 @@ python -m GNN.Baselines.Late_GNN \
     --visual_feature /mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Toys/ToysGraph.pt \
     --model_name GCN \
-    --n_layers 2 \
-    --n_hidden 256 \
+    --n-layers 2 \
+    --n-hidden 256 \
     --dropout 0.3 \
     --lr 0.0005 \
     --wd 0.0001 \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --early_stop_patience 50 \
     --analyze_gradients \
@@ -187,7 +187,7 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Toys/ToysGraph.pt \
     --model_name GCN \
-    --n_layers 2 \
+    --n-layers 2 \
     --embed_dim 256 \
     --lr 0.0005 \
     --wd 0.0001 \
@@ -195,8 +195,8 @@ python -m GNN.SUPRA \
     --aux_weight 0.0 \
     --mlp_variant ablate \
     --ablate_bypass \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --early_stop_patience 50 \
     --analyze_gradients \
@@ -213,15 +213,15 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Toys/ToysGraph.pt \
     --model_name GCN \
-    --n_layers 2 \
+    --n-layers 2 \
     --embed_dim 256 \
     --lr 0.0005 \
     --wd 0.0001 \
     --dropout 0.3 \
     --aux_weight 0.0 \
     --mlp_variant ablate \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --early_stop_patience 50 \
     --analyze_gradients \
@@ -238,15 +238,15 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Toys/ToysGraph.pt \
     --model_name GCN \
-    --n_layers 2 \
+    --n-layers 2 \
     --embed_dim 256 \
     --lr 0.0005 \
     --wd 0.0001 \
     --dropout 0.3 \
     --aux_weight 0.5 \
     --mlp_variant ablate \
-    --n_epochs 300 \
-    --n_runs 1 \
+    --n-epochs 300 \
+    --n-runs 1 \
     --eval_steps 1 \
     --early_stop_patience 50 \
     --analyze_gradients \
@@ -274,10 +274,10 @@ python -m GNN.Utils.plot_gradient_norm --mode 4 \
     --csv_2 Results/gradient_starvation/grocery_g2_no_bypass_l2_norm_run1.csv \
     --csv_3 Results/gradient_starvation/grocery_g3_base_l2_norm_run1.csv \
     --csv_4 Results/gradient_starvation/grocery_g4_full_l2_norm_run1.csv \
-    --label_1 "MMGCN\n(Late_GNN)" \
-    --label_2 "SUPRA (No Bypass)\nC-only" \
-    --label_3 "SUPRA Base\n(aux=0)" \
-    --label_4 "SUPRA Full\n(aux=0.7)" \
+    --label_1 "MMGCN" \
+    --label_2 "SUPRA (No Bypass)" \
+    --label_3 "SUPRA (aux=0)" \
+    --label_4 "SUPRA (aux=0.7)" \
     --max_epoch 50 \
     --save_plot Results/gradient_starvation/grocery_4group.pdf
 ```
@@ -290,10 +290,10 @@ python -m GNN.Utils.plot_gradient_norm --mode 4 \
     --csv_2 Results/gradient_starvation/toys_g2_no_bypass_l2_norm_run1.csv \
     --csv_3 Results/gradient_starvation/toys_g3_base_l2_norm_run1.csv \
     --csv_4 Results/gradient_starvation/toys_g4_full_l2_norm_run1.csv \
-    --label_1 "MMGCN\n(Late_GNN)" \
-    --label_2 "SUPRA (No Bypass)\nC-only" \
-    --label_3 "SUPRA Base\n(aux=0)" \
-    --label_4 "SUPRA Full\n(aux=0.5)" \
+    --label_1 "MMGCN" \
+    --label_2 "SUPRA (No Bypass)" \
+    --label_3 "SUPRA (aux=0)" \
+    --label_4 "SUPRA (aux=0.5)" \
     --max_epoch 50 \
     --save_plot Results/gradient_starvation/toys_4group.pdf
 ```

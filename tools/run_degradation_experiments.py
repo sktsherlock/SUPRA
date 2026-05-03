@@ -148,7 +148,7 @@ def train_and_evaluate(
             logits = model.classifier(fused)
         elif model_type == "supra":
             out = model.forward_multiple(graph, text_feat, visual_feat)
-            logits = out.logits_final
+            logits = out.logits_final_0
 
         loss = cross_entropy(logits[train_idx], labels[train_idx], label_smoothing=label_smoothing)
         loss.backward()

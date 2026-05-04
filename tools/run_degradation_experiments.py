@@ -3,14 +3,11 @@
 Controlled Degradation Experiments for SUPRA Theory Verification
 ================================================================
 
-Two experiments validating the Generalized Performance Inversion Threshold (GPIT) theorem:
+Single experiment validating the Feature Dimension (σ²_ε) of the
+Generalized Performance Inversion Threshold (GPIT) theorem:
 
-  Experiment A — Feature Dimension (σ²_ε):
-    Noise ratios: [0.0, 0.1, 0.3, 0.5, 0.8, 1.2, 2.0]
-    Formula: X_noisy = X + α · std(X) · N(0, 1)
-
-  Experiment B — Topology Dimension (β):
-    Rewire ratios: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+  Noise ratios: [0.0, 0.1, 0.3, 0.5, 0.8, 1.2, 2.0]
+  Formula: X_noisy = X + α · std(X) · N(0, 1)
 
 Three models compared:
   1. Pure MLP  — Early_GNN (backend=mlp), no graph edges used
@@ -29,11 +26,11 @@ Usage:
 
     # Full experiment
     python tools/run_degradation_experiments.py \
-        --data_name Movies \
-        --text_feature /path/Movies_text.npy \
-        --visual_feature /path/Movies_visual.npy \
-        --graph_path /path/MoviesGraph.pt \
-        --embed_dim 256 --n_layers 3 --lr 0.001 --dropout 0.3 \
+        --data_name Reddit-M \
+        --text_feature /path/RedditM_text.npy \
+        --visual_feature /path/RedditM_visual.npy \
+        --graph_path /path/RedditMGraph.pt \
+        --embed_dim 256 --n_layers 3 --lr 0.0005 --dropout 0.3 \
         --save_dir Results/degradation \
         --n_runs 3 --n_epochs 300
 """
@@ -54,8 +51,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from GNN.Utils.model_config import add_common_args
 from GNN.Utils.LossFunction import cross_entropy, get_metric
-from GNN.Utils.graph_degradation import inject_feature_noise, rewire_edges
+from GNN.Utils.graph_degradation import inject_feature_noise
 from GNN.GraphData import load_data
+
 
 # -----------------------------------------------------------------------
 # Model builders (replicating training code without full CLI complexity)
@@ -255,7 +253,7 @@ def run_single_condition(
 
 
 # -----------------------------------------------------------------------
-# Experiment runners
+# Experiment runner
 # -----------------------------------------------------------------------
 
 def run_noise_experiment(
@@ -286,57 +284,24 @@ def run_noise_experiment(
     return results
 
 
-def run_rewire_experiment(
-    graph, text_feat, visual_feat, labels,
-    train_idx, val_idx, test_idx,
-    rewire_ratios, n_runs, base_seed,
-    n_epochs, lr, wd, dropout, aux_weight, embed_dim,
-) -> Dict:
-    """Run edge rewiring degradation experiment."""
-    results = {}
-    for ratio in rewire_ratios:
-        print(f"  [Rewire] ratio={ratio}")
-
-        def make_rewired(t, v, g):
-            import dgl
-            rewired_g = rewire_edges(g, ratio, base_seed)
-            return t, v, rewired_g
-
-        row = {}
-        for model_type in ["early_mlp", "late_gnn", "supra"]:
-            mean_acc, std_acc = run_single_condition(
-                model_type, graph, text_feat, visual_feat, labels,
-                train_idx, val_idx, test_idx,
-                n_epochs, lr, wd, dropout, aux_weight, embed_dim,
-                n_runs, base_seed,
-                apply_degradation_fn=make_rewired,
-            )
-            row[model_type] = (mean_acc, std_acc)
-            print(f"    {model_type}: {mean_acc:.4f} ± {std_acc:.4f}")
-        results[ratio] = row
-    return results
-
-
 # -----------------------------------------------------------------------
 # Plotting
 # -----------------------------------------------------------------------
 
 def plot_degradation(
     noise_results: Dict,
-    rewire_results: Dict,
     noise_ratios: List[float],
-    rewire_ratios: List[float],
     save_path: str,
 ):
-    """Plot publication-ready degradation curves with error bands."""
+    """Plot publication-ready degradation curve with error bands."""
     import matplotlib.pyplot as plt
     import matplotlib
 
     matplotlib.rcParams["font.family"] = "serif"
     matplotlib.rcParams["font.size"] = 11
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-    plt.subplots_adjust(wspace=0.32, bottom=0.18)
+    fig, ax = plt.subplots(figsize=(6, 4.5))
+    plt.subplots_adjust(bottom=0.18, left=0.18)
 
     model_configs = {
         "early_mlp": {"color": "#ED7D31", "linestyle": "-",  "marker": "s", "markersize": 5,
@@ -347,17 +312,14 @@ def plot_degradation(
                       "label": "SUPRA"},
     }
 
-    # ---- Left: Noise degradation ----
-    ax = axes[0]
-    x_vals = noise_ratios
     for model_type, cfg in model_configs.items():
-        means = [noise_results[r][model_type][0] for r in x_vals]
-        stds = [noise_results[r][model_type][1] for r in x_vals]
-        ax.plot(x_vals, means,
+        means = [noise_results[r][model_type][0] for r in noise_ratios]
+        stds = [noise_results[r][model_type][1] for r in noise_ratios]
+        ax.plot(noise_ratios, means,
                 color=cfg["color"], linestyle=cfg["linestyle"],
                 marker=cfg["marker"], markersize=cfg["markersize"],
                 linewidth=2.0, label=cfg["label"])
-        ax.fill_between(x_vals,
+        ax.fill_between(noise_ratios,
                        [m - s for m, s in zip(means, stds)],
                        [m + s for m, s in zip(means, stds)],
                        color=cfg["color"], alpha=0.15)
@@ -370,37 +332,7 @@ def plot_degradation(
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(labelsize=10)
-
-    # ---- Right: Rewire degradation ----
-    ax = axes[1]
-    x_vals = rewire_ratios
-    for model_type, cfg in model_configs.items():
-        means = [rewire_results[r][model_type][0] for r in x_vals]
-        stds = [rewire_results[r][model_type][1] for r in x_vals]
-        ax.plot(x_vals, means,
-                color=cfg["color"], linestyle=cfg["linestyle"],
-                marker=cfg["marker"], markersize=cfg["markersize"],
-                linewidth=2.0, label=cfg["label"])
-        ax.fill_between(x_vals,
-                       [m - s for m, s in zip(means, stds)],
-                       [m + s for m, s in zip(means, stds)],
-                       color=cfg["color"], alpha=0.15)
-
-    ax.set_xlabel(r"Rewire Ratio $p$", fontsize=12)
-    ax.set_ylabel("Accuracy", fontsize=12)
-    ax.set_title(r"Topology Dimension: $\beta$", fontsize=12, fontweight="bold")
-    ax.grid(True, linestyle="--", alpha=0.3)
-    ax.set_axisbelow(True)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.tick_params(labelsize=10)
-
-    # Shared legend below
-    handles = [plt.Line2D([0], [0], color=c["color"], linestyle=c["linestyle"],
-                           linewidth=2.0, marker=c["marker"], markersize=5, label=c["label"])
-               for c in model_configs.values()]
-    fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.01),
-               ncol=3, framealpha=0.9, fontsize=10)
+    ax.legend(loc="best", framealpha=0.9, fontsize=10)
 
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     pdf_path = os.path.splitext(save_path)[0] + ".pdf"
@@ -408,25 +340,20 @@ def plot_degradation(
     print(f"[Saved] {pdf_path}")
 
 
-def save_results_csv(noise_results, rewire_results,
-                      noise_ratios, rewire_ratios, save_dir):
+def save_results_csv(noise_results, noise_ratios, save_dir):
     """Save numerical results to CSV."""
     import csv
     os.makedirs(save_dir, exist_ok=True)
 
-    for exp_name, results, ratios in [
-        ("noise", noise_results, noise_ratios),
-        ("rewire", rewire_results, rewire_ratios),
-    ]:
-        path = os.path.join(save_dir, f"{exp_name}_degradation_results.csv")
-        with open(path, "w", newline="") as f:
-            w = csv.writer(f)
-            w.writerow(["ratio", "model", "mean_acc", "std_acc"])
-            for ratio in ratios:
-                for model in ["early_mlp", "late_gnn", "supra"]:
-                    mean, std = results[ratio][model]
-                    w.writerow([ratio, model, f"{mean:.6f}", f"{std:.6f}"])
-        print(f"[Saved] {path}")
+    path = os.path.join(save_dir, "noise_degradation_results.csv")
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["ratio", "model", "mean_acc", "std_acc"])
+        for ratio in noise_ratios:
+            for model in ["early_mlp", "late_gnn", "supra"]:
+                mean, std = noise_results[ratio][model]
+                w.writerow([ratio, model, f"{mean:.6f}", f"{std:.6f}"])
+    print(f"[Saved] {path}")
 
 
 # -----------------------------------------------------------------------
@@ -474,14 +401,10 @@ if __name__ == "__main__":
     parser.add_argument("--noise_ratios", type=str,
                         default="0.0,0.1,0.3,0.5,0.8,1.2,2.0",
                         help="Comma-separated noise ratios")
-    parser.add_argument("--rewire_ratios", type=str,
-                        default="0.0,0.2,0.4,0.6,0.8,1.0",
-                        help="Comma-separated rewire ratios")
     parser.add_argument("--gpu", type=int, default=0)
     args = parser.parse_args()
 
     noise_ratios = [float(x) for x in args.noise_ratios.split(",")]
-    rewire_ratios = [float(x) for x in args.rewire_ratios.split(",")]
 
     # Device
     device = th.device(f"cuda:{args.gpu}" if th.cuda.is_available() else "cpu")
@@ -515,9 +438,9 @@ if __name__ == "__main__":
     print(f"  Text feat: {text_feat.shape}, Visual feat: {visual_feat.shape}")
     print(f"  Train: {len(train_idx)}, Val: {len(val_idx)}, Test: {len(test_idx)}")
 
-    # Run experiments
+    # Run experiment
     print(f"\n{'='*60}")
-    print("Experiment A — Feature Noise Degradation")
+    print("Experiment — Feature Noise Degradation")
     print(f"{'='*60}")
     noise_results = run_noise_experiment(
         graph, text_feat, visual_feat, labels,
@@ -528,25 +451,11 @@ if __name__ == "__main__":
         embed_dim=args.embed_dim,
     )
 
-    print(f"\n{'='*60}")
-    print("Experiment B — Edge Rewiring Degradation")
-    print(f"{'='*60}")
-    rewire_results = run_rewire_experiment(
-        graph, text_feat, visual_feat, labels,
-        train_idx, val_idx, test_idx,
-        rewire_ratios, args.n_runs, args.base_seed,
-        n_epochs=args.n_epochs, lr=args.lr, wd=args.wd,
-        dropout=args.dropout, aux_weight=args.aux_weight,
-        embed_dim=args.embed_dim,
-    )
-
     # Save results
-    save_results_csv(noise_results, rewire_results,
-                     noise_ratios, rewire_ratios, args.save_dir)
+    save_results_csv(noise_results, noise_ratios, args.save_dir)
 
     # Plot
     save_plot = os.path.join(args.save_dir, f"{args.data_name}_degradation.pdf")
-    plot_degradation(noise_results, rewire_results,
-                    noise_ratios, rewire_ratios, save_plot)
+    plot_degradation(noise_results, noise_ratios, save_plot)
 
     print("\nDone.")

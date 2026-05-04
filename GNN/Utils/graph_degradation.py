@@ -143,14 +143,14 @@ def rewire_edges(
 
     # Rebuild graph from kept edges (avoids clone+remove_edges None issue on CUDA)
     new_graph = dgl.graph((keep_src, keep_dst), num_nodes=num_nodes)
-    new_graph = new_graph.add_edges(keep_dst, keep_src)  # undirected
+    new_graph.add_edges(keep_dst, keep_src)  # undirected; in-place
 
     # Add rewired edges
     if new_src_list:
         new_src_t = th.tensor(new_src_list, dtype=src.dtype, device=src.device)
-        new_dst_t = th.tensor(new_dst_list, dtype=dst.dtype, device=dst.device)
-        new_graph = new_graph.add_edges(new_src_t, new_dst_t)
-        new_graph = new_graph.add_edges(new_dst_t, new_src_t)  # undirected
+        new_dst_t = th.tensor(new_dst_list, dtype=dst.dtype, device=src.device)
+        new_graph.add_edges(new_src_t, new_dst_t)  # in-place
+        new_graph.add_edges(new_dst_t, new_src_t)  # undirected; in-place
 
     new_graph.create_formats_()
     return new_graph

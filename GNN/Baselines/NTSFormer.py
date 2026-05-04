@@ -409,7 +409,9 @@ class NTSFormerModel(nn.Module):
         Returns:
             logits: [N, num_classes]
         """
-        # SIGN pre-computation for multi-hop features
+        # SIGN pre-computation for multi-hop features.
+        # Accept either hop lists (as returned by SIGN) or a pre-concatenated Tensor
+        # to avoid per-forward torch.cat, which can roughly double peak memory.
         if text_h_list is None:
             text_h_list = sign_pre_compute(
                 graph, text_feat, k=self.sign_k, include_input=True,
@@ -421,9 +423,14 @@ class NTSFormerModel(nn.Module):
                 alpha=0.0, device=vis_feat.device
             )
 
-        # Concatenate multi-hop features
-        text_h = th.cat(text_h_list, dim=-1)  # [N, (k+1) * text_dim]
-        vis_h = th.cat(vis_h_list, dim=-1)     # [N, (k+1) * vis_dim]
+        if isinstance(text_h_list, (list, tuple)):
+            text_h = th.cat(text_h_list, dim=-1)  # [N, (k+1) * text_dim]
+        else:
+            text_h = text_h_list
+        if isinstance(vis_h_list, (list, tuple)):
+            vis_h = th.cat(vis_h_list, dim=-1)  # [N, (k+1) * vis_dim]
+        else:
+            vis_h = vis_h_list
 
         # Project to embed_dim
         text_h = self.text_proj(text_h)  # [N, embed_dim]
@@ -720,6 +727,10 @@ def main():
         observe_graph, text_feat, vis_feat, sign_k, device,
         cache_key=sign_cache_key, force_device=sign_use_gpu
     )
+    # Concatenate once to reduce peak memory: keeping hop lists and also concatenating
+    # inside every forward can roughly double peak VRAM.
+    text_h_list = th.cat(text_h_list, dim=-1)
+    vis_h_list = th.cat(vis_h_list, dim=-1)
     t_precompute = time.time() - t_precompute
     print(f"[TIME] data_loading={t_load:.2f}s  sign_precompute={t_precompute:.2f}s")
 
@@ -840,6 +851,7 @@ def main():
                                     graph, noisy_text, k=sign_k, include_input=True,
                                     alpha=0.0, device=text_feat.device
                                 )
+                                noisy_text_h_list = th.cat(noisy_text_h_list, dim=-1)
                                 logits_dt = model(
                                     graph, noisy_text, vis_feat,
                                     text_h_list=noisy_text_h_list, vis_h_list=vis_h_list
@@ -854,6 +866,7 @@ def main():
                                     graph, noisy_vis, k=sign_k, include_input=True,
                                     alpha=0.0, device=vis_feat.device
                                 )
+                                noisy_vis_h_list = th.cat(noisy_vis_h_list, dim=-1)
                                 logits_dv = model(
                                     graph, text_feat, noisy_vis,
                                     text_h_list=text_h_list, vis_h_list=noisy_vis_h_list

@@ -290,31 +290,19 @@ def run_noise_experiment(
 # Plotting
 # -----------------------------------------------------------------------
 
-def plot_degradation(
-    noise_results: Dict,
-    noise_ratios: List[float],
-    save_path: str,
-):
-    """Plot publication-ready degradation curve with error bands."""
-    import matplotlib.pyplot as plt
-    import matplotlib
+MODEL_CONFIGS = {
+    "early_mlp": {"color": "#ED7D31", "linestyle": "-",  "marker": "s", "markersize": 5,
+                  "label": "Pure MLP"},
+    "late_gnn":  {"color": "#4472C4", "linestyle": "--", "marker": "^", "markersize": 5,
+                  "label": "MMGCN"},
+    "supra":     {"color": "#70AD47", "linestyle": ":",  "marker": "o", "markersize": 5,
+                  "label": "SUPRA"},
+}
 
-    matplotlib.rcParams["font.family"] = "serif"
-    matplotlib.rcParams["font.size"] = 11
 
-    fig, ax = plt.subplots(figsize=(6, 4.5))
-    plt.subplots_adjust(bottom=0.18, left=0.18)
-
-    model_configs = {
-        "early_mlp": {"color": "#ED7D31", "linestyle": "-",  "marker": "s", "markersize": 5,
-                      "label": "Pure MLP"},
-        "late_gnn":  {"color": "#4472C4", "linestyle": "--", "marker": "^", "markersize": 5,
-                      "label": "MMGCN"},
-        "supra":     {"color": "#70AD47", "linestyle": ":",  "marker": "o", "markersize": 5,
-                      "label": "SUPRA"},
-    }
-
-    for model_type, cfg in model_configs.items():
+def _plot_single(ax, noise_results, noise_ratios, title=None):
+    """Plot one sub-axis of degradation curve."""
+    for model_type, cfg in MODEL_CONFIGS.items():
         means = [noise_results[r][model_type][0] for r in noise_ratios]
         stds = [noise_results[r][model_type][1] for r in noise_ratios]
         ax.plot(noise_ratios, means,
@@ -326,20 +314,80 @@ def plot_degradation(
                        [m + s for m, s in zip(means, stds)],
                        color=cfg["color"], alpha=0.15)
 
-    ax.set_xlabel(r"Noise Ratio $\alpha$", fontsize=12)
-    ax.set_ylabel("Accuracy", fontsize=12)
-    ax.set_title(r"Feature Dimension: $\sigma^2_\epsilon$", fontsize=12, fontweight="bold")
+    ax.set_xlabel(r"Noise Ratio $\alpha$", fontsize=11)
+    ax.set_ylabel("Accuracy", fontsize=11)
+    if title:
+        ax.set_title(title, fontsize=11, fontweight="bold")
     ax.grid(True, linestyle="--", alpha=0.3)
     ax.set_axisbelow(True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(labelsize=10)
+
+
+def plot_degradation(
+    noise_results: Dict,
+    noise_ratios: List[float],
+    save_path: str,
+    title: str = None,
+):
+    """
+    Plot single-panel publication-ready degradation curve.
+
+    For the main paper (one dataset).
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib
+
+    matplotlib.rcParams["font.family"] = "serif"
+    matplotlib.rcParams["font.size"] = 11
+
+    fig, ax = plt.subplots(figsize=(6, 4.5))
+    plt.subplots_adjust(bottom=0.18, left=0.18)
+
+    _plot_single(ax, noise_results, noise_ratios, title=title)
     ax.legend(loc="best", framealpha=0.9, fontsize=10)
 
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    pdf_path = os.path.splitext(save_path)[0] + ".pdf"
-    fig.savefig(pdf_path, dpi=300, bbox_inches="tight", format="pdf")
-    print(f"[Saved] {pdf_path}")
+    fig.savefig(save_path, dpi=300, bbox_inches="tight", format="pdf")
+    print(f"[Saved] {save_path}")
+    plt.close(fig)
+
+
+def plot_multi_dataset(
+    datasets: Dict[str, Dict],
+    noise_ratios: List[float],
+    save_path: str,
+):
+    """
+    Plot multiple datasets in a 1×N row for appendix.
+
+    Args:
+        datasets: dict of {dataset_name: noise_results}
+        noise_ratios: list of ratios (shared across all datasets)
+        save_path: output PDF path
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib
+
+    matplotlib.rcParams["font.family"] = "serif"
+    matplotlib.rcParams["font.size"] = 11
+
+    n = len(datasets)
+    fig, axes = plt.subplots(1, n, figsize=(5.5 * n, 4.2))
+    if n == 1:
+        axes = [axes]
+
+    plt.subplots_adjust(bottom=0.18, top=0.88, wspace=0.30)
+
+    for ax, (name, results) in zip(axes, datasets.items()):
+        _plot_single(ax, results, noise_ratios, title=name)
+        ax.legend(loc="upper right", framealpha=0.9, fontsize=9)
+
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    fig.savefig(save_path, dpi=300, bbox_inches="tight", format="pdf")
+    print(f"[Saved] {save_path}")
+    plt.close(fig)
 
 
 def save_results_csv(noise_results, noise_ratios, save_dir):
@@ -395,7 +443,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--wd", type=float, default=0.0001)
     parser.add_argument("--dropout", type=float, default=0.3)
-    parser.add_argument("--aux_weight", type=float, default=0.7)
+    parser.add_argument("--aux_weight", type=float, default=0.0)
     parser.add_argument("--n_runs", type=int, default=3,
                         help="Number of runs per condition (for mean/std)")
     parser.add_argument("--n_epochs", type=int, default=300)
@@ -404,6 +452,10 @@ if __name__ == "__main__":
                         default="0.0,0.1,0.3,0.5,0.8,1.2,2.0",
                         help="Comma-separated noise ratios")
     parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--appendix_datasets", type=str, default=None,
+                        help="Comma-separated list of dataset configs for appendix plot "
+                             "in format 'name:text_feature:visual_feature:graph_path[:lr[:n_layers]]'. "
+                             "Example: 'Movies:/path1:/path2:/path3:0.001:3'")
     args = parser.parse_args()
 
     noise_ratios = [float(x) for x in args.noise_ratios.split(",")]
@@ -411,53 +463,83 @@ if __name__ == "__main__":
     # Device
     device = th.device(f"cuda:{args.gpu}" if th.cuda.is_available() else "cpu")
 
-    # Load data
+    # -----------------------------------------------------------------
+    # Helper: run experiment for one dataset
+    # -----------------------------------------------------------------
+    def run_for_dataset(data_name, text_feat_path, visual_feat_path, graph_path,
+                       lr, n_layers, embed_dim, dropout, save_dir):
+        g, lbls, tr_idx, v_idx, t_idx = load_data(
+            graph_path, train_ratio=0.6, val_ratio=0.2,
+            name=data_name, fewshots=False)
+        srcs, dsts = g.all_edges()
+        g.add_edges(dsts, srcs)
+        g = g.remove_self_loop().add_self_loop()
+        g.create_formats_()
+        g = g.to(device)
+        lbls = lbls.to(device).long()
+        tr_idx = tr_idx.to(device).long()
+        v_idx = v_idx.to(device).long()
+        t_idx = t_idx.to(device).long()
+
+        tf = th.from_numpy(np.load(text_feat_path, mmap_mode="r").astype(np.float32)).to(device)
+        vf = th.from_numpy(np.load(visual_feat_path, mmap_mode="r").astype(np.float32)).to(device)
+
+        print(f"  [{data_name}] Nodes={g.num_nodes()}, Edges={g.num_edges()}, "
+              f"Train={len(tr_idx)}, Val={len(v_idx)}, Test={len(t_idx)}")
+
+        results = run_noise_experiment(
+            g, tf, vf, lbls, tr_idx, v_idx, t_idx,
+            noise_ratios, args.n_runs, args.base_seed,
+            n_epochs=args.n_epochs, lr=lr, wd=args.wd,
+            dropout=dropout, aux_weight=args.aux_weight, embed_dim=embed_dim,
+        )
+        # Save per-dataset CSV
+        save_results_csv(results, noise_ratios, save_dir)
+        return results
+
+    # -----------------------------------------------------------------
+    # Main dataset (for paper figure)
+    # -----------------------------------------------------------------
     print(f"\n[{args.data_name}] Loading data...")
-    graph, labels, train_idx, val_idx, test_idx = \
-        load_data(args.graph_path, train_ratio=0.6, val_ratio=0.2,
-                  name=args.data_name, fewshots=False)
-
-    # Undirected + self-loop (matching sweep defaults)
-    srcs, dsts = graph.all_edges()
-    graph.add_edges(dsts, srcs)
-    graph = graph.remove_self_loop().add_self_loop()
-    graph.create_formats_()
-    graph = graph.to(device)
-
-    labels = labels.to(device).long()
-    train_idx = train_idx.to(device).long()
-    val_idx = val_idx.to(device).long()
-    test_idx = test_idx.to(device).long()
-
-    text_feat = th.from_numpy(
-        np.load(args.text_feature, mmap_mode="r").astype(np.float32)
-    ).to(device)
-    visual_feat = th.from_numpy(
-        np.load(args.visual_feature, mmap_mode="r").astype(np.float32)
-    ).to(device)
-
-    print(f"  Nodes: {graph.num_nodes()}, Edges: {graph.num_edges()}")
-    print(f"  Text feat: {text_feat.shape}, Visual feat: {visual_feat.shape}")
-    print(f"  Train: {len(train_idx)}, Val: {len(val_idx)}, Test: {len(test_idx)}")
-
-    # Run experiment
-    print(f"\n{'='*60}")
-    print("Experiment — Feature Noise Degradation")
-    print(f"{'='*60}")
-    noise_results = run_noise_experiment(
-        graph, text_feat, visual_feat, labels,
-        train_idx, val_idx, test_idx,
-        noise_ratios, args.n_runs, args.base_seed,
-        n_epochs=args.n_epochs, lr=args.lr, wd=args.wd,
-        dropout=args.dropout, aux_weight=args.aux_weight,
-        embed_dim=args.embed_dim,
+    print(f"  Nodes: ..., Edges: ...")
+    paper_results = run_for_dataset(
+        args.data_name, args.text_feature, args.visual_feature,
+        args.graph_path, args.lr, args.n_layers, args.embed_dim,
+        args.dropout, args.save_dir,
     )
 
-    # Save results
-    save_results_csv(noise_results, noise_ratios, args.save_dir)
+    # Paper figure (single-panel)
+    paper_plot_path = os.path.join(args.save_dir, f"{args.data_name}_degradation.pdf")
+    plot_degradation(paper_results, noise_ratios, paper_plot_path,
+                    title=f"{args.data_name}")
 
-    # Plot
-    save_plot = os.path.join(args.save_dir, f"{args.data_name}_degradation.pdf")
-    plot_degradation(noise_results, noise_ratios, save_plot)
+    # -----------------------------------------------------------------
+    # Appendix datasets (for 1×N combined figure)
+    # -----------------------------------------------------------------
+    appendix_datasets = {}
+    if args.appendix_datasets:
+        print(f"\n{'='*60}")
+        print("Running appendix datasets...")
+        print(f"{'='*60}")
+
+        for cfg in args.appendix_datasets.split(","):
+            parts = cfg.split(":")
+            name = parts[0]
+            txt = parts[1]
+            vis = parts[2]
+            grh = parts[3]
+            ds_lr = float(parts[4]) if len(parts) > 4 else 0.001
+            ds_nl = int(parts[5]) if len(parts) > 5 else 3
+
+            print(f"\n[{name}] Loading data...")
+            results = run_for_dataset(
+                name, txt, vis, grh, ds_lr, ds_nl,
+                args.embed_dim, args.dropout, args.save_dir,
+            )
+            appendix_datasets[name] = results
+
+        # Appendix figure (1×N multi-panel)
+        appendix_plot_path = os.path.join(args.save_dir, "appendix_degradation.pdf")
+        plot_multi_dataset(appendix_datasets, noise_ratios, appendix_plot_path)
 
     print("\nDone.")

@@ -50,7 +50,9 @@ noise_ratios = [0.0, 0.1, 0.3, 0.5, 0.8, 1.2, 2.0]
 
 ## 运行命令
 
-### Reddit-M 数据集
+### 一步跑完所有数据集（推荐）
+
+一条命令跑完 Reddit-M（正文图）+ Movies/Grocery/Toys（附录图）：
 
 ```bash
 python tools/run_degradation_experiments.py \
@@ -63,71 +65,31 @@ python tools/run_degradation_experiments.py \
     --lr 0.0005 \
     --wd 0.0001 \
     --dropout 0.3 \
-    --aux_weight 0.7 \
     --n_runs 3 \
     --n_epochs 300 \
     --save_dir Results/degradation \
-    --gpu 0
+    --gpu 0 \
+    --appendix_datasets \
+        "Movies:/mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt:0.001:3,\
+Grocery:/mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt:0.001:3,\
+Toys:/mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Toys/ToysGraph.pt:0.0005:2"
 ```
 
-### Toys 数据集
+**输出**：
+- `Reddit-M_degradation.pdf` — **正文图**（单图，Reddit-M）
+- `appendix_degradation.pdf` — **附录图**（1×3 并排：Movies / Grocery / Toys）
+
+### 仅跑单个数据集
 
 ```bash
 python tools/run_degradation_experiments.py \
-    --data_name Toys \
-    --text_feature /mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Toys/ToysGraph.pt \
-    --embed_dim 256 \
-    --n_layers 2 \
-    --lr 0.0005 \
-    --wd 0.0001 \
-    --dropout 0.3 \
-    --aux_weight 0.7 \
-    --n_runs 3 \
-    --n_epochs 300 \
-    --save_dir Results/degradation \
-    --gpu 0
-```
-
-### Movies 数据集
-
-```bash
-python tools/run_degradation_experiments.py \
-    --data_name Movies \
-    --text_feature /mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
-    --embed_dim 256 \
-    --n_layers 3 \
-    --lr 0.001 \
-    --wd 0.0001 \
-    --dropout 0.3 \
-    --aux_weight 0.7 \
-    --n_runs 3 \
-    --n_epochs 300 \
-    --save_dir Results/degradation \
-    --gpu 0
-```
-
-### Grocery 数据集
-
-```bash
-python tools/run_degradation_experiments.py \
-    --data_name Grocery \
-    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --embed_dim 256 \
-    --n_layers 3 \
-    --lr 0.001 \
-    --wd 0.0001 \
-    --dropout 0.3 \
-    --aux_weight 0.7 \
-    --n_runs 3 \
-    --n_epochs 300 \
-    --save_dir Results/degradation \
-    --gpu 0
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --embed_dim 256 --n_layers 3 --lr 0.0005 \
+    --dropout 0.3 --n_runs 3 --n_epochs 300 \
+    --save_dir Results/degradation --gpu 0
 ```
 
 ### 自定义噪声比例
@@ -144,8 +106,12 @@ python tools/run_degradation_experiments.py \
 
 ```
 Results/degradation/
-├── <data_name>_degradation.pdf     # Publication-ready 图表
-└── noise_degradation_results.csv   # 噪声实验数值结果
+├── Reddit-M_degradation.pdf       # 正文图（单图）
+├── appendix_degradation.pdf       # 附录图（Movies / Grocery / Toys 并排）
+├── Reddit-M_noise_results.csv     # 各 dataset 的数值结果
+├── Movies_noise_results.csv
+├── Grocery_noise_results.csv
+└── Toys_noise_results.csv
 ```
 
 CSV 格式：
@@ -161,10 +127,15 @@ ratio,model,mean_acc,std_acc
 
 ## 图表说明
 
-- **X 轴**：噪声强度 $\alpha$
-- **Y 轴**：Accuracy（越高越好）
-- **误差带**：`plt.fill_between`，$\pm 1$ std，透明度 15%
-- **三条线**：Pure MLP（橙）、MMGCN（蓝）、SUPRA（绿）
+### 正文图（单图）
+- Reddit-M 数据集，Accuracy vs. Noise Ratio α
+- 三条曲线：Pure MLP（橙）、MMGCN（蓝）、SUPRA（绿）
+- 误差带：`plt.fill_between`，$\pm 1$ std，透明度 15%
+
+### 附录图（1×3 并排）
+- Movies / Grocery / Toys 三个数据集横向并排
+- 每子图独立标题、共享坐标轴范围
+- 统一 X 轴标签，Y 轴标签仅最左子图显示
 
 ---
 
@@ -175,11 +146,12 @@ GNN/Utils/graph_degradation.py     # 工具函数
 ├── inject_feature_noise()        # 特征加噪
 
 tools/run_degradation_experiments.py  # 主实验脚本
-├── build_early_mlp()           # Pure MLP（backend=mlp）
+├── build_early_mlp()           # Pure MLP
 ├── build_late_gnn()             # MMGCN（LateFusionMAG）
-├── build_supra()                # SUPRA Full
+├── build_supra()                # SUPRA（aux_weight=0.0）
 ├── run_noise_experiment()       # 噪声实验
-└── plot_degradation()           # Publication-ready 绘图
+├── plot_degradation()           # 正文单图
+└── plot_multi_dataset()         # 附录 1×N 并排图
 ```
 
 ---
@@ -195,7 +167,7 @@ tools/run_degradation_experiments.py  # 主实验脚本
 | `lr` | 0.0005 | 0.001 | 0.001 | 0.0005 | 学习率 |
 | `wd` | 0.0001 | 0.0001 | 0.0001 | 0.0001 | Weight decay |
 | `dropout` | 0.3 | 0.3 | 0.3 | 0.3 | Dropout 比例 |
-| `aux_weight` | 0.7 | 0.7 | 0.7 | 0.7 | SUPRA 辅助损失权重 |
+| `aux_weight` | 0.0 | 0.0 | 0.0 | 0.0 | SUPRA 辅助损失权重（实验固定为 0） |
 | `n_epochs` | 300 | 300 | 300 | 300 | 最大训练轮数 |
 | `n_runs` | 3 | 3 | 3 | 3 | 每次条件运行次数 |
 | `base_seed` | 42 | 42 | 42 | 42 | 随机种子基准 |
@@ -205,5 +177,6 @@ tools/run_degradation_experiments.py  # 主实验脚本
 ## 关键设计决策
 
 1. **加噪公式**：`X + α·σ(X)·N(0,1)` — 每维独立缩放，保持相对噪声水平与数据集特征分布一致
-2. **Pure MLP 对照组**：`Early_GNN --backend mlp` 真正不走任何图结构（`graph` 参数在前向传播中完全未使用）
-3. **Seed 控制**：退化操作（加噪）和模型训练分别使用独立 seed，保证可复现性
+2. **aux_weight=0**：SUPRA 三通道共享 `logits_final` loss 回传，不额外强化 Ut/Uv 通道，验证架构本身的拓扑解耦鲁棒性
+3. **Pure MLP 对照组**：`Early_GNN --backend mlp` 真正不走任何图结构（`graph` 参数在前向传播中完全未使用）
+4. **Seed 控制**：退化操作（加噪）和模型训练分别使用独立 seed，保证可复现性

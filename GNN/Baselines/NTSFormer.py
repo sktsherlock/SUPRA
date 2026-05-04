@@ -765,15 +765,14 @@ def main():
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
-        # Peak memory tracking — track live tensor memory (memory_allocated)
-        # rather than max_memory_allocated, which inflates due to allocator caching
+        # Peak memory tracking — rely on PyTorch's native peak tracker.
+        # NOTE: max_memory_allocated does NOT include allocator cached/reserved memory.
         peak_memory_mb = 0.0
-        if th.cuda.is_available():
+        if device.type == "cuda":
             gc.collect()  # free Python references to prior-run tensors
-            th.cuda.reset_peak_memory_stats(device)
             th.cuda.empty_cache()
             th.cuda.synchronize()
-            peak_memory_mb = th.cuda.memory_allocated(device) / 1048576.0
+            th.cuda.reset_peak_memory_stats(device)
 
         train_step_times = []
         eval_step_times = []
@@ -801,12 +800,6 @@ def main():
             loss = cross_entropy(logits[train_idx], labels[train_idx],
                                 label_smoothing=args.label_smoothing)
             loss.backward()
-            # Track peak memory: activations are live during backward, peak is before step
-            if th.cuda.is_available():
-                th.cuda.synchronize()
-                current_mb = th.cuda.memory_allocated(device) / 1048576.0
-                if current_mb > peak_memory_mb:
-                    peak_memory_mb = current_mb
             optimizer.step()
             train_step_times.append(time.time() - t_fwd_start)
 
@@ -882,8 +875,10 @@ def main():
                     best_val_score, final_test_result,
                 )
 
+        if device.type == "cuda":
+            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
         print(f"Run {run+1}: Best Val {args.metric}={best_val_score:.4f}, Final Test {args.metric}={final_test_result:.4f}")
-        if th.cuda.is_available():
+        if device.type == "cuda":
             print(f"  [MEMORY] peak={peak_memory_mb:.2f} MB")
         t_run_total = time.time() - t_run_start
         t_train_total = sum(train_step_times)

@@ -652,14 +652,14 @@ def main():
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
-        # Peak memory tracking — track live tensor memory (memory_allocated)
-        # rather than max_memory_allocated, which inflates due to allocator caching
+        # Peak memory tracking — rely on PyTorch's native peak tracker.
+        # NOTE: max_memory_allocated does NOT include allocator cached/reserved memory.
         peak_memory_mb = 0.0
-        if th.cuda.is_available():
+        if device.type == "cuda":
             gc.collect()  # free Python references to prior-run tensors
             th.cuda.empty_cache()
             th.cuda.synchronize()
-            peak_memory_mb = th.cuda.memory_allocated(device) / 1048576.0
+            th.cuda.reset_peak_memory_stats(device)
 
         best_val_score, final_test_result, best_val_result, total_time = -1.0, 0.0, -1.0, 0.0
         run_best_logits = None
@@ -676,12 +676,6 @@ def main():
             # Pure joint loss with spectral orthogonalization
             total_loss, loss_logs = _compute_losses(out=out, labels=labels, train_idx=train_idx, args=args, graph=observe_graph)
             total_loss.backward()
-            # Track peak memory: activations are live during backward, peak is before step
-            if th.cuda.is_available():
-                th.cuda.synchronize()
-                current_mb = th.cuda.memory_allocated(device) / 1048576.0
-                if current_mb > peak_memory_mb:
-                    peak_memory_mb = current_mb
 
             # Record gradient L2 norms for gradient starvation verification
             if getattr(args, 'analyze_gradients', False):
@@ -752,6 +746,9 @@ def main():
             avg_epoch_time = total_time / epochs_needed
         else:
             avg_epoch_time = 0.0
+
+        if device.type == "cuda":
+            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
         print(f"Run {run+1} Final Test Score: {final_test_result:.4f}")
         val_results.append(best_val_result)

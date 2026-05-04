@@ -410,14 +410,14 @@ def main():
         best_test_degrade = None
         best_state_dict = None
 
-        # Peak memory tracking — track live tensor memory (memory_allocated)
-        # rather than max_memory_allocated, which inflates due to allocator caching
+        # Peak memory tracking — rely on PyTorch's native peak tracker.
+        # NOTE: max_memory_allocated does NOT include allocator cached/reserved memory.
         peak_memory_mb = 0.0
-        if th.cuda.is_available():
+        if device.type == "cuda":
             gc.collect()  # free Python references to prior-run tensors
             th.cuda.empty_cache()
             th.cuda.synchronize()
-            peak_memory_mb = th.cuda.memory_allocated(device) / 1048576.0
+            th.cuda.reset_peak_memory_stats(device)
         epochs_needed = args.n_epochs  # will be updated if early stop triggered
 
         for epoch in range(1, args.n_epochs + 1):
@@ -456,12 +456,6 @@ def main():
                 )
             total_loss = train_loss + mmcl_weight * con_loss + kd_weight * kd_loss
             total_loss.backward()
-            # Track peak memory: activations are live during backward, peak is before step
-            if th.cuda.is_available():
-                th.cuda.synchronize()
-                current_mb = th.cuda.memory_allocated(device) / 1048576.0
-                if current_mb > peak_memory_mb:
-                    peak_memory_mb = current_mb
 
             # Record gradient L2 norms for gradient starvation verification
             # MMGCN: text/visual features → concat → modality-specific GNN
@@ -603,6 +597,9 @@ def main():
                 )
 
             total_time += time.time() - tic
+
+        if device.type == "cuda":
+            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
         print_final_results(best_val_result, final_test_result, args)
 

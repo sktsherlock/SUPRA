@@ -500,14 +500,16 @@ def _mag_classification_mmcl(
     best_state_dict = None
     best_test_logits = None
 
-    # Peak memory tracking — track live tensor memory (memory_allocated)
-    # rather than max_memory_allocated, which inflates due to allocator caching
+    # Peak memory tracking — rely on PyTorch's native peak tracker.
+    # NOTE: max_memory_allocated does NOT include allocator cached/reserved memory.
     peak_memory_mb = 0.0
-    if th.cuda.is_available():
+    model_device = next(model.parameters()).device
+    is_cuda_run = th.cuda.is_available() and (model_device.type == "cuda")
+    if is_cuda_run:
         gc.collect()  # free Python references to prior-run tensors
         th.cuda.empty_cache()
         th.cuda.synchronize()
-        peak_memory_mb = th.cuda.memory_allocated() / 1048576.0
+        th.cuda.reset_peak_memory_stats(model_device)
     epochs_needed = args.n_epochs  # will be updated if early stop triggered
 
     mmcl_weight = float(getattr(args, "mmcl_weight", 0.0))
@@ -545,12 +547,6 @@ def _mag_classification_mmcl(
             )
         loss = cls_loss + mmcl_weight * con_loss + kd_weight * kd_loss
         loss.backward()
-        # Track peak memory: activations are live during backward, peak is before step
-        if th.cuda.is_available():
-            th.cuda.synchronize()
-            current_mb = th.cuda.memory_allocated() / 1048576.0
-            if current_mb > peak_memory_mb:
-                peak_memory_mb = current_mb
         optimizer.step()
 
         if epoch % args.eval_steps == 0:
@@ -665,6 +661,9 @@ def _mag_classification_mmcl(
                     f"{_as_scalar_float(train_result):.4f}/{_as_scalar_float(val_result):.4f}/{_as_scalar_float(test_result):.4f}/"
                     f"{_as_scalar_float(best_val_result):.4f}/{_as_scalar_float(final_test_result):.4f}"
                 )
+
+    if is_cuda_run:
+        peak_memory_mb = th.cuda.max_memory_allocated(model_device) / 1048576.0
 
     print("*" * 50)
     print(f"Best val  {args.metric}: {best_val_result}, Final test  {args.metric}: {final_test_result}")

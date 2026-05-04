@@ -321,16 +321,16 @@ def _plot_single(ax, noise_results, noise_ratios, title=None, xlabel=True):
         ax.fill_between(display_ratios,
                        [m - s for m, s in zip(raw_means, raw_stds)],
                        [m + s for m, s in zip(raw_means, raw_stds)],
-                       color=cfg["color"], alpha=0.15)
+                       color=cfg["color"], alpha=0.20)
 
     if xlabel:
-        ax.set_xlabel(r"Noise Ratio $\alpha$  (← More noisy · Clean features →)", fontsize=11)
+        ax.set_xlabel("Feature Quality  (low → high)", fontsize=11)
     else:
         ax.set_xlabel("")
     ax.set_ylabel("Accuracy", fontsize=11)
     if title:
         ax.set_title(title, fontsize=11, fontweight="bold")
-    ax.grid(True, linestyle="--", alpha=0.3)
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
     ax.set_axisbelow(True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -387,11 +387,18 @@ def plot_grid_1x4(
     if n == 1:
         axes = [axes]
 
-    plt.subplots_adjust(bottom=0.18, top=0.88, wspace=0.30)
-
     for ax, (name, results) in zip(axes, datasets.items()):
         _plot_single(ax, results, noise_ratios, title=name)
-        ax.legend(loc="upper left", framealpha=0.9, fontsize=9)
+
+    from matplotlib.lines import Line2D
+    handles = [Line2D([0], [0], color=cfg["color"], linestyle=cfg["linestyle"],
+                          marker=cfg["marker"], markersize=cfg["markersize"], linewidth=2.0)
+               for cfg in MODEL_CONFIGS.values()]
+    labels = [cfg["label"] for cfg in MODEL_CONFIGS.values()]
+    fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.05),
+               ncol=3, framealpha=0.9, fontsize=10)
+
+    plt.subplots_adjust(bottom=0.18, top=0.90, wspace=0.30)
 
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     fig.savefig(save_path, dpi=300, bbox_inches="tight", format="pdf")

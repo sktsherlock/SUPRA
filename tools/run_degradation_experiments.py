@@ -332,6 +332,7 @@ def _plot_single(ax, noise_results, noise_ratios, title=None, xlabel=True):
         ax.set_title(title, fontsize=11, fontweight="bold")
     ax.grid(axis='y', linestyle='--', alpha=0.5)
     ax.set_axisbelow(True)
+    ax.invert_xaxis()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(labelsize=10)

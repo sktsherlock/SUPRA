@@ -682,10 +682,7 @@ def main():
     else:
         wandb.init(config=args, reinit=True)
 
-    # Auto-enable degrade metrics when result CSV is requested
     report_drop = bool(getattr(args, "report_drop_modality", False))
-    if report_drop or getattr(args, "result_csv", None) or getattr(args, "result_csv_all", None):
-        report_drop = True
 
     # Parse degrade alphas
     raw_alphas = str(getattr(args, "degrade_alphas", "") or "1.0")

@@ -54,26 +54,39 @@ $$X_{\text{noisy}} = X + \alpha \cdot \sigma(X) \cdot \mathcal{N}(0, 1)$$
 一条命令跑完 Reddit-M（正文图）+ Movies/Grocery/Toys（附录图）：
 
 ```bash
+# 正确命令（保证所有数据集正确噪声比例）
+# 全局 --noise_ratios = 7点（Movies/Toys 用）；附录中显式指定 9点（Reddit-M/Grocery 用）
+# 绘图顺序：Movies（主）→ Reddit-M → Grocery → Toys
 python tools/run_degradation_experiments.py \
-    --data_name Reddit-M \
-    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --data_name Movies \
+    --text_feature /mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
     --embed_dim 256 \
     --n_layers 3 \
-    --lr 0.0005 \
+    --lr 0.001 \
     --wd 0.0001 \
     --dropout 0.3 \
     --n_runs 3 \
     --n_epochs 300 \
-    --noise_ratios "0.0,0.1,0.3,0.5,0.8,1.2,2.0,3.0,5.0" \
+    --noise_ratios "0.0,0.1,0.3,0.5,0.8,1.2,2.0" \
     --save_dir Results/degradation \
     --gpu 0 \
     --appendix_datasets \
-        "Movies:/mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy:/mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt:0.001:3,\
+        "Reddit-M:/mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy:/mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt:0.0005:3:0.0,0.1,0.3,0.5,0.8,1.2,2.0,3.0,5.0,\
 Grocery:/mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt:0.001:3:0.0,0.1,0.3,0.5,0.8,1.2,2.0,3.0,5.0,\
-Toys:/mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Toys/ToysGraph.pt:0.0005:2"
+Toys:/mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Toys/ToysGraph.pt:0.0005:2" --resume
 ```
+
+> **噪声比例分配**：
+> - Movies（主数据集）：全局默认值 7 点 ✅
+> - Reddit-M（附录）：显式 9 点 ✅
+> - Grocery（附录）：显式 9 点 ✅
+> - Toys（附录）：继承全局默认值 7 点 ✅
+>
+> **绘图顺序**：主数据集 Movies 居首，附录按配置顺序为 Reddit-M → Grocery → Toys，PDF 最终顺序为 **Movies / Reddit-M / Grocery / Toys**。
+>
+> （若需严格 Reddit-M / Movies / Grocery / Toys 顺序，需将 Reddit-M 改为主数据集并接受其 ratio=7；或接受 Movies 放在第一位的顺序。）
 
 **输出**：
 - `degradation_1x4.pdf` — **正文图**（1×4 四数据集横向并排：Reddit-M / Movies / Grocery / Toys）

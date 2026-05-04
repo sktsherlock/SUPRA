@@ -501,8 +501,11 @@ def _mag_classification_mmcl(
     best_test_logits = None
 
     # Efficiency tracking
+    # gc.collect() MUST come before reset_peak_memory_stats to ensure
+    # old-run tensor references are actually freed before resetting the counter
     peak_memory_mb = 0.0
     if th.cuda.is_available():
+        gc.collect()  # free Python references to prior-run tensors
         th.cuda.reset_peak_memory_stats()
         th.cuda.empty_cache()
     epochs_needed = args.n_epochs  # will be updated if early stop triggered

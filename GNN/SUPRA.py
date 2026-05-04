@@ -653,8 +653,11 @@ def main():
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
         # Peak memory tracking (reset after model init and optimizer creation)
+        # gc.collect() MUST come before reset_peak_memory_stats to ensure
+        # old-run tensor references are actually freed before resetting the counter
         peak_memory_mb = 0.0
         if th.cuda.is_available():
+            gc.collect()  # free Python references to prior-run tensors
             th.cuda.reset_peak_memory_stats(device)
             th.cuda.empty_cache()
 

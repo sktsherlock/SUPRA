@@ -488,6 +488,8 @@ def _mag_classification_mmcl(
         )
 
     total_time = 0
+    train_step_times = []  # per actual train step (CUDA-synchronized)
+    eval_step_times = []   # per eval step (CUDA-synchronized)
     best_val_result, final_test_result = 0.0, 0.0
     best_val_score = -1.0
     select_metric = getattr(args, "metric", "accuracy")
@@ -526,6 +528,11 @@ def _mag_classification_mmcl(
 
         model.train()
         optimizer.zero_grad()
+
+        if is_cuda_run:
+            th.cuda.synchronize()
+        t_fwd_start = time.time()
+
         pred = model(observe_graph, text_feat, visual_feat)
         cls_loss = cross_entropy(pred[train_idx], labels[train_idx], label_smoothing=args.label_smoothing)
 
@@ -548,8 +555,15 @@ def _mag_classification_mmcl(
         loss = cls_loss + mmcl_weight * con_loss + kd_weight * kd_loss
         loss.backward()
         optimizer.step()
+        if is_cuda_run:
+            th.cuda.synchronize()
+        train_step_times.append(time.time() - t_fwd_start)
 
         if epoch % args.eval_steps == 0:
+            if is_cuda_run:
+                th.cuda.synchronize()
+            t_eval_start = time.time()
+
             model.eval()
             with th.no_grad():
                 pred = model(graph, text_feat, visual_feat)
@@ -574,6 +588,9 @@ def _mag_classification_mmcl(
                     }
                 )
             lr_scheduler.step(_as_scalar_float(loss))
+            if is_cuda_run:
+                th.cuda.synchronize()
+            eval_step_times.append(time.time() - t_eval_start)
 
             val_pred = th.argmax(pred[val_idx], dim=1)
             val_true = labels[val_idx]
@@ -722,6 +739,8 @@ def _mag_classification_mmcl(
             "peak_memory_mb": peak_memory_mb,
             "avg_epoch_time": avg_epoch_time,
             "epochs_needed": epochs_needed,
+            "train_step_times": train_step_times,
+            "eval_step_times": eval_step_times,
         }
         if report_drop and best_test_degrade is not None:
             if isinstance(best_test_degrade, dict):
@@ -838,7 +857,8 @@ def main():
     efficiency_runs = {
         'peak_memory_MB': [],
         'peak_reserved_MB': [],
-        'epoch_times': [],
+        'train_step_times': [],
+        'eval_step_times': [],
         'epochs_needed': [],
     }
     n_params_M = None  # will be set on first run
@@ -989,10 +1009,9 @@ def main():
             if device.type == "cuda":
                 peak_reserved_mb = th.cuda.max_memory_reserved(device) / 1048576.0
             efficiency_runs['peak_reserved_MB'].append(peak_reserved_mb)
+            efficiency_runs['train_step_times'].append(extra.get('train_step_times', []))
+            efficiency_runs['eval_step_times'].append(extra.get('eval_step_times', []))
             efficiency_runs['epochs_needed'].append(extra.get('epochs_needed', args.n_epochs))
-            avg_ep_time = extra.get('avg_epoch_time', 0.0)
-            ep_needed = extra.get('epochs_needed', args.n_epochs)
-            efficiency_runs['epoch_times'].append([avg_ep_time] * ep_needed)
 
         # Clean up GPU memory between runs to prevent allocator cache accumulation
         gc.collect()
@@ -1097,28 +1116,37 @@ def main():
             if getattr(args, "result_csv_all", None):
                 append_result_csv(args.result_csv_all, row)
 
-    # Efficiency profiling summary
-    all_epoch_times = [t for run_times in efficiency_runs['epoch_times'] for t in run_times]
-    avg_epoch_time = float(np.mean(all_epoch_times)) if all_epoch_times else 0
-    std_epoch_time = float(np.std(all_epoch_times)) if all_epoch_times else 0
-    avg_epochs_needed = float(np.mean(efficiency_runs['epochs_needed']))
-    std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
-    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
-    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
+    # Efficiency profiling summary (using CUDA-synchronized train_step_times and eval_step_times)
+    train_totals = [sum(ts) for ts in efficiency_runs['train_step_times']]
+    eval_totals = [sum(es) for es in efficiency_runs['eval_step_times']]
+    total_times_per_run = [t + e for t, e in zip(train_totals, eval_totals)]
+    avg_train_total = float(np.mean(train_totals)) if train_totals else 0
+    std_train_total = float(np.std(train_totals)) if len(train_totals) > 1 else 0
+    avg_eval_total = float(np.mean(eval_totals)) if eval_totals else 0
+    std_eval_total = float(np.std(eval_totals)) if len(eval_totals) > 1 else 0
+    avg_total_time = float(np.mean(total_times_per_run)) if total_times_per_run else 0
+    std_total_time = float(np.std(total_times_per_run)) if len(total_times_per_run) > 1 else 0
+    actual_epochs_per_run = [len(ts) for ts in efficiency_runs['train_step_times']]
+    avg_epochs_needed = float(np.mean(actual_epochs_per_run))
+    std_epochs_needed = float(np.std(actual_epochs_per_run)) if len(actual_epochs_per_run) > 1 else 0
+    avg_train_per_ep = avg_train_total / avg_epochs_needed if avg_epochs_needed > 0 else 0
+    std_train_per_ep = float(np.std([t / e for t, e in zip(train_totals, actual_epochs_per_run)])) if len(train_totals) > 1 else 0
+    avg_eval_per_call = avg_eval_total / len(efficiency_runs['eval_step_times'][0]) if efficiency_runs['eval_step_times'] and len(efficiency_runs['eval_step_times'][0]) > 0 else 0
+    std_eval_per_call = float(np.std([sum(es) / len(es) for es in efficiency_runs['eval_step_times']])) if len(efficiency_runs['eval_step_times']) > 1 else 0
     avg_peak_reserved = float(np.mean(efficiency_runs['peak_reserved_MB'])) if efficiency_runs['peak_reserved_MB'] else 0.0
     std_peak_reserved = float(np.std(efficiency_runs['peak_reserved_MB'])) if len(efficiency_runs['peak_reserved_MB']) > 1 else 0.0
-    avg_total_time = avg_epochs_needed * avg_epoch_time
-    std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']])) if efficiency_runs['epoch_times'] else 0
 
     print(f"\n{'='*60}")
     print(f"Efficiency Profile: Early_GNN on {args.data_name}")
     print(f"{'='*60}")
     print(f"  Parameters:       {n_params_M:.3f} M" if n_params_M else "  Parameters:       N/A")
-    print(f"  Peak Memory:     {avg_peak_memory:.2f} ± {std_peak_memory:.2f} MB")
     print(f"  Peak Reserved:   {avg_peak_reserved:.2f} ± {std_peak_reserved:.2f} MB")
-    print(f"  Total Time(est): {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
-    print(f"  Avg Epoch:        {avg_epoch_time:.4f} ± {std_epoch_time:.4f} s/epoch")
-    print(f"  Epochs Needed:    {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")
+    print(f"  Train(s):       {avg_train_total:.2f} ± {std_train_total:.2f} s")
+    print(f"  Eval(s):        {avg_eval_total:.2f} ± {std_eval_total:.2f} s")
+    print(f"  Total Time:     {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
+    print(f"  Train(s/ep):    {avg_train_per_ep:.4f} ± {std_train_per_ep:.4f} s/epoch")
+    print(f"  Eval(s/call):   {avg_eval_per_call:.4f} ± {std_eval_per_call:.4f} s/call")
+    print(f"  Epochs Needed:  {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")
     print(f"{'='*60}")
 
 

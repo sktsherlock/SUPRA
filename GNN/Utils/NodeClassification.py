@@ -383,6 +383,8 @@ def mag_classification(
 
     # training loop
     total_time = 0
+    train_step_times = []  # per actual train step (CUDA-synchronized)
+    eval_step_times = []   # per eval step (CUDA-synchronized)
     best_val_result, final_test_result, best_val_loss = 0, 0, float("inf")
     best_val_score = -1.0
     select_metric = getattr(args, "metric", "accuracy")
@@ -407,11 +409,23 @@ def mag_classification(
         if args.warmup_epochs is not None:
             adjust_learning_rate(optimizer, args.lr, epoch, args.warmup_epochs)
 
+        if th.cuda.is_available():
+            th.cuda.synchronize()
+        t_train_start = time.time()
+
         train_loss, pred = mag_train(
             model, observe_graph, text_feat, visual_feat, labels, train_idx, optimizer,
             label_smoothing=args.label_smoothing
         )
+
+        if th.cuda.is_available():
+            th.cuda.synchronize()
+        train_step_times.append(time.time() - t_train_start)
+
         if epoch % args.eval_steps == 0:
+            if th.cuda.is_available():
+                th.cuda.synchronize()
+            t_eval_start = time.time()
             (
                 train_result,
                 val_result,
@@ -443,6 +457,9 @@ def mag_classification(
                     'Test_result': _as_scalar_float(test_result),
                 })
             lr_scheduler.step(_as_scalar_float(train_loss))
+            if th.cuda.is_available():
+                th.cuda.synchronize()
+            eval_step_times.append(time.time() - t_eval_start)
 
             toc = time.time()
             total_time += toc - tic
@@ -580,6 +597,8 @@ def mag_classification(
             "peak_memory_mb": peak_memory_mb,
             "avg_epoch_time": avg_epoch_time,
             "epochs_needed": epochs_needed,
+            "train_step_times": train_step_times,
+            "eval_step_times": eval_step_times,
         }
         if str(getattr(args, "metric", "")).lower() == "accuracy":
             extra.update(

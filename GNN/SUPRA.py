@@ -618,7 +618,8 @@ def main():
     efficiency_runs = {
         'peak_memory_MB': [],
         'peak_reserved_MB': [],
-        'epoch_times': [],
+        'train_step_times': [],
+        'eval_step_times': [],
         'epochs_needed': [],
     }
 
@@ -664,6 +665,8 @@ def main():
             th.cuda.reset_peak_memory_stats(device)
 
         best_val_score, final_test_result, best_val_result, total_time = -1.0, 0.0, -1.0, 0.0
+        train_step_times = []  # per actual train step (CUDA-synchronized)
+        eval_step_times = []   # per eval step (CUDA-synchronized)
         run_best_logits = None
         epochs_needed = args.n_epochs  # will be updated if early stop triggered
 
@@ -673,6 +676,11 @@ def main():
 
             model.train()
             optimizer.zero_grad()
+
+            if device.type == "cuda":
+                th.cuda.synchronize()
+            t_train_start = time.time()
+
             out = model.forward_multiple(observe_graph, text_feat, vis_feat)
 
             # Pure joint loss with spectral orthogonalization
@@ -693,8 +701,15 @@ def main():
                 grad_history['gnn'].append(gnn_norm_sq ** 0.5)
 
             optimizer.step()
+            if device.type == "cuda":
+                th.cuda.synchronize()
+            train_step_times.append(time.time() - t_train_start)
 
             if epoch % args.eval_steps == 0:
+                if device.type == "cuda":
+                    th.cuda.synchronize()
+                t_eval_start = time.time()
+
                 model.eval()
                 with th.no_grad():
                     out_full = model.forward_multiple(graph, text_feat, vis_feat)
@@ -741,13 +756,10 @@ def main():
                     epochs_needed = epoch
                     break
 
+                if device.type == "cuda":
+                    th.cuda.synchronize()
+                eval_step_times.append(time.time() - t_eval_start)
                 total_time += time.time() - tic  # total_time = time for eval_steps epochs
-
-        # Compute avg epoch time: total_time covers epochs_needed epochs
-        if epochs_needed > 0:
-            avg_epoch_time = total_time / epochs_needed
-        else:
-            avg_epoch_time = 0.0
 
         if device.type == "cuda":
             peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
@@ -760,8 +772,9 @@ def main():
         # Collect efficiency profiling data
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
         efficiency_runs['peak_reserved_MB'].append(peak_reserved_mb)
-        efficiency_runs['epoch_times'].append([avg_epoch_time] * epochs_needed)  # list of per-epoch times
-        efficiency_runs['epochs_needed'].append(epochs_needed)
+        efficiency_runs['train_step_times'].append(train_step_times)
+        efficiency_runs['eval_step_times'].append(eval_step_times)
+        efficiency_runs['epochs_needed'].append(len(train_step_times))
 
         # Collect degrade metrics from this run
         if report_drop and best_degrade_metrics:
@@ -834,28 +847,37 @@ def main():
             test_idx=test_idx,
         )
 
-    # Efficiency profiling summary
-    all_epoch_times = [t for run_times in efficiency_runs['epoch_times'] for t in run_times]
-    avg_epoch_time = float(np.mean(all_epoch_times)) if all_epoch_times else 0
-    std_epoch_time = float(np.std(all_epoch_times)) if all_epoch_times else 0
-    avg_epochs_needed = float(np.mean(efficiency_runs['epochs_needed']))
-    std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
-    avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
-    std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
+    # Efficiency profiling summary (using CUDA-synchronized train_step_times and eval_step_times)
+    train_totals = [sum(ts) for ts in efficiency_runs['train_step_times']]
+    eval_totals = [sum(es) for es in efficiency_runs['eval_step_times']]
+    total_times_per_run = [t + e for t, e in zip(train_totals, eval_totals)]
+    avg_train_total = float(np.mean(train_totals)) if train_totals else 0
+    std_train_total = float(np.std(train_totals)) if len(train_totals) > 1 else 0
+    avg_eval_total = float(np.mean(eval_totals)) if eval_totals else 0
+    std_eval_total = float(np.std(eval_totals)) if len(eval_totals) > 1 else 0
+    avg_total_time = float(np.mean(total_times_per_run)) if total_times_per_run else 0
+    std_total_time = float(np.std(total_times_per_run)) if len(total_times_per_run) > 1 else 0
+    actual_epochs_per_run = [len(ts) for ts in efficiency_runs['train_step_times']]
+    avg_epochs_needed = float(np.mean(actual_epochs_per_run))
+    std_epochs_needed = float(np.std(actual_epochs_per_run)) if len(actual_epochs_per_run) > 1 else 0
+    avg_train_per_ep = avg_train_total / avg_epochs_needed if avg_epochs_needed > 0 else 0
+    std_train_per_ep = float(np.std([t / e for t, e in zip(train_totals, actual_epochs_per_run)])) if len(train_totals) > 1 else 0
+    avg_eval_per_call = avg_eval_total / len(efficiency_runs['eval_step_times'][0]) if efficiency_runs['eval_step_times'] and len(efficiency_runs['eval_step_times'][0]) > 0 else 0
+    std_eval_per_call = float(np.std([sum(es) / len(es) for es in efficiency_runs['eval_step_times']])) if len(efficiency_runs['eval_step_times']) > 1 else 0
     avg_peak_reserved = float(np.mean(efficiency_runs['peak_reserved_MB'])) if efficiency_runs['peak_reserved_MB'] else 0.0
     std_peak_reserved = float(np.std(efficiency_runs['peak_reserved_MB'])) if len(efficiency_runs['peak_reserved_MB']) > 1 else 0.0
-    avg_total_time = avg_epochs_needed * avg_epoch_time
-    std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']]))
 
     print(f"\n{'='*60}")
     print(f"Efficiency Profile: SUPRA on {args.data_name}")
     print(f"{'='*60}")
     print(f"  Parameters:       {n_params_M:.3f} M")
-    print(f"  Peak Memory:     {avg_peak_memory:.2f} ± {std_peak_memory:.2f} MB")
     print(f"  Peak Reserved:   {avg_peak_reserved:.2f} ± {std_peak_reserved:.2f} MB")
-    print(f"  Total Time(est): {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
-    print(f"  Avg Epoch:        {avg_epoch_time:.4f} ± {std_epoch_time:.4f} s/epoch")
-    print(f"  Epochs Needed:    {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")
+    print(f"  Train(s):       {avg_train_total:.2f} ± {std_train_total:.2f} s")
+    print(f"  Eval(s):        {avg_eval_total:.2f} ± {std_eval_total:.2f} s")
+    print(f"  Total Time:     {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
+    print(f"  Train(s/ep):    {avg_train_per_ep:.4f} ± {std_train_per_ep:.4f} s/epoch")
+    print(f"  Eval(s/call):   {avg_eval_per_call:.4f} ± {std_eval_per_call:.4f} s/call")
+    print(f"  Epochs Needed:  {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")
     print(f"{'='*60}")
 
     # Save results to CSV if requested

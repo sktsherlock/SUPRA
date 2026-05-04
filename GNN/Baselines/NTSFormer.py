@@ -878,7 +878,13 @@ def main():
         # Record peak memory after training
         if th.cuda.is_available():
             th.cuda.synchronize()
-            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
+            raw_bytes = th.cuda.max_memory_allocated(device)
+            reserved_gb = th.cuda.memory_reserved(device) / 1024**3
+            allocated_gb = th.cuda.memory_allocated(device) / 1024**3
+            print(f"  [DEBUG] max_memory_allocated = {raw_bytes} bytes = {raw_bytes/1024**3:.2f} GB")
+            print(f"  [DEBUG] memory_reserved = {reserved_gb:.2f} GB")
+            print(f"  [DEBUG] memory_allocated = {allocated_gb:.2f} GB")
+            peak_memory_mb = raw_bytes / 1048576.0
 
         print(f"Run {run+1}: Best Val {args.metric}={best_val_score:.4f}, Final Test {args.metric}={final_test_result:.4f}")
         if th.cuda.is_available():

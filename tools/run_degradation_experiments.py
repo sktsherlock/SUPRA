@@ -369,13 +369,14 @@ def plot_degradation(
 
 def plot_grid_1x4(
     datasets: Dict[str, Dict],
-    noise_ratios: List[float],
+    noise_ratios: List[float] | None,
     save_path: str,
 ):
     """
     Plot all 4 datasets in a 1×4 horizontal row for single-column paper layout.
 
     X-axis: left = most noisy (worst features), right = clean (original).
+    If noise_ratios is None, extracts ratios from each dataset's results keys.
     """
     import matplotlib.pyplot as plt
     import matplotlib
@@ -389,7 +390,9 @@ def plot_grid_1x4(
         axes = [axes]
 
     for ax, (name, results) in zip(axes, datasets.items()):
-        _plot_single(ax, results, noise_ratios, title=name)
+        # Infer per-dataset noise ratios from results keys if not provided
+        ds_ratios = noise_ratios if noise_ratios is not None else sorted(results.keys())
+        _plot_single(ax, results, ds_ratios, title=name)
 
     from matplotlib.lines import Line2D
     handles = [Line2D([0], [0], color=cfg["color"], linestyle=cfg["linestyle"],
@@ -503,8 +506,9 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--appendix_datasets", type=str, default=None,
                         help="Comma-separated list of dataset configs for appendix plot "
-                             "in format 'name:text_feature:visual_feature:graph_path[:lr[:n_layers]]'. "
-                             "Example: 'Movies:/path1:/path2:/path3:0.001:3'")
+                             "in format 'name:text_feature:visual_feature:graph_path[:lr[:n_layers[:noise_ratios]]]'. "
+                             "Example: 'Movies:/path1:/path2:/path3:0.001:3' or "
+                             "'Reddit-M:/path1:/path2:/path3:0.0005:3:0.0,0.1,0.3,0.5,0.8,1.2,2.0,3.0,5.0'")
     parser.add_argument("--resume", action="store_true",
                         help="Skip dataset if its CSV already exists in save_dir")
     args = parser.parse_args()
@@ -518,7 +522,7 @@ if __name__ == "__main__":
     # Helper: run experiment for one dataset
     # -----------------------------------------------------------------
     def run_for_dataset(data_name, text_feat_path, visual_feat_path, graph_path,
-                       lr, n_layers, embed_dim, dropout, save_dir):
+                       lr, n_layers, embed_dim, dropout, save_dir, dataset_noise_ratios):
         # Resume check: skip if CSV already exists
         csv_path = os.path.join(save_dir, f"{data_name}_noise_degradation_results.csv")
         if args.resume and os.path.exists(csv_path):
@@ -556,12 +560,12 @@ if __name__ == "__main__":
 
         results = run_noise_experiment(
             g, tf, vf, lbls, tr_idx, v_idx, t_idx,
-            noise_ratios, args.n_runs, args.base_seed,
+            dataset_noise_ratios, args.n_runs, args.base_seed,
             n_epochs=args.n_epochs, lr=lr, wd=args.wd,
             dropout=dropout, aux_weight=args.aux_weight, embed_dim=embed_dim,
         )
         # Save per-dataset CSV (named by dataset)
-        save_results_csv(results, noise_ratios, save_dir, dataset_name=data_name)
+        save_results_csv(results, dataset_noise_ratios, save_dir, dataset_name=data_name)
         return results
 
     # -----------------------------------------------------------------
@@ -575,7 +579,7 @@ if __name__ == "__main__":
     paper_results = run_for_dataset(
         args.data_name, args.text_feature, args.visual_feature,
         args.graph_path, args.lr, args.n_layers, args.embed_dim,
-        args.dropout, args.save_dir,
+        args.dropout, args.save_dir, noise_ratios,
     )
     all_datasets[args.data_name] = paper_results
 
@@ -593,16 +597,18 @@ if __name__ == "__main__":
             grh = parts[3]
             ds_lr = float(parts[4]) if len(parts) > 4 else 0.001
             ds_nl = int(parts[5]) if len(parts) > 5 else 3
+            ds_noise = [float(x) for x in parts[6].split(",")] if len(parts) > 6 else noise_ratios
 
             print(f"\n[{name}] Loading data...")
             results = run_for_dataset(
                 name, txt, vis, grh, ds_lr, ds_nl,
-                args.embed_dim, args.dropout, args.save_dir,
+                args.embed_dim, args.dropout, args.save_dir, ds_noise,
             )
             all_datasets[name] = results
 
     # Paper figure: 1×4 horizontal row of all datasets
+    # Extract per-dataset noise ratios from results keys (each dataset may differ)
     grid_path = os.path.join(args.save_dir, "degradation_1x4.pdf")
-    plot_grid_1x4(all_datasets, noise_ratios, grid_path)
+    plot_grid_1x4(all_datasets, None, grid_path)
 
     print("\nDone.")

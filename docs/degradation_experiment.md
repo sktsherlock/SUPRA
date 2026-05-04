@@ -26,14 +26,13 @@ $$X_{\text{noisy}} = X + \alpha \cdot \sigma(X) \cdot \mathcal{N}(0, 1)$$
 
 ### 噪声比例
 
-```
-noise_ratios = [0.0, 0.1, 0.3, 0.5, 0.8, 1.2, 2.0]
-```
+- **Reddit-M / Grocery**（大模型特征，高质量先验）：`[0.0, 0.1, 0.3, 0.5, 0.8, 1.2, 2.0, 3.0, 5.0]`
+- **Movies / Toys**（相对较弱特征）：`[0.0, 0.1, 0.3, 0.5, 0.8, 1.2, 2.0]`
 
 ### 预期现象
 
 - **Pure MLP**（无拓扑）：随噪声增大快速下降
-- **MMGCN**（强制拓扑）：下降较慢，noise_ratio 较低时反超 MLP
+- **MMGCN**（强制拓扑）：下降较慢，noise_ratio 较低时反超 MLP；高噪声时趋近或反超 Pure MLP（拓扑污染超越平滑收益）
 - **SUPRA**（解耦，无辅助损失强化）：全局保持最高或平齐
 
 ---
@@ -67,11 +66,12 @@ python tools/run_degradation_experiments.py \
     --dropout 0.3 \
     --n_runs 3 \
     --n_epochs 300 \
+    --noise_ratios "0.0,0.1,0.3,0.5,0.8,1.2,2.0,3.0,5.0" \
     --save_dir Results/degradation \
     --gpu 0 \
     --appendix_datasets \
         "Movies:/mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy:/mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt:0.001:3,\
-Grocery:/mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt:0.001:3,\
+Grocery:/mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt:0.001:3:0.0,0.1,0.3,0.5,0.8,1.2,2.0,3.0,5.0,\
 Toys:/mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Toys/ToysGraph.pt:0.0005:2"
 ```
 

@@ -590,7 +590,13 @@ if __name__ == "__main__":
         print(f"{'='*60}")
 
         for cfg in args.appendix_datasets.split(","):
+            cfg = cfg.strip()
+            if not cfg:
+                continue
             parts = cfg.split(":")
+            if len(parts) < 4:
+                print(f"[WARN] Skipping malformed appendix config (expected >=4 colon-separated parts, got {len(parts)}): {cfg[:80]}")
+                continue
             name = parts[0]
             txt = parts[1]
             vis = parts[2]

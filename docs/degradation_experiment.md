@@ -34,7 +34,7 @@ noise_ratios = [0.0, 0.1, 0.3, 0.5, 0.8, 1.2, 2.0]
 
 - **Pure MLP**（无拓扑）：随噪声增大快速下降
 - **MMGCN**（强制拓扑）：下降较慢，noise_ratio 较低时反超 MLP
-- **SUPRA**（解耦+辅助损失）：全局保持最高或平齐
+- **SUPRA**（解耦，无辅助损失强化）：全局保持最高或平齐
 
 ---
 
@@ -44,7 +44,7 @@ noise_ratios = [0.0, 0.1, 0.3, 0.5, 0.8, 1.2, 2.0]
 |------|----------|------|
 | **Pure MLP** | `Early_GNN --backend mlp` | 无图结构，纯 MLP on concat features |
 | **MMGCN** | `Late_GNN --model_name GCN` | 强制拓扑，多模态 GNN 融合 |
-| **SUPRA** | `SUPRA --aux_weight 0.7 --mlp_variant ablate` | 三通道解耦 + 辅助损失 |
+| **SUPRA** | `SUPRA --aux_weight 0.0 --mlp_variant ablate` | 三通道解耦（无辅助损失强化） |
 
 ---
 

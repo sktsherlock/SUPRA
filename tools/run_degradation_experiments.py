@@ -12,7 +12,7 @@ Generalized Performance Inversion Threshold (GPIT) theorem:
 Three models compared:
   1. Pure MLP  — Early_GNN (backend=mlp), no graph edges used
   2. MMGCN     — Late_GNN (model_name=GCN), forced topology
-  3. SUPRA     — SUPRA (aux_weight=0.7), decoupled channels
+  3. SUPRA     — SUPRA (aux_weight=0.0), decoupled channels (no auxiliary boost)
 
 Usage:
     # Toy dataset (quick test)
@@ -229,8 +229,10 @@ def run_single_condition(
                 text_dim, vis_dim, n_classes, device
             )
         elif model_type == "supra":
+            # Set aux_weight=0: degradation experiment tests SUPRA without
+            # auxiliary channel boost, isolating pure topology benefit.
             args_obj = make_args(embed_dim=embed_dim, n_hidden=embed_dim, dropout=dropout,
-                                 aux_weight=aux_weight, mlp_variant="ablate",
+                                 aux_weight=0.0, mlp_variant="ablate",
                                  n_layers=3)
             model = build_supra(args_obj, text_dim, vis_dim, n_classes, device)
             model.reset_parameters()

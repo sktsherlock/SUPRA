@@ -262,6 +262,7 @@ def main():
     # Efficiency profiling: collect per-run metrics
     efficiency_runs = {
         'peak_memory_MB': [],
+        'peak_reserved_MB': [],
         'epoch_times': [],
         'epochs_needed': [],
     }
@@ -282,6 +283,7 @@ def main():
         # Peak memory tracking — rely on PyTorch's native peak tracker.
         # NOTE: max_memory_allocated does NOT include allocator cached/reserved memory.
         peak_memory_mb = 0.0
+        peak_reserved_mb = 0.0
         if device.type == "cuda":
             gc.collect()  # free Python references to prior-run tensors
             th.cuda.empty_cache()
@@ -398,10 +400,11 @@ def main():
 
         if device.type == "cuda":
             peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
+            peak_reserved_mb = th.cuda.max_memory_reserved(device) / 1048576.0
 
         print(f"Run: {run+1}/{args.n_runs} | Best Val {args.metric}: {best_val_result:.4f} | Final Test: {final_test_result:.4f}")
         if device.type == "cuda":
-            print(f"  [MEMORY] peak={peak_memory_mb:.2f} MB")
+            print(f"  [MEMORY] peak_alloc={peak_memory_mb:.2f} MB  peak_reserved={peak_reserved_mb:.2f} MB")
         # Detailed time breakdown
         t_train_total = sum(train_step_times) if train_step_times else 0.0
         t_eval_total = sum(eval_step_times) if eval_step_times else 0.0
@@ -431,6 +434,7 @@ def main():
 
         # Collect efficiency profiling data
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
+        efficiency_runs['peak_reserved_MB'].append(peak_reserved_mb)
         efficiency_runs['epoch_times'].append(epoch_times)
         efficiency_runs['epochs_needed'].append(len(epoch_times) * args.eval_steps)  # actual epochs trained
 
@@ -459,12 +463,15 @@ def main():
     std_epoch_time = float(np.std([t / e for t, e in zip(total_times_per_run, actual_epochs_per_run)])) if len(total_times_per_run) > 1 else 0
     avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB'])) if efficiency_runs['peak_memory_MB'] else 0
     std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB'])) if len(efficiency_runs['peak_memory_MB']) > 1 else 0
+    avg_peak_reserved = float(np.mean(efficiency_runs['peak_reserved_MB'])) if efficiency_runs['peak_reserved_MB'] else 0
+    std_peak_reserved = float(np.std(efficiency_runs['peak_reserved_MB'])) if len(efficiency_runs['peak_reserved_MB']) > 1 else 0
 
     print(f"\n{'='*60}")
     print(f"Efficiency Profile: MIG_GT on {args.data_name}")
     print(f"{'='*60}")
     print(f"  Parameters:       {n_params_M:.3f} M")
     print(f"  Peak Memory:     {avg_peak_memory:.2f} ± {std_peak_memory:.2f} MB")
+    print(f"  Peak Reserved:   {avg_peak_reserved:.2f} ± {std_peak_reserved:.2f} MB")
     print(f"  Total Time(est): {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
     print(f"  Avg Epoch:        {avg_epoch_time:.4f} ± {std_epoch_time:.4f} s/epoch")
     print(f"  Epochs Needed:    {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")

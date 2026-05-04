@@ -837,6 +837,7 @@ def main():
     # Efficiency profiling: collect per-run metrics
     efficiency_runs = {
         'peak_memory_MB': [],
+        'peak_reserved_MB': [],
         'epoch_times': [],
         'epochs_needed': [],
     }
@@ -984,6 +985,10 @@ def main():
         # Collect efficiency profiling data from extra
         if isinstance(extra, dict):
             efficiency_runs['peak_memory_MB'].append(extra.get('peak_memory_mb', 0.0))
+            peak_reserved_mb = 0.0
+            if device.type == "cuda":
+                peak_reserved_mb = th.cuda.max_memory_reserved(device) / 1048576.0
+            efficiency_runs['peak_reserved_MB'].append(peak_reserved_mb)
             efficiency_runs['epochs_needed'].append(extra.get('epochs_needed', args.n_epochs))
             avg_ep_time = extra.get('avg_epoch_time', 0.0)
             ep_needed = extra.get('epochs_needed', args.n_epochs)
@@ -1100,6 +1105,8 @@ def main():
     std_epochs_needed = float(np.std(efficiency_runs['epochs_needed']))
     avg_peak_memory = float(np.mean(efficiency_runs['peak_memory_MB']))
     std_peak_memory = float(np.std(efficiency_runs['peak_memory_MB']))
+    avg_peak_reserved = float(np.mean(efficiency_runs['peak_reserved_MB'])) if efficiency_runs['peak_reserved_MB'] else 0.0
+    std_peak_reserved = float(np.std(efficiency_runs['peak_reserved_MB'])) if len(efficiency_runs['peak_reserved_MB']) > 1 else 0.0
     avg_total_time = avg_epochs_needed * avg_epoch_time
     std_total_time = float(np.std([sum(run_times) for run_times in efficiency_runs['epoch_times']])) if efficiency_runs['epoch_times'] else 0
 
@@ -1108,6 +1115,7 @@ def main():
     print(f"{'='*60}")
     print(f"  Parameters:       {n_params_M:.3f} M" if n_params_M else "  Parameters:       N/A")
     print(f"  Peak Memory:     {avg_peak_memory:.2f} ± {std_peak_memory:.2f} MB")
+    print(f"  Peak Reserved:   {avg_peak_reserved:.2f} ± {std_peak_reserved:.2f} MB")
     print(f"  Total Time(est): {avg_total_time:.2f} ± {std_total_time:.2f} s  ({avg_total_time/60:.1f} min)")
     print(f"  Avg Epoch:        {avg_epoch_time:.4f} ± {std_epoch_time:.4f} s/epoch")
     print(f"  Epochs Needed:    {avg_epochs_needed:.1f} ± {std_epochs_needed:.1f}")

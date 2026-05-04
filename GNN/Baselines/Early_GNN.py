@@ -500,14 +500,14 @@ def _mag_classification_mmcl(
     best_state_dict = None
     best_test_logits = None
 
-    # Efficiency tracking
-    # gc.collect() MUST come before reset_peak_memory_stats to ensure
-    # old-run tensor references are actually freed before resetting the counter
+    # Peak memory tracking — track live tensor memory (memory_allocated)
+    # rather than max_memory_allocated, which inflates due to allocator caching
     peak_memory_mb = 0.0
     if th.cuda.is_available():
         gc.collect()  # free Python references to prior-run tensors
-        th.cuda.reset_peak_memory_stats()
         th.cuda.empty_cache()
+        th.cuda.synchronize()
+        peak_memory_mb = th.cuda.memory_allocated() / 1048576.0
     epochs_needed = args.n_epochs  # will be updated if early stop triggered
 
     mmcl_weight = float(getattr(args, "mmcl_weight", 0.0))
@@ -545,6 +545,12 @@ def _mag_classification_mmcl(
             )
         loss = cls_loss + mmcl_weight * con_loss + kd_weight * kd_loss
         loss.backward()
+        # Track peak memory: activations are live during backward, peak is before step
+        if th.cuda.is_available():
+            th.cuda.synchronize()
+            current_mb = th.cuda.memory_allocated() / 1048576.0
+            if current_mb > peak_memory_mb:
+                peak_memory_mb = current_mb
         optimizer.step()
 
         if epoch % args.eval_steps == 0:
@@ -702,10 +708,6 @@ def _mag_classification_mmcl(
                 )
 
     if return_extra:
-        # Record peak memory after training
-        if th.cuda.is_available():
-            th.cuda.synchronize()
-            peak_memory_mb = th.cuda.max_memory_allocated() / 1048576.0
         # Compute avg epoch time
         if epochs_needed > 0:
             avg_epoch_time = float(total_time) / float(epochs_needed)

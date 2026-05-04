@@ -765,14 +765,15 @@ def main():
         stopper = initialize_early_stopping(args)
         optimizer, lr_scheduler = initialize_optimizer_and_scheduler(args, model)
 
-        # Peak memory tracking (reset after model init and optimizer creation)
-        # gc.collect() MUST come before reset_peak_memory_stats to ensure
-        # old-run tensor references are actually freed before resetting the counter
+        # Peak memory tracking — track live tensor memory (memory_allocated)
+        # rather than max_memory_allocated, which inflates due to allocator caching
         peak_memory_mb = 0.0
         if th.cuda.is_available():
             gc.collect()  # free Python references to prior-run tensors
             th.cuda.reset_peak_memory_stats(device)
             th.cuda.empty_cache()
+            th.cuda.synchronize()
+            peak_memory_mb = th.cuda.memory_allocated(device) / 1048576.0
 
         train_step_times = []
         eval_step_times = []
@@ -800,6 +801,12 @@ def main():
             loss = cross_entropy(logits[train_idx], labels[train_idx],
                                 label_smoothing=args.label_smoothing)
             loss.backward()
+            # Track peak memory: activations are live during backward, peak is before step
+            if th.cuda.is_available():
+                th.cuda.synchronize()
+                current_mb = th.cuda.memory_allocated(device) / 1048576.0
+                if current_mb > peak_memory_mb:
+                    peak_memory_mb = current_mb
             optimizer.step()
             train_step_times.append(time.time() - t_fwd_start)
 
@@ -874,17 +881,6 @@ def main():
                     val_result, val_result, test_result,
                     best_val_score, final_test_result,
                 )
-
-        # Record peak memory after training
-        if th.cuda.is_available():
-            th.cuda.synchronize()
-            raw_bytes = th.cuda.max_memory_allocated(device)
-            reserved_gb = th.cuda.memory_reserved(device) / 1024**3
-            allocated_gb = th.cuda.memory_allocated(device) / 1024**3
-            print(f"  [DEBUG] max_memory_allocated = {raw_bytes} bytes = {raw_bytes/1024**3:.2f} GB")
-            print(f"  [DEBUG] memory_reserved = {reserved_gb:.2f} GB")
-            print(f"  [DEBUG] memory_allocated = {allocated_gb:.2f} GB")
-            peak_memory_mb = raw_bytes / 1048576.0
 
         print(f"Run {run+1}: Best Val {args.metric}={best_val_score:.4f}, Final Test {args.metric}={final_test_result:.4f}")
         if th.cuda.is_available():

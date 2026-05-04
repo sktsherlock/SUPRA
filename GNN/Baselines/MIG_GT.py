@@ -279,14 +279,14 @@ def main():
         optimizer = th.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
         stopper = EarlyStopping(patience=args.early_stop_patience) if args.early_stop_patience else None
 
-        # Peak memory tracking (reset after model init and optimizer creation)
-        # gc.collect() MUST come before reset_peak_memory_stats to ensure
-        # old-run tensor references are actually freed before resetting the counter
+        # Peak memory tracking — track live tensor memory (memory_allocated)
+        # rather than max_memory_allocated, which inflates due to allocator caching
         peak_memory_mb = 0.0
         if th.cuda.is_available():
             gc.collect()  # free Python references to prior-run tensors
-            th.cuda.reset_peak_memory_stats(device)
             th.cuda.empty_cache()
+            th.cuda.synchronize()
+            peak_memory_mb = th.cuda.memory_allocated(device) / 1048576.0
 
         best_val_score, best_val_result, final_test_result = -1.0, 0.0, 0.0
         best_test_logits = None
@@ -334,6 +334,12 @@ def main():
                 loss = loss + args.tur_weight * tur_loss
 
             loss.backward()
+            # Track peak memory: activations are live during backward, peak is before step
+            if th.cuda.is_available():
+                th.cuda.synchronize()
+                current_mb = th.cuda.memory_allocated(device) / 1048576.0
+                if current_mb > peak_memory_mb:
+                    peak_memory_mb = current_mb
             optimizer.step()
             train_step_times.append(time.time() - t_fwd_start)
 
@@ -395,11 +401,6 @@ def main():
                 if stopper and stopper.step(val_score):
                     epochs_needed = epoch
                     break
-
-        # Record peak memory after training
-        if th.cuda.is_available():
-            th.cuda.synchronize()
-            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
 
         print(f"Run: {run+1}/{args.n_runs} | Best Val {args.metric}: {best_val_result:.4f} | Final Test: {final_test_result:.4f}")
         if th.cuda.is_available():

@@ -410,14 +410,14 @@ def main():
         best_test_degrade = None
         best_state_dict = None
 
-        # Efficiency tracking
-        # gc.collect() MUST come before reset_peak_memory_stats to ensure
-        # old-run tensor references are actually freed before resetting the counter
+        # Peak memory tracking — track live tensor memory (memory_allocated)
+        # rather than max_memory_allocated, which inflates due to allocator caching
         peak_memory_mb = 0.0
         if th.cuda.is_available():
             gc.collect()  # free Python references to prior-run tensors
-            th.cuda.reset_peak_memory_stats(device)
             th.cuda.empty_cache()
+            th.cuda.synchronize()
+            peak_memory_mb = th.cuda.memory_allocated(device) / 1048576.0
         epochs_needed = args.n_epochs  # will be updated if early stop triggered
 
         for epoch in range(1, args.n_epochs + 1):
@@ -456,6 +456,12 @@ def main():
                 )
             total_loss = train_loss + mmcl_weight * con_loss + kd_weight * kd_loss
             total_loss.backward()
+            # Track peak memory: activations are live during backward, peak is before step
+            if th.cuda.is_available():
+                th.cuda.synchronize()
+                current_mb = th.cuda.memory_allocated(device) / 1048576.0
+                if current_mb > peak_memory_mb:
+                    peak_memory_mb = current_mb
 
             # Record gradient L2 norms for gradient starvation verification
             # MMGCN: text/visual features → concat → modality-specific GNN
@@ -668,9 +674,6 @@ def main():
                         degrade_visual_results.append(degrade_vis)
 
         # Collect efficiency profiling data
-        if th.cuda.is_available():
-            th.cuda.synchronize()
-            peak_memory_mb = th.cuda.max_memory_allocated(device) / 1048576.0
         avg_epoch_time = float(total_time) / float(epochs_needed) if epochs_needed > 0 else 0.0
         efficiency_runs['peak_memory_MB'].append(peak_memory_mb)
         efficiency_runs['epoch_times'].append([avg_epoch_time] * epochs_needed)

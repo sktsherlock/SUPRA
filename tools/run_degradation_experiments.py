@@ -390,12 +390,13 @@ def plot_multi_dataset(
     plt.close(fig)
 
 
-def save_results_csv(noise_results, noise_ratios, save_dir):
-    """Save numerical results to CSV."""
+def save_results_csv(noise_results, noise_ratios, save_dir, dataset_name=None):
+    """Save numerical results to CSV, named per dataset."""
     import csv
     os.makedirs(save_dir, exist_ok=True)
 
-    path = os.path.join(save_dir, "noise_degradation_results.csv")
+    prefix = f"{dataset_name}_" if dataset_name else ""
+    path = os.path.join(save_dir, f"{prefix}noise_degradation_results.csv")
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["ratio", "model", "mean_acc", "std_acc"])
@@ -456,6 +457,8 @@ if __name__ == "__main__":
                         help="Comma-separated list of dataset configs for appendix plot "
                              "in format 'name:text_feature:visual_feature:graph_path[:lr[:n_layers]]'. "
                              "Example: 'Movies:/path1:/path2:/path3:0.001:3'")
+    parser.add_argument("--resume", action="store_true",
+                        help="Skip dataset if its CSV already exists in save_dir")
     args = parser.parse_args()
 
     noise_ratios = [float(x) for x in args.noise_ratios.split(",")]
@@ -468,6 +471,22 @@ if __name__ == "__main__":
     # -----------------------------------------------------------------
     def run_for_dataset(data_name, text_feat_path, visual_feat_path, graph_path,
                        lr, n_layers, embed_dim, dropout, save_dir):
+        # Resume check: skip if CSV already exists
+        csv_path = os.path.join(save_dir, f"{data_name}_noise_degradation_results.csv")
+        if args.resume and os.path.exists(csv_path):
+            import csv
+            print(f"  [{data_name}] Skipping (CSV exists: {csv_path})")
+            results = {}
+            with open(csv_path) as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    ratio = float(row["ratio"])
+                    model = row["model"]
+                    if ratio not in results:
+                        results[ratio] = {}
+                    results[ratio][model] = (float(row["mean_acc"]), float(row["std_acc"]))
+            return results
+
         g, lbls, tr_idx, v_idx, t_idx = load_data(
             graph_path, train_ratio=0.6, val_ratio=0.2,
             name=data_name, fewshots=False)
@@ -493,8 +512,8 @@ if __name__ == "__main__":
             n_epochs=args.n_epochs, lr=lr, wd=args.wd,
             dropout=dropout, aux_weight=args.aux_weight, embed_dim=embed_dim,
         )
-        # Save per-dataset CSV
-        save_results_csv(results, noise_ratios, save_dir)
+        # Save per-dataset CSV (named by dataset)
+        save_results_csv(results, noise_ratios, save_dir, dataset_name=data_name)
         return results
 
     # -----------------------------------------------------------------

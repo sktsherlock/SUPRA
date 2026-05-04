@@ -70,7 +70,7 @@ python tools/run_degradation_experiments.py \
     --save_dir Results/degradation \
     --gpu 0 \
     --appendix_datasets \
-        "Movies:/mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt:0.001:3,\
+        "Movies:/mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy:/mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt:0.001:3,\
 Grocery:/mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt:0.001:3,\
 Toys:/mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy:/mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy:/mnt/input/MAGB_Dataset/Toys/ToysGraph.pt:0.0005:2"
 ```

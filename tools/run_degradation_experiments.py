@@ -300,21 +300,33 @@ MODEL_CONFIGS = {
 }
 
 
-def _plot_single(ax, noise_results, noise_ratios, title=None):
-    """Plot one sub-axis of degradation curve."""
+def _plot_single(ax, noise_results, noise_ratios, title=None, xlabel=True):
+    """
+    Plot one sub-axis of degradation curve.
+
+    X-axis shows noise ratio from most noisy (left) to clean (right),
+    so the reader sees the benefit of higher-quality features.
+    """
+    # Reverse: left=most noisy, right=clean (original features)
+    display_ratios = list(reversed(noise_ratios))
+
     for model_type, cfg in MODEL_CONFIGS.items():
-        means = [noise_results[r][model_type][0] for r in noise_ratios]
-        stds = [noise_results[r][model_type][1] for r in noise_ratios]
-        ax.plot(noise_ratios, means,
+        # Reverse means/stds to match display_ratios order
+        raw_means = [noise_results[r][model_type][0] for r in reversed(noise_ratios)]
+        raw_stds = [noise_results[r][model_type][1] for r in reversed(noise_ratios)]
+        ax.plot(display_ratios, raw_means,
                 color=cfg["color"], linestyle=cfg["linestyle"],
                 marker=cfg["marker"], markersize=cfg["markersize"],
                 linewidth=2.0, label=cfg["label"])
-        ax.fill_between(noise_ratios,
-                       [m - s for m, s in zip(means, stds)],
-                       [m + s for m, s in zip(means, stds)],
+        ax.fill_between(display_ratios,
+                       [m - s for m, s in zip(raw_means, raw_stds)],
+                       [m + s for m, s in zip(raw_means, raw_stds)],
                        color=cfg["color"], alpha=0.15)
 
-    ax.set_xlabel(r"Noise Ratio $\alpha$", fontsize=11)
+    if xlabel:
+        ax.set_xlabel(r"Noise Ratio $\alpha$  (← More noisy · Clean features →)", fontsize=11)
+    else:
+        ax.set_xlabel("")
     ax.set_ylabel("Accuracy", fontsize=11)
     if title:
         ax.set_title(title, fontsize=11, fontweight="bold")
@@ -354,6 +366,38 @@ def plot_degradation(
     plt.close(fig)
 
 
+def plot_grid_2x2(
+    datasets: Dict[str, Dict],
+    noise_ratios: List[float],
+    save_path: str,
+):
+    """
+    Plot all 4 datasets in a 2×2 grid as the paper figure.
+
+    X-axis: left = most noisy (worst features), right = clean (original).
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib
+
+    matplotlib.rcParams["font.family"] = "serif"
+    matplotlib.rcParams["font.size"] = 11
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 8.5))
+    axes = axes.flatten()
+
+    plt.subplots_adjust(bottom=0.16, top=0.88, hspace=0.40, wspace=0.30)
+
+    for ax, (name, results) in zip(axes, datasets.items()):
+        xlabel = (ax == axes[-2]) or (ax == axes[-1])  # bottom row
+        _plot_single(ax, results, noise_ratios, title=name, xlabel=xlabel)
+        ax.legend(loc="upper left", framealpha=0.9, fontsize=9)
+
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    fig.savefig(save_path, dpi=300, bbox_inches="tight", format="pdf")
+    print(f"[Saved] {save_path}")
+    plt.close(fig)
+
+
 def plot_multi_dataset(
     datasets: Dict[str, Dict],
     noise_ratios: List[float],
@@ -361,11 +405,6 @@ def plot_multi_dataset(
 ):
     """
     Plot multiple datasets in a 1×N row for appendix.
-
-    Args:
-        datasets: dict of {dataset_name: noise_results}
-        noise_ratios: list of ratios (shared across all datasets)
-        save_path: output PDF path
     """
     import matplotlib.pyplot as plt
     import matplotlib
@@ -517,8 +556,11 @@ if __name__ == "__main__":
         return results
 
     # -----------------------------------------------------------------
-    # Main dataset (for paper figure)
+    # All datasets for the paper figure (2×2 grid)
     # -----------------------------------------------------------------
+    all_datasets = {}
+
+    # Main dataset (Reddit-M)
     print(f"\n[{args.data_name}] Loading data...")
     print(f"  Nodes: ..., Edges: ...")
     paper_results = run_for_dataset(
@@ -526,19 +568,12 @@ if __name__ == "__main__":
         args.graph_path, args.lr, args.n_layers, args.embed_dim,
         args.dropout, args.save_dir,
     )
+    all_datasets[args.data_name] = paper_results
 
-    # Paper figure (single-panel)
-    paper_plot_path = os.path.join(args.save_dir, f"{args.data_name}_degradation.pdf")
-    plot_degradation(paper_results, noise_ratios, paper_plot_path,
-                    title=f"{args.data_name}")
-
-    # -----------------------------------------------------------------
-    # Appendix datasets (for 1×N combined figure)
-    # -----------------------------------------------------------------
-    appendix_datasets = {}
+    # Additional datasets
     if args.appendix_datasets:
         print(f"\n{'='*60}")
-        print("Running appendix datasets...")
+        print("Running additional datasets...")
         print(f"{'='*60}")
 
         for cfg in args.appendix_datasets.split(","):
@@ -555,10 +590,10 @@ if __name__ == "__main__":
                 name, txt, vis, grh, ds_lr, ds_nl,
                 args.embed_dim, args.dropout, args.save_dir,
             )
-            appendix_datasets[name] = results
+            all_datasets[name] = results
 
-        # Appendix figure (1×N multi-panel)
-        appendix_plot_path = os.path.join(args.save_dir, "appendix_degradation.pdf")
-        plot_multi_dataset(appendix_datasets, noise_ratios, appendix_plot_path)
+    # Paper figure: 2×2 grid of all datasets
+    grid_path = os.path.join(args.save_dir, "degradation_2x2.pdf")
+    plot_grid_2x2(all_datasets, noise_ratios, grid_path)
 
     print("\nDone.")

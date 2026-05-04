@@ -76,8 +76,7 @@ Toys:/mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct
 ```
 
 **输出**：
-- `Reddit-M_degradation.pdf` — **正文图**（单图，Reddit-M）
-- `appendix_degradation.pdf` — **附录图**（1×3 并排：Movies / Grocery / Toys）
+- `degradation_2x2.pdf` — **正文图**（2×2 四数据集并排：Reddit-M / Movies / Grocery / Toys）
 
 ### 仅跑单个数据集
 
@@ -106,12 +105,11 @@ python tools/run_degradation_experiments.py \
 
 ```
 Results/degradation/
-├── Reddit-M_degradation.pdf       # 正文图（单图）
-├── appendix_degradation.pdf       # 附录图（Movies / Grocery / Toys 并排）
-├── Reddit-M_noise_results.csv     # 各 dataset 的数值结果
-├── Movies_noise_results.csv
-├── Grocery_noise_results.csv
-└── Toys_noise_results.csv
+├── degradation_2x2.pdf             # 正文图（2×2 四数据集并排）
+├── Reddit-M_noise_degradation_results.csv  # 各 dataset 的数值结果
+├── Movies_noise_degradation_results.csv
+├── Grocery_noise_degradation_results.csv
+└── Toys_noise_degradation_results.csv
 ```
 
 CSV 格式：
@@ -127,14 +125,12 @@ ratio,model,mean_acc,std_acc
 
 ## 图表说明
 
-### 正文图（单图）
-- Reddit-M 数据集，Accuracy vs. Noise Ratio α
+### 正文图（2×2 四数据集并排）
+- 四个数据集（Reddit-M / Movies / Grocery / Toys）以 2×2 网格展示于正文中
+- X轴：**左 = 高噪声（最差特征）→ 右 = 原始（最佳特征）**，清晰呈现"特征质量提升时 Pure MLP / SUPRA 受益更大"这一趋势
+- Y轴：Accuracy
 - 三条曲线：Pure MLP（橙）、MMGCN（蓝）、SUPRA（绿）
 - 误差带：`plt.fill_between`，$\pm 1$ std，透明度 15%
-
-### 附录图（1×3 并排）
-- Movies / Grocery / Toys 三个数据集横向并排
-- 每子图独立标题、共享坐标轴范围
 - 统一 X 轴标签，Y 轴标签仅最左子图显示
 
 ---

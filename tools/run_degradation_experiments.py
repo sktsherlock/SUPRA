@@ -366,13 +366,13 @@ def plot_degradation(
     plt.close(fig)
 
 
-def plot_grid_2x2(
+def plot_grid_1x4(
     datasets: Dict[str, Dict],
     noise_ratios: List[float],
     save_path: str,
 ):
     """
-    Plot all 4 datasets in a 2×2 grid as the paper figure.
+    Plot all 4 datasets in a 1×4 horizontal row for single-column paper layout.
 
     X-axis: left = most noisy (worst features), right = clean (original).
     """
@@ -382,14 +382,15 @@ def plot_grid_2x2(
     matplotlib.rcParams["font.family"] = "serif"
     matplotlib.rcParams["font.size"] = 11
 
-    fig, axes = plt.subplots(2, 2, figsize=(10, 8.5))
-    axes = axes.flatten()
+    n = len(datasets)
+    fig, axes = plt.subplots(1, n, figsize=(5.5 * n, 4.2))
+    if n == 1:
+        axes = [axes]
 
-    plt.subplots_adjust(bottom=0.16, top=0.88, hspace=0.40, wspace=0.30)
+    plt.subplots_adjust(bottom=0.18, top=0.88, wspace=0.30)
 
     for ax, (name, results) in zip(axes, datasets.items()):
-        xlabel = (ax == axes[-2]) or (ax == axes[-1])  # bottom row
-        _plot_single(ax, results, noise_ratios, title=name, xlabel=xlabel)
+        _plot_single(ax, results, noise_ratios, title=name)
         ax.legend(loc="upper left", framealpha=0.9, fontsize=9)
 
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -592,8 +593,8 @@ if __name__ == "__main__":
             )
             all_datasets[name] = results
 
-    # Paper figure: 2×2 grid of all datasets
-    grid_path = os.path.join(args.save_dir, "degradation_2x2.pdf")
-    plot_grid_2x2(all_datasets, noise_ratios, grid_path)
+    # Paper figure: 1×4 horizontal row of all datasets
+    grid_path = os.path.join(args.save_dir, "degradation_1x4.pdf")
+    plot_grid_1x4(all_datasets, noise_ratios, grid_path)
 
     print("\nDone.")

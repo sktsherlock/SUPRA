@@ -21,7 +21,7 @@ python -m GNN.SUPRA \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --aux_weight 0.1 \
     --mlp_variant ablate \
-    --n-runs 2 --seed 42 \
+    --n-runs 3 --seed 42 \
     --n-epochs 1000 --early_stop_patience 30 \
     --result_csv Results/efficiency/supra_gcn_reddit_m.csv \
     --disable_wandb \
@@ -39,7 +39,7 @@ python -m GNN.Baselines.Early_GNN \
     --backend gnn --model_name GCN \
     --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --n-runs 2 --seed 42 \
+    --n-runs 3 --seed 42 \
     --n-epochs 1000 --early_stop_patience 30 \
     --result_csv Results/efficiency/early_gnn_gcn_reddit_m.csv \
     --disable_wandb \
@@ -57,7 +57,7 @@ python -m GNN.Baselines.Early_GNN \
     --backend gnn --model_name SAGE \
     --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --n-runs 2 --seed 42 \
+    --n-runs 3 --seed 42 \
     --n-epochs 1000 --early_stop_patience 30 \
     --result_csv Results/efficiency/early_gnn_sage_reddit_m.csv \
     --disable_wandb \
@@ -77,7 +77,7 @@ python -m GNN.Baselines.Late_GNN \
     --model_name GCN \
     --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
-    --n-runs 2 --seed 42 \
+    --n-runs 3 --seed 42 \
     --n-epochs 1000 --early_stop_patience 30 \
     --result_csv Results/efficiency/late_gnn_gcn_reddit_m.csv \
     --disable_wandb \
@@ -96,7 +96,7 @@ python -m GNN.Baselines.Late_GNN \
     --n-hidden 256 --n-layers 3 \
     --dropout 0.3 --lr 0.001 --wd 0.0001 \
     --n-heads 4 --attn-drop 0.0 --edge-drop 0.0 \
-    --n-runs 2 --seed 42 \
+    --n-runs 3 --seed 42 \
     --n-epochs 1000 --early_stop_patience 30 \
     --result_csv Results/efficiency/late_gnn_gat_reddit_m.csv \
     --disable_wandb \
@@ -115,9 +115,9 @@ python -m GNN.Baselines.NTSFormer \
     --dropout 0.3 --lr 0.0005 --wd 0.0001 \
     --nts_num_heads 2 \
     --nts_sign_k 1 \
-    --n-runs 2 --seed 42 \
+    --n-runs 1 --seed 42 \
     --n-epochs 1000 --early_stop_patience 30 \
-    --eval_steps 5 \
+    --eval_steps 1 \
     --result_csv Results/efficiency/ntsformer_reddit_m.csv \
     --disable_wandb \
     --gpu 0
@@ -138,15 +138,16 @@ python -m GNN.Baselines.MIG_GT \
     --k_t 3 --k_v 2 \
     --mgdcf_alpha 0.1 --mgdcf_beta 0.9 \
     --num_samples 10 --tur_weight 1.0 \
-    --n-runs 2 --seed 42 \
+    --n-runs 1 --seed 42 \
     --n-epochs 1000 --early_stop_patience 30 \
-    --eval_steps 5 \
+    --eval_steps 1 \
     --result_csv Results/efficiency/mig_gt_reddit_m.csv \
     --disable_wandb \
     --gpu 0
 ```
 
 ---
+
 ## 输出说明
 
 每个模型运行结束后会输出：
@@ -167,6 +168,7 @@ Efficiency Profile: <ModelName> on <data_name>
 ```
 
 同时每 run 结束会打印详细时间分解：
+
 ```
 [TIME] train_total=XXX.Xs(avg=X.XXXs×XXXep)  eval_total=XXX.Xs(avg=X.XXXs×XXep)
 ```
@@ -175,19 +177,19 @@ Efficiency Profile: <ModelName> on <data_name>
 
 ## 实验结果
 
-| 模型 | eval_steps | Params (M) | Peak Reserved (MB) | Train(s) | Eval(s) | Total(s) | Train(s/ep) | Eval(s/call) | Epochs |
-|------|-----------|------------|-------------------|----------|---------|----------|-------------|--------------|--------|
-| SUPRA-GCN | 1 | 2.399 | 7956.00 ± 0.00 | - | - | - | - | - | - |
-| GCN | 1 | 2.176 | 13196.00 ± 10.00 | - | - | - | - | - | - |
-| GraphSAGE | 1 | 4.352 | 10406.00 ± 10.00 | - | - | - | - | - | - |
-| MMGCN | 1 | 2.386 | 20024.00 ± 34.00 | - | - | - | - | - | - |
-| MMGAT | 1 | 11.041 | 24811.00 ± 781.00 | - | - | - | - | - | - |
-| NTSFormer | 5 | 5.788 | 32115 (nvidia-smi) | - | - | - | - | - | - |
-| MIG_GT | 5 | 2.441 | 26854.00 ± 0.00 | - | - | - | - | - | - |
+| 模型      | eval_steps | Params (M) | Peak Reserved (MB) | Train(s) | Eval(s) | Total(s) | Train(s/ep) | Eval(s/call) | Epochs |
+| --------- | ---------- | ---------- | ------------------ | -------- | ------- | -------- | ----------- | ------------ | ------ |
+| SUPRA-GCN | 1          | 2.399      | 7956.00 ± 0.00     | 8.04 ± 1.89 | 4.69 ± 0.64 | 12.73 ± 1.99 | 0.0356 ± 0.0053 | 0.0192 ± 0.0033 | 226.0 ± 22.1 |
+| GCN       | 1          | 2.176      | 13199.33 ± 9.43    | 6.02 ± 0.26 | 3.37 ± 0.73 | 9.39 ± 0.58 | 0.0326 ± 0.0010 | 0.0180 ± 0.0042 | 184.7 ± 2.6 |
+| GraphSAGE | 1          | 4.352      | 10416.00 ± 0.00    | 19.48 ± 1.20 | 13.35 ± 1.70 | 32.84 ± 2.35 | 0.0366 ± 0.0020 | 0.0266 ± 0.0019 | 532.3 ± 37.4 |
+| MMGCN     | 1          | 2.386      | 20044.00 ± 15.75   | 4.93 ± 0.77 | 2.68 ± 1.14 | 7.61 ± 1.79 | 0.0410 ± 0.0015 | 0.0192 ± 0.0082 | 120.3 ± 13.9 |
+| MMGAT     | 1          | 11.041     | 25082.00 ± 743.96  | 13.89 ± 1.10 | 5.27 ± 0.58 | 19.16 ± 0.61 | 0.1432 ± 0.0060 | 0.0560 ± 0.0085 | 97.0 ± 5.0 |
+| NTSFormer | 1          | 5.788      | 27692.00 ± 0.00    | 42.11 ± 0.00 | 13.65 ± 0.00 | 55.76 ± 0.00 | 0.1792 ± 0.0000 | 0.0581 ± 0.0000 | 235.0 ± 0.0 |
+| MIG_GT    | 1          | 2.441      | 26854.00 ± 0.00    | 109.48 ± 0.00 | 42.11 ± 0.00 | 151.58 ± 0.00 | 0.1834 ± 0.0000 | 0.0705 ± 0.0000 | 597.0 ± 0.0 |
 
-> **注意**: 表格中 "-" 表示该实验尚未用新参数重新运行以获得准确数值。NTSFormer 和 MIG_GT 的 eval_steps=5，其他模型 eval_steps=1。
+> **注意**: 所有模型统一使用 eval_steps=1（修复 NTSFormer/MIG_GT 的 degrade 计算 bug 后已无需使用 eval_steps=5 降低 degrade 开销）。
 >
-> **Peak Reserved**：PyTorch `memory_reserved` 统计的 allocator 预留总量，对应 nvidia-smi 显示的显存占用（**NTSFormer 除外**，该值为 nvidia-smi 实测值，因 PyTorch allocator 碎片化导致 reserved 偏高）。
+> **Peak Reserved**：PyTorch `memory_reserved` 统计的 allocator 预留总量，对应 nvidia-smi 显示的显存占用。
 >
 > **Train/Eval 分离说明**：`Train(s)` 为累计训练时长，`Eval(s)` 为累计验证时长，`Total(s) = Train(s) + Eval(s)`，`Train(s/ep)` 和 `Eval(s/call)` 为平均值。
 >
@@ -203,15 +205,15 @@ PyTorch CUDA allocator 采用 caching 策略：`memory_reserved` 表示 allocato
 
 ## 参数汇总表
 
-| 模型 | n_layers | eval_steps | lr | wd | 特殊参数 |
-|------|----------|-----------|-----|-----|---------|
-| SUPRA-GCN | 3 | 1 | 0.0005 | 0.0001 | aux=0.1, mlp=ablate |
-| GCN | 3 | 1 | 0.0005 | 0.0001 | 无编码器，raw concat |
-| GraphSAGE | 3 | 1 | 0.0005 | 0.0001 | 无编码器，raw concat |
-| MMGCN | 3 | 1 | 0.0005 | 0.0001 | 无编码器，raw 各自 GNN |
-| MMGAT | 3 | 1 | 0.001 | 0.0001 | heads=4, 无编码器 |
-| NTSFormer | 2 | 5 | 0.0005 | 0.0001 | sign_k=1, num_heads=2 |
-| MIG_GT | 2 | 5 | 0.001 | 0.0001 | k_t=3, k_v=2 |
+| 模型      | n_layers | eval_steps | lr     | wd     | 特殊参数               |
+| --------- | -------- | ---------- | ------ | ------ | ---------------------- |
+| SUPRA-GCN | 3        | 1          | 0.0005 | 0.0001 | aux=0.1, mlp=ablate    |
+| GCN       | 3        | 1          | 0.0005 | 0.0001 | 无编码器，raw concat   |
+| GraphSAGE | 3        | 1          | 0.0005 | 0.0001 | 无编码器，raw concat   |
+| MMGCN     | 3        | 1          | 0.0005 | 0.0001 | 无编码器，raw 各自 GNN |
+| MMGAT     | 3        | 1          | 0.001  | 0.0001 | heads=4, 无编码器      |
+| NTSFormer | 2        | 1          | 0.0005 | 0.0001 | sign_k=1, num_heads=2  |
+| MIG_GT    | 2        | 1          | 0.001  | 0.0001 | k_t=3, k_v=2           |
 
 ## 共同超参数
 

@@ -800,7 +800,10 @@ def main():
         if report_drop:
             best_test_degrade = {alpha: (None, None) for alpha in degrade_alphas}
 
+        total_time = 0.0
+
         for epoch in range(1, args.n_epochs + 1):
+            tic = time.time()
             adjust_learning_rate_if_needed(args, optimizer, epoch)
 
             model.train()
@@ -890,6 +893,7 @@ def main():
                     epochs_needed = epoch
                     break
 
+                total_time += time.time() - tic
                 log_progress(
                     args, epoch, run + 1, total_time,
                     loss, loss, loss,

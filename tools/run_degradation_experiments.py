@@ -601,9 +601,60 @@ if __name__ == "__main__":
             txt = parts[1]
             vis = parts[2]
             grh = parts[3]
-            ds_lr = float(parts[4]) if len(parts) > 4 else 0.001
-            ds_nl = int(parts[5]) if len(parts) > 5 else 3
-            ds_noise = [float(x) for x in parts[6].split(",")] if len(parts) > 6 else noise_ratios
+
+            # Parse optional remaining fields, handling noise_ratios/flags
+            # that may have been accidentally appended via bash multiline issues
+            ds_lr, ds_nl, ds_noise = 0.001, 3, noise_ratios
+            trailing = parts[4:]
+            noise_candidates = []
+            lr_found, nl_found = False, False
+            for i, tok in enumerate(trailing):
+                tok = tok.strip()
+                if not tok:
+                    continue
+                # Skip stray flags (e.g. "--resume" appended due to multiline)
+                if tok.startswith("--"):
+                    continue
+                # Comma-separated floats = noise ratios
+                if "," in tok:
+                    try:
+                        noise_candidates = [float(x) for x in tok.split(",")]
+                        continue
+                    except ValueError:
+                        pass
+                # Try as lr (positive float)
+                if not lr_found:
+                    try:
+                        v = float(tok)
+                        if v > 0:
+                            ds_lr = v
+                            lr_found = True
+                            continue
+                    except ValueError:
+                        pass
+                # Try as n_layers (positive int)
+                if not nl_found:
+                    try:
+                        v = int(tok)
+                        if v > 0:
+                            ds_nl = v
+                            nl_found = True
+                            continue
+                    except ValueError:
+                        pass
+                # If we get here and have noise candidates, assign them
+                if noise_candidates:
+                    ds_noise = noise_candidates
+                    noise_candidates = []
+
+            # If noise candidates still unassigned, check if last trailing part looks like noise
+            if not noise_candidates and len(trailing) > 0:
+                last = trailing[-1].strip()
+                if "," in last:
+                    try:
+                        ds_noise = [float(x) for x in last.split(",")]
+                    except ValueError:
+                        pass
 
             print(f"\n[{name}] Loading data...")
             results = run_for_dataset(

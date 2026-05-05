@@ -34,7 +34,10 @@ def parse_filename(fname):
     else:
         return None
 
-    gnn = rest.split("_")[0].upper()
+    gnn_raw = rest.split("_")[0]
+    # Normalize gnn name to match table headers: jknet->JKNet, gat->GAT, sage->SAGE
+    gnn_map = {"jknet": "JKNet", "gat": "GAT", "sage": "SAGE", "gcn": "GCN"}
+    gnn = gnn_map.get(gnn_raw.lower(), gnn_raw.upper())
 
     # Match aux with various padding: aux0.0, aux00, aux0, aux05, aux5
     aux_match = re.search(r"_aux([\d.]+)", rest)

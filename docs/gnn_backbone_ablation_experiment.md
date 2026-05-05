@@ -4,6 +4,28 @@
 
 ---
 
+## 批量运行（推荐）
+
+**一键跑完所有实验**：
+
+```bash
+# Accuracy 全部（36 条命令）
+GPU=0 bash scripts/run_gnn_backbone_ablation.sh accuracy
+
+# F1 全部（36 条命令）
+GPU=0 bash scripts/run_gnn_backbone_ablation.sh f1
+
+# 同时跑 accuracy + F1
+GPU=0 bash scripts/run_gnn_backbone_ablation.sh all
+
+# 仅打印命令，不实际执行（dry run）
+DRY_RUN=1 bash scripts/run_gnn_backbone_ablation.sh all
+```
+
+**已存在的 CSV 会自动跳过**，断点续跑安全。
+
+---
+
 ## 实验设计
 
 ### 两类架构 × 三种 GNN 算子

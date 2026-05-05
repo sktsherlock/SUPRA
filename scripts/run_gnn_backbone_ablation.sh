@@ -142,6 +142,7 @@ run_early_gnn() {
         --seed "$SEED"
         --n-epochs "$N_EPOCHS"
         --early_stop_patience "$PATIENCE"
+        --selfloop False
         --result_csv "${OUTDIR}/${label}.csv"
         --result_csv_all "${OUTDIR}/${label}_all.csv"
         --disable_wandb
@@ -196,6 +197,7 @@ run_supra() {
         --seed "$SEED"
         --n-epochs "$N_EPOCHS"
         --early_stop_patience "$PATIENCE"
+        --selfloop False
         --result_csv "${OUTDIR}/${label}.csv"
         --result_csv_all "${OUTDIR}/${label}_all.csv"
         --disable_wandb

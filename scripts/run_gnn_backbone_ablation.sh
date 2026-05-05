@@ -108,7 +108,7 @@ run_exp() {
 run_early_gnn() {
     local gnn="$1"       # GAT | SAGE | JKNet
     local ds="$2"        # dataset name
-    local metric="${3:-}" # --metric f1_macro or empty
+    local metric_val="${3:-}" # f1_macro or empty
 
     IFS='|' read -r txt vis grh lr n_layers <<< "${DATASETS[$ds]}"
 
@@ -120,7 +120,7 @@ run_early_gnn() {
     esac
 
     local metric_file_tag=""
-    [[ -n "$metric" ]] && metric_file_tag="_f1macro"
+    [[ -n "$metric_val" ]] && metric_file_tag="_f1macro"
 
     local label="early_gnn_$(echo $gnn | tr '[:upper:]' '[:lower:]')_${ds}${metric_file_tag}"
 
@@ -147,7 +147,7 @@ run_early_gnn() {
         --gpu "$GPU"
     )
 
-    [[ -n "$metric" ]] && cmd+=("$metric")
+    [[ -n "$metric_val" ]] && cmd+=(--metric "$metric_val")
 
     run_exp "$label" "${cmd[@]}"
 }
@@ -159,7 +159,7 @@ run_supra() {
     local gnn="$1"       # GAT | SAGE | JKNet
     local ds="$2"        # dataset name
     local aux="$3"        # 0.0 or 0.5
-    local metric="${4:-}" # --metric f1_macro or empty
+    local metric_val="${4:-}" # f1_macro or empty
 
     IFS='|' read -r txt vis grh lr n_layers <<< "${DATASETS[$ds]}"
 
@@ -171,7 +171,7 @@ run_supra() {
     esac
 
     local metric_file_tag=""
-    [[ -n "$metric" ]] && metric_file_tag="_f1macro"
+    [[ -n "$metric_val" ]] && metric_file_tag="_f1macro"
 
     local aux_tag="${aux/./}"
     local label="supra_$(echo $gnn | tr '[:upper:]' '[:lower:]')_${ds}_aux${aux_tag}${metric_file_tag}"
@@ -200,7 +200,7 @@ run_supra() {
         --gpu "$GPU"
     )
 
-    [[ -n "$metric" ]] && cmd+=("$metric")
+    [[ -n "$metric_val" ]] && cmd+=(--metric "$metric_val")
 
     run_exp "$label" "${cmd[@]}"
 }
@@ -221,7 +221,7 @@ run_all() {
             [[ "$MODE" == "accuracy" || "$MODE" == "all" ]] && \
                 run_early_gnn "$gnn" "$ds"
             [[ "$MODE" == "f1" || "$MODE" == "all" ]] && \
-                run_early_gnn "$gnn" "$ds" "--metric" "f1_macro"
+                run_early_gnn "$gnn" "$ds" "f1_macro"
         done
     done
 
@@ -234,7 +234,7 @@ run_all() {
                 [[ "$MODE" == "accuracy" || "$MODE" == "all" ]] && \
                     run_supra "$gnn" "$ds" "$aux"
                 [[ "$MODE" == "f1" || "$MODE" == "all" ]] && \
-                    run_supra "$gnn" "$ds" "$aux" "--metric" "f1_macro"
+                    run_supra "$gnn" "$ds" "$aux" "f1_macro"
             done
         done
     done

@@ -698,6 +698,17 @@ def main():
         efficiency_runs['eval_step_times'].append(eval_step_times)
         efficiency_runs['epochs_needed'].append(len(train_step_times))
 
+        # Write per-run result to result_csv_all for multi-run aggregation
+        if getattr(args, 'result_csv_all', None):
+            _method = str(getattr(args, "result_tag", "") or "").strip() or "MMGNN"
+            per_run_row = build_result_row(
+                args=args,
+                method=_method,
+                full_metric=final_test_result,
+                run=run + 1,
+            )
+            append_result_csv(args.result_csv_all, per_run_row)
+
         # Save per-epoch gradient L2 norm for this run (Group 1: MMGCN)
         if getattr(args, 'analyze_gradients', False) and getattr(args, 'gradient_csv', None):
             import csv

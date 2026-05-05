@@ -43,9 +43,12 @@ def parse_filename(fname):
     aux_match = re.search(r"_aux([\d.]+)", rest)
     if aux_match:
         aux = aux_match.group(1)
+        # Normalize: "0.0" → "0.0", "00" → "0.0", "05" → "0.5", "5" → "0.5"
         if "." not in aux:
-            # aux00 → 0.0, aux05 → 0.5
-            aux = f"0.{aux}"
+            if len(aux) == 2:
+                aux = f"0.{aux}"   # "00"→"0.0", "05"→"0.5"
+            elif len(aux) == 1:
+                aux = f"0.{aux}"   # "0"→"0.0", "5"→"0.5"
         dataset = rest[len(gnn.lower()) + 1: aux_match.start()]
     else:
         aux = None

@@ -173,7 +173,7 @@ run_supra() {
     local metric_file_tag=""
     [[ -n "$metric_val" ]] && metric_file_tag="_f1macro"
 
-    local aux_tag="${aux/./}"
+    local aux_tag="${aux}"  # e.g. "0.0" or "0.5"
     local label="supra_$(echo $gnn | tr '[:upper:]' '[:lower:]')_${ds}_aux${aux_tag}${metric_file_tag}"
 
     local cmd=(

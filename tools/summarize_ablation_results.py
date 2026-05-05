@@ -36,9 +36,13 @@ def parse_filename(fname):
 
     gnn = rest.split("_")[0].upper()
 
+    # Match aux with various padding: aux0.0, aux00, aux0, aux05, aux5
     aux_match = re.search(r"_aux([\d.]+)", rest)
     if aux_match:
         aux = aux_match.group(1)
+        if "." not in aux:
+            # aux00 → 0.0, aux05 → 0.5
+            aux = f"0.{aux}"
         dataset = rest[len(gnn.lower()) + 1: aux_match.start()]
     else:
         aux = None
@@ -48,34 +52,58 @@ def parse_filename(fname):
 
 
 def read_best_result(path):
-    """Return (mean, std) from the row with highest val_metric."""
+    """Return (mean, std) from the row with highest accuracy/f1."""
     try:
         with open(path) as f:
             rows = list(csv.DictReader(f))
         if not rows:
             return None
+
+        # Detect column names: try full/full_std first (our format),
+        # then fall back to val_metric column names
         metric_col = None
         std_col = None
-        for row in rows:
-            for k in row:
+        first_row = rows[0]
+
+        # Our format: full / full_std
+        if "full" in first_row:
+            metric_col = "full"
+            std_col = "full_std" if "full_std" in first_row else None
+        # Fallback: try val_metric variants
+        if not metric_col:
+            for k in first_row:
                 kl = k.lower()
                 if "val_metric" in kl and "std" not in kl and metric_col is None:
                     metric_col = k
                 if "val_metric" in kl and "std" in kl and std_col is None:
                     std_col = k
-            if metric_col:
-                break
+        # Last resort: mean_acc
         if not metric_col:
-            for row in rows:
-                for k in ["mean_acc", "val_metric", "mean_val_metric"]:
-                    if k in row:
-                        metric_col = k
-                        break
-                if metric_col:
+            for k in ["mean_acc", "val_metric"]:
+                if k in first_row:
+                    metric_col = k
                     break
+
+        if not metric_col:
+            return None
+
         best = max(rows, key=lambda r: float(r.get(metric_col, 0) or 0))
-        mean_val = float(best.get(metric_col, 0) or 0)
-        std_val = float(best.get(std_col, 0) or 0) if std_col else 0.0
+        # Parse "75.67 ± 0.16" style strings
+        def parse_val(s):
+            if s is None:
+                return 0.0, 0.0
+            s = str(s).strip()
+            if "±" in s or "+/-" in s:
+                parts = re.split(r"[±+/-]+", s)
+                mean = float(parts[0].strip())
+                std = float(parts[1].strip()) if len(parts) > 1 else 0.0
+                return mean, std
+            return float(s), 0.0
+
+        mean_val, std_val = parse_val(best.get(metric_col))
+        if std_col:
+            _, std_val = parse_val(best.get(std_col))
+
         return (mean_val, std_val)
     except Exception as e:
         print(f"  [WARN] {path}: {e}", file=sys.stderr)

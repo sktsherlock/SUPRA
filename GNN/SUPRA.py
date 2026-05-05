@@ -192,6 +192,13 @@ def _build_gnn_backbone(args, in_dim: int, out_dim: int, device: th.device, *, n
             use_attn_dst=False, use_symmetric_norm=getattr(args, "use_symmetric_norm", True),
         ).to(device)
 
+    if name == "JKNet":
+        from GNN.Library.JKNet import JKNet
+        return JKNet(
+            in_dim, n_hidden, out_dim, n_layers, args.dropout,
+            aggr=getattr(args, "jknet_aggr", "concat"),
+        ).to(device)
+
     raise ValueError(f"Unsupported --model_name: {name}")
 
 

@@ -961,6 +961,28 @@ def main():
 
         val_results.append(val_result)
         test_results.append(test_result)
+
+        # Write per-run result to result_csv_all for multi-run aggregation
+        if getattr(args, 'result_csv_all', None):
+            _method = str(getattr(args, "result_tag", "") or "").strip()
+            if not _method:
+                if str(getattr(args, "backend", "")).lower() == "mlp":
+                    _method = "EarlyFusionMLP"
+                else:
+                    _method = "EarlyFusionGNN"
+                fuse_tag = str(getattr(args, "early_fuse", "concat")).lower().strip()
+                if fuse_tag and fuse_tag != "concat":
+                    _method = f"{_method}-{fuse_tag}"
+                if float(getattr(args, "mmcl_weight", 0.0)) > 0.0:
+                    _method = f"{_method}+MMCL"
+            per_run_row = build_result_row(
+                args=args,
+                method=_method,
+                full_metric=test_result,
+                run=run + 1,
+            )
+            append_result_csv(args.result_csv_all, per_run_row)
+
         degrade_alphas = _parse_degrade_alphas(args)
         degrade_text_key = f"best_test_degrade_text_{args.metric}"
         degrade_visual_key = f"best_test_degrade_visual_{args.metric}"

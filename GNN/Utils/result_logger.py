@@ -40,6 +40,7 @@ def build_result_row(
     degrade_text: Optional[float] = None,
     degrade_visual: Optional[float] = None,
     extra: Optional[Dict[str, object]] = None,
+    run: Optional[int] = None,
 ) -> Dict[str, object]:
     full_std = None
     degrade_text_std = None
@@ -89,6 +90,8 @@ def build_result_row(
                 row[k] = _fmt_percent(v)
             else:
                 row[k] = v
+    if run is not None:
+        row["run"] = run
     return row
 
 

@@ -25,6 +25,11 @@ def parse_filename(fname):
     is_f1 = "_f1macro" in base
     base = base.replace("_f1macro", "")
 
+    # Strip _all suffix from result_csv_all files
+    is_all = base.endswith("_all")
+    if is_all:
+        base = base[:-4]
+
     if base.startswith("early_gnn_"):
         arch = "early_gnn"
         rest = base.replace("early_gnn_", "")
@@ -116,6 +121,63 @@ def read_best_result(path):
         return None
 
 
+def _parse_val(s):
+    """Parse a value that may be '75.67' or '75.67 ± 0.16'."""
+    if s is None:
+        return None
+    s = str(s).strip()
+    if not s:
+        return None
+    if "±" in s or "+/-" in s:
+        parts = re.split(r"[±+/-]+", s)
+        return float(parts[0].strip())
+    try:
+        return float(s)
+    except:
+        return None
+
+
+def read_per_run_results(ablation_dir, fname):
+    """Read all runs from *_all.csv and return (mean, std).
+    fname is the original filename WITHOUT _all suffix (e.g. 'supra_gat_reddit-m_aux00.csv')."""
+    all_path = os.path.join(ablation_dir, fname.replace(".csv", "_all.csv"))
+    if not os.path.exists(all_path):
+        return None
+
+    try:
+        with open(all_path) as f:
+            rows = list(csv.DictReader(f))
+        if not rows:
+            return None
+
+        first_row = rows[0]
+        metric_col = None
+        if "full" in first_row:
+            metric_col = "full"
+
+        if not metric_col:
+            return None
+
+        run_values = []
+        for row in rows:
+            val = _parse_val(row.get(metric_col))
+            if val is not None:
+                run_values.append(val)
+
+        if len(run_values) < 1:
+            return None
+
+        mean_val = sum(run_values) / len(run_values)
+        if len(run_values) > 1:
+            std_val = (sum((v - mean_val) ** 2 for v in run_values) / (len(run_values) - 1)) ** 0.5
+        else:
+            std_val = 0.0
+        return (mean_val, std_val)
+    except Exception as e:
+        print(f"  [WARN] {all_path}: {e}", file=sys.stderr)
+        return None
+
+
 def load_all_results(ablation_dir, metric_type="accuracy"):
     """Returns results[gnn][dataset][cfg_key] = (mean, std)."""
     is_f1 = metric_type == "f1"
@@ -131,13 +193,24 @@ def load_all_results(ablation_dir, metric_type="accuracy"):
         p = parse_filename(fname)
         if p is None or p["is_f1"] != is_f1:
             continue
-        data = read_best_result(os.path.join(ablation_dir, fname))
-        if data is None:
+        # Skip _all files here; handled by read_per_run_results
+        if fname.endswith("_all.csv"):
             continue
+
         key = p["arch"]
         if p["aux"] is not None:
             key = f"supra_aux{p['aux']}"
-        results[p["gnn"]][p["dataset"]][key] = data
+
+        # Try per-run aggregation first
+        run_data = read_per_run_results(ablation_dir, fname)
+        if run_data is not None:
+            results[p["gnn"]][p["dataset"]][key] = run_data
+            continue
+
+        # Fallback: read aggregated CSV
+        data = read_best_result(os.path.join(ablation_dir, fname))
+        if data is not None:
+            results[p["gnn"]][p["dataset"]][key] = data
 
     return results
 

@@ -783,6 +783,16 @@ def main():
         efficiency_runs['eval_step_times'].append(eval_step_times)
         efficiency_runs['epochs_needed'].append(len(train_step_times))
 
+        # Write per-run result to result_csv_all for multi-run aggregation
+        if getattr(args, 'result_csv_all', None):
+            per_run_row = build_result_row(
+                args=args,
+                method=getattr(args, 'result_tag', None) or "SUPRA",
+                full_metric=final_test_result,
+                run=run + 1,
+            )
+            append_result_csv(args.result_csv_all, per_run_row)
+
         # Collect degrade metrics from this run
         if report_drop and best_degrade_metrics:
             # Use alpha=1.0 or first alpha as the primary

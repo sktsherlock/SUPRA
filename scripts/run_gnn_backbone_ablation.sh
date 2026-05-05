@@ -143,6 +143,7 @@ run_early_gnn() {
         --n-epochs "$N_EPOCHS"
         --early_stop_patience "$PATIENCE"
         --result_csv "${OUTDIR}/${label}.csv"
+        --result_csv_all "${OUTDIR}/${label}_all.csv"
         --disable_wandb
         --gpu "$GPU"
     )
@@ -196,6 +197,7 @@ run_supra() {
         --n-epochs "$N_EPOCHS"
         --early_stop_patience "$PATIENCE"
         --result_csv "${OUTDIR}/${label}.csv"
+        --result_csv_all "${OUTDIR}/${label}_all.csv"
         --disable_wandb
         --gpu "$GPU"
     )

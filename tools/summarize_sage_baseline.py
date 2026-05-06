@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+"""
+Summarize SAGE Baseline Results
+===============================
+
+Reads Results/0506/*_best_all.csv files and prints a comparison table
+of Early_GNN-SAGE vs Late_GNN-SAGE across all datasets and feature groups.
+
+Usage:
+    python tools/summarize_sage_baseline.py
+    python tools/summarize_sage_baseline.py --dir Results/0506
+"""
+
+import argparse
+import csv
+import os
+import re
+import sys
+from collections import defaultdict
+
+
+def parse_best_filename(fname):
+    """Parse filename like 'early_sage_Movies_default_L2_lr0.0005_best_all.csv'."""
+    # Strip _best_all.csv or _all.csv
+    base = fname.replace("_best_all.csv", "").replace("_all.csv", "")
+
+    # early_sage_Movies_default_L2_lr0.0005  or late_sage_Movies_default_L2_lr0.0005
+    if base.startswith("early_sage_"):
+        model = "Early_GNN"
+        rest = base[len("early_sage_"):]
+    elif base.startswith("late_sage_"):
+        model = "Late_GNN"
+        rest = base[len("late_sage_"):]
+    else:
+        return None
+
+    # rest = "Movies_default_L2_lr0.0005" or "Reddit-M_clip_roberta_L2_lr0.0005"
+    # Last token is hyperparam tag (L2_lr0.0005), second-to-last is fg
+    parts = rest.rsplit("_", 1)
+    if len(parts) == 2:
+        dataset_fg = parts[0]   # "Movies_default" or "Reddit-M_clip_roberta"
+        # hyperparam = parts[1]  # "L2_lr0.0005" - not needed
+    else:
+        return None
+
+    # Split dataset and fg: "Movies_default" → Movies + default
+    # "Reddit-M_clip_roberta" → Reddit-M + clip_roberta
+    if dataset_fg.endswith("_clip_roberta"):
+        dataset = dataset_fg[:-len("_clip_roberta")].replace("-", "")
+        fg = "clip_roberta"
+    elif dataset_fg.endswith("_default"):
+        dataset = dataset_fg[:-len("_default")].replace("-", "")
+        fg = "default"
+    else:
+        return None
+
+    return {"model": model, "dataset": dataset, "fg": fg}
+
+
+def read_all_runs(path):
+    """Read all runs from *_all.csv and return (mean, std)."""
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            rows = list(csv.DictReader(f))
+        if not rows:
+            return None
+
+        # Find 'full' column
+        first_row = rows[0]
+        metric_col = None
+        for k in first_row:
+            if k == "full":
+                metric_col = k
+                break
+
+        if not metric_col:
+            return None
+
+        def parse_val(s):
+            if s is None:
+                return None
+            s = str(s).strip()
+            if not s:
+                return None
+            if "±" in s or "+/-" in s:
+                parts = re.split(r"[±+/-]+", s)
+                return float(parts[0].strip())
+            try:
+                return float(s)
+            except:
+                return None
+
+        run_values = []
+        for row in rows:
+            val = parse_val(row.get(metric_col))
+            if val is not None:
+                run_values.append(val)
+
+        if not run_values:
+            return None
+
+        mean_val = sum(run_values) / len(run_values)
+        if len(run_values) > 1:
+            std_val = (sum((v - mean_val) ** 2 for v in run_values) / (len(run_values) - 1)) ** 0.5
+        else:
+            std_val = 0.0
+        return (mean_val, std_val)
+    except Exception as e:
+        print(f"  [WARN] {path}: {e}", file=sys.stderr)
+        return None
+
+
+def load_results(results_dir):
+    """Returns results[model][dataset][fg][metric] = (mean, std)."""
+    results = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+
+    if not os.path.isdir(results_dir):
+        print(f"[ERROR] {results_dir} not found", file=sys.stderr)
+        return results
+
+    for fname in sorted(os.listdir(results_dir)):
+        if not fname.endswith("_all.csv"):
+            continue
+        if "_best_all" not in fname:
+            continue
+
+        p = parse_best_filename(fname)
+        if p is None:
+            continue
+
+        # Determine metric from filename
+        is_f1 = "_f1macro" in fname
+        metric = "F1-macro" if is_f1 else "Accuracy"
+
+        # Try f1macro tag first
+        all_path = os.path.join(results_dir, fname)
+        data = read_all_runs(all_path)
+
+        # If not found, try without f1macro suffix in path
+        if data is None:
+            base = fname.replace("_f1macro", "")
+            all_path = os.path.join(results_dir, base)
+            data = read_all_runs(all_path)
+
+        if data is not None:
+            results[p["model"]][p["dataset"]][p["fg"]][metric] = data
+
+    return results
+
+
+def _col(entry):
+    return f"{entry[0]:.2f}±{entry[1]:.2f}" if entry else "   —   "
+
+
+def _delta(a, b):
+    if a and b:
+        d = b[0] - a[0]
+        return f"{'+' if d >= 0 else ''}{d:.2f}"
+    return "   —   "
+
+
+def print_results(results, metric):
+    datasets = ["Movies", "Grocery", "Toys", "RedditM"]
+    fgs = ["default", "clip_roberta"]
+
+    sep = "=" * 90
+    print(f"\n{sep}")
+    print(f"  SAGE Baseline — {metric} (Early_GNN vs Late_GNN)")
+    print(sep)
+
+    for fg in fgs:
+        fg_label = "Llama" if fg == "default" else "RoBERTa+CLIP"
+        print(f"\n  ## Feature Group: {fg_label} ({fg})")
+        hdr = f"  {'Model':<12}" + "".join(f" {ds:>14}" for ds in datasets)
+        print(hdr)
+        print(f"  {'─'*12}" + "─"*15*4)
+        for model in ["Early_GNN", "Late_GNN"]:
+            row = f"  {model:<12}"
+            for ds in datasets:
+                entry = results[model][ds][fg].get(metric)
+                row += f" {_col(entry):>14}"
+            print(row)
+
+    # Delta row
+    print(f"\n  ## Delta: Late_GNN − Early_GNN")
+    print(f"  {'─'*12}" + "─"*15*4)
+    for fg in fgs:
+        fg_label = "Llama" if fg == "default" else "RoBERTa+CLIP"
+        row = f"  {fg_label:<12}"
+        for ds in datasets:
+            early = results["Early_GNN"][ds][fg].get(metric)
+            late = results["Late_GNN"][ds][fg].get(metric)
+            row += f" {_delta(early, late):>14}"
+        print(row)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dir", default="Results/0506")
+    args = parser.parse_args()
+
+    results_dir = args.dir
+
+    for metric in ["Accuracy", "F1-macro"]:
+        print_results(load_results(results_dir), metric)
+
+    print(f"\n  Source: {os.path.abspath(results_dir)}/")
+    print("=" * 90)
+
+
+if __name__ == "__main__":
+    main()

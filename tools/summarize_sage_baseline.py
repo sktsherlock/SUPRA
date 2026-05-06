@@ -120,6 +120,14 @@ def load_results(results_dir):
         print(f"[ERROR] {results_dir} not found", file=sys.stderr)
         return results
 
+    # Debug: list all CSV files found
+    all_csvs = sorted(f for f in os.listdir(results_dir) if f.endswith("_all.csv"))
+    print(f"  [DEBUG] Found {len(all_csvs)} _all.csv files in {results_dir}/", file=sys.stderr)
+    for f in all_csvs[:10]:
+        print(f"    {f}", file=sys.stderr)
+    if len(all_csvs) > 10:
+        print(f"    ... and {len(all_csvs) - 10} more", file=sys.stderr)
+
     for fname in sorted(os.listdir(results_dir)):
         if not fname.endswith("_all.csv"):
             continue

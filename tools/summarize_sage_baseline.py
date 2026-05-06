@@ -132,11 +132,13 @@ def load_results(results_dir):
 
         p = parse_best_filename(fname)
         if p is None:
+            print(f"  [DEBUG PARSE FAIL] {fname}", file=sys.stderr)
             continue
 
         is_f1 = "_f1macro" in fname
         metric = "F1-macro" if is_f1 else "Accuracy"
         key = (p["model"], p["dataset"], p["fg"], metric)
+        print(f"  [DEBUG OK] {fname} → model={p['model']} ds={p['dataset']} fg={p['fg']} metric={metric}", file=sys.stderr)
 
         all_path = os.path.join(results_dir, fname)
         data = read_all_runs(all_path)

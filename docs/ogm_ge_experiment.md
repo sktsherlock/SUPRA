@@ -1,6 +1,6 @@
 # OGM-GE 梯度调制实验
 
-验证 OGM-GE（On-the-fly Gradient Modulation with Gaussian Enhancement）与 SUPRA 辅助通道（aux_weight）在平衡模态学习上的效果对比。
+验证 OGM-GE（On-the-fly Gradient Modulation with Gaussian Enhancement）与 SUPRA 辅助通道（aux_weight）在平衡模态学习上的效果对比。在 Movies / Grocery / Toys / Reddit-M 四个数据集上全部运行。
 
 ---
 
@@ -49,14 +49,14 @@ C 通道本身的梯度**始终不参与调节**，作为稳定的参考基准�
 
 ## 实验设计
 
-在 Grocery 数据集上运行 2×2 因子实验：
+2×2 因子实验 × 4 数据集：
 
 | 实验 | aux_weight | use_ogm_ge | 说明 |
 |------|------------|------------|------|
 | **G1** | 0.0 | ✗ | 纯 C 通道（基线） |
-| **G2** | 0.5 | ✗ | SUPRA Full（现有最佳配置） |
+| **G2** | 0.5~0.7 | ✗ | SUPRA Full（aux 强化，现有最佳配置） |
 | **G3** | 0.0 | ✓ | OGM-GE only（替代 aux 强化） |
-| **G4** | 0.5 | ✓ | OGM-GE + aux（叠加效果） |
+| **G4** | 0.5~0.7 | ✓ | OGM-GE + aux（叠加效果） |
 
 预期：
 - G3 vs G1：OGM-GE 能否单独带来提升（验证梯度调节的价值）
@@ -65,162 +65,176 @@ C 通道本身的梯度**始终不参与调节**，作为稳定的参考基准�
 
 ---
 
-## Grocery 数据集超参数
+## 各数据集超参数
 
-> 来源: `Results/supra_gpu0_default_accuracy_best.csv`
+| 数据集 | Backbone | n_layers | lr | aux_weight (G2/G4) | 数据路径 |
+|--------|----------|----------|-----|---------------------|---------|
+| **Movies** | GCN | 3 | 0.001 | 0.7 | `/mnt/input/MAGB_Dataset/Movies/` |
+| **Grocery** | GCN | 3 | 0.001 | 0.7 | `/mnt/input/MAGB_Dataset/Grocery/` |
+| **Toys** | GCN | 2 | 0.0005 | 0.5 | `/mnt/input/MAGB_Dataset/Toys/` |
+| **Reddit-M** | GCN | 3 | 0.0005 | 0.7 | `/mnt/input/MAGB_Dataset/Reddit-M/` |
 
-| 参数 | 值 |
-|------|-----|
-| Backbone | GCN |
-| n-layers | 3 |
-| embed_dim | 256 |
-| lr | 0.001 |
-| wd | 0.0001 |
-| dropout | 0.3 |
-| mlp_variant | ablate |
-| degrade_target | both |
-| degrade_alphas | 1.0 |
+> 所有实验：`embed_dim=256`, `n_hidden=256`, `dropout=0.3`, `wd=0.0001`, `mlp_variant=ablate`, `selfloop=False`
 
 ---
 
 ## 运行命令
 
-> **所有实验均添加 `--report_drop_modality --degrade_target both --degrade_alphas 1.0`** 以追踪模态污染下限（degrade_text / degrade_visual），汇总时使用 `tools/summarize_ogm_ge.py` 统一查看。
+> **所有实验均添加 `--report_drop_modality --degrade_target both --degrade_alphas 1.0` 以追踪模态污染下限。汇总时使用 `tools/summarize_ogm_ge.py --dir Results/ogm_ge`。
 
-### G1 — 纯 C 通道基线（aux_weight=0, OGM-GE 关闭）
+### 批量运行脚本
 
-```bash
-python -m GNN.SUPRA \
-    --data_name Grocery \
-    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --model_name GCN \
-    --n_layers 3 \
-    --embed_dim 256 \
-    --n_hidden 256 \
-    --dropout 0.3 \
-    --lr 0.001 \
-    --wd 0.0001 \
-    --aux_weight 0.0 \
-    --mlp_variant ablate \
-    --selfloop False \
-    --n_epochs 300 \
-    --n_runs 3 \
-    --seed 42 \
-    --eval_steps 1 \
-    --early_stop_patience 50 \
-    --report_drop_modality \
-    --degrade_target both \
-    --degrade_alphas 1.0 \
-    --result_csv Results/ogm_ge/grocery_g1_baseline.csv \
-    --result_csv_all Results/ogm_ge/grocery_g1_baseline_all.csv \
-    --disable_wandb \
-    --gpu 0
-```
-
-### G2 — SUPRA Full（aux_weight=0.5, OGM-GE 关闭）
+建议在远程服务器上创建脚本 `run_ogm_ge.sh`：
 
 ```bash
-python -m GNN.SUPRA \
-    --data_name Grocery \
-    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --model_name GCN \
-    --n_layers 3 \
-    --embed_dim 256 \
-    --n_hidden 256 \
-    --dropout 0.3 \
-    --lr 0.001 \
-    --wd 0.0001 \
-    --aux_weight 0.5 \
-    --mlp_variant ablate \
-    --selfloop False \
-    --n_epochs 300 \
-    --n_runs 3 \
-    --seed 42 \
-    --eval_steps 1 \
-    --early_stop_patience 50 \
-    --report_drop_modality \
-    --degrade_target both \
-    --degrade_alphas 1.0 \
-    --result_csv Results/ogm_ge/grocery_g2_aux.csv \
-    --result_csv_all Results/ogm_ge/grocery_g2_aux_all.csv \
-    --disable_wandb \
-    --gpu 0
-```
+#!/bin/bash
+# =====================================================================
+# OGM-GE 梯度调制实验 — 4 数据集 × 4 组别
+# =====================================================================
+# Usage: bash run_ogm_ge.sh [gpu_id]
 
-### G3 — OGM-GE only（aux_weight=0, OGM-GE 开启）
+GPU="${1:-0}"
+SEED=42
+N_RUNS=3
+N_EPOCHS=300
+PATIENCE=50
+WD=0.0001
+DROPOUT=0.3
+OUTDIR="Results/ogm_ge"
+mkdir -p "$OUTDIR"
 
-```bash
-python -m GNN.SUPRA \
-    --data_name Grocery \
-    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --model_name GCN \
-    --n_layers 3 \
-    --embed_dim 256 \
-    --n_hidden 256 \
-    --dropout 0.3 \
-    --lr 0.001 \
-    --wd 0.0001 \
-    --aux_weight 0.0 \
-    --mlp_variant ablate \
-    --use_ogm_ge \
-    --ogm_alpha 0.5 \
-    --ogm_starts 0 \
-    --ogm_ends 50 \
-    --selfloop False \
-    --n_epochs 300 \
-    --n_runs 3 \
-    --seed 42 \
-    --eval_steps 1 \
-    --early_stop_patience 50 \
-    --report_drop_modality \
-    --degrade_target both \
-    --degrade_alphas 1.0 \
-    --result_csv Results/ogm_ge/grocery_g3_ogm.csv \
-    --result_csv_all Results/ogm_ge/grocery_g3_ogm_all.csv \
-    --disable_wandb \
-    --gpu 0
-```
+declare -A LR
+declare -A N_LAYERS
+declare -A AUX
+declare -A TEXT_PATH
+declare -A VIS_PATH
+declare -A GRAPH_PATH
 
-### G4 — OGM-GE + aux（aux_weight=0.5, OGM-GE 开启）
+# Movies
+LR["Movies"]=0.001
+N_LAYERS["Movies"]=3
+AUX["Movies"]=0.7
+TEXT_PATH["Movies"]="/mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy"
+VIS_PATH["Movies"]="/mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy"
+GRAPH_PATH["Movies"]="/mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt"
 
-```bash
-python -m GNN.SUPRA \
-    --data_name Grocery \
-    --text_feature /mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy \
-    --visual_feature /mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy \
-    --graph_path /mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt \
-    --model_name GCN \
-    --n_layers 3 \
-    --embed_dim 256 \
-    --n_hidden 256 \
-    --dropout 0.3 \
-    --lr 0.001 \
-    --wd 0.0001 \
-    --aux_weight 0.5 \
-    --mlp_variant ablate \
-    --use_ogm_ge \
-    --ogm_alpha 0.5 \
-    --ogm_starts 0 \
-    --ogm_ends 50 \
-    --selfloop False \
-    --n_epochs 300 \
-    --n_runs 3 \
-    --seed 42 \
-    --eval_steps 1 \
-    --early_stop_patience 50 \
-    --report_drop_modality \
-    --degrade_target both \
-    --degrade_alphas 1.0 \
-    --result_csv Results/ogm_ge/grocery_g4_ogm_aux.csv \
-    --result_csv_all Results/ogm_ge/grocery_g4_ogm_aux_all.csv \
-    --disable_wandb \
-    --gpu 0
+# Grocery
+LR["Grocery"]=0.001
+N_LAYERS["Grocery"]=3
+AUX["Grocery"]=0.7
+TEXT_PATH["Grocery"]="/mnt/input/MAGB_Dataset/Grocery/TextFeature/Grocery_Llama_3.2_11B_Vision_Instruct_256_mean.npy"
+VIS_PATH["Grocery"]="/mnt/input/MAGB_Dataset/Grocery/ImageFeature/Grocery_Llama-3.2-11B-Vision-Instruct_visual.npy"
+GRAPH_PATH["Grocery"]="/mnt/input/MAGB_Dataset/Grocery/GroceryGraph.pt"
+
+# Toys
+LR["Toys"]=0.0005
+N_LAYERS["Toys"]=2
+AUX["Toys"]=0.5
+TEXT_PATH["Toys"]="/mnt/input/MAGB_Dataset/Toys/TextFeature/Toys_Llama_3.2_11B_Vision_Instruct_256_mean.npy"
+VIS_PATH["Toys"]="/mnt/input/MAGB_Dataset/Toys/ImageFeature/Toys_Llama-3.2-11B-Vision-Instruct_visual.npy"
+GRAPH_PATH["Toys"]="/mnt/input/MAGB_Dataset/Toys/ToysGraph.pt"
+
+# Reddit-M
+LR["Reddit-M"]=0.0005
+N_LAYERS["Reddit-M"]=3
+AUX["Reddit-M"]=0.7
+TEXT_PATH["Reddit-M"]="/mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy"
+VIS_PATH["Reddit-M"]="/mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy"
+GRAPH_PATH["Reddit-M"]="/mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt"
+
+# =====================================================================
+# 实验组别
+# =====================================================================
+run_group() {
+    local ds="$1"
+    local grp="$2"     # g1 | g2 | g3 | g4
+    local aux_w="$3"   # aux_weight value
+    local use_ogm="$4" # true | false
+    local ogm_alpha="${5:-0.5}"
+
+    local txt="${TEXT_PATH[$ds]}"
+    local vis="${VIS_PATH[$ds]}"
+    local grh="${GRAPH_PATH[$ds]}"
+    local lr="${LR[$ds]}"
+    local nl="${N_LAYERS[$ds]}"
+    local aux="${AUX[$ds]}"
+
+    local ogm_tag=""
+    [[ "$use_ogm" == "true" ]] && ogm_tag="_ogm"
+
+    local label="${ds,,}_${grp}${ogm_tag}"
+    local csv="${OUTDIR}/${label}.csv"
+    local all_csv="${OUTDIR}/${label}_all.csv"
+
+    if [[ -f "$csv" ]]; then
+        echo "[SKIP] ${label}"
+        return 0
+    fi
+
+    echo "[RUN ] ${label}"
+
+    local cmd=(python -m GNN.SUPRA
+        --data_name "$ds"
+        --text_feature "$txt"
+        --visual_feature "$vis"
+        --graph_path "$grh"
+        --model_name GCN
+        --n_layers "$nl"
+        --embed_dim 256
+        --n_hidden 256
+        --dropout "$DROPOUT"
+        --lr "$lr"
+        --wd "$WD"
+        --aux_weight "$aux_w"
+        --mlp_variant ablate
+        --selfloop False
+        --n_epochs "$N_EPOCHS"
+        --n_runs "$N_RUNS"
+        --seed "$SEED"
+        --eval_steps 1
+        --early_stop_patience "$PATIENCE"
+        --report_drop_modality
+        --degrade_target both
+        --degrade_alphas 1.0
+        --result_csv "$csv"
+        --result_csv_all "$all_csv"
+        --disable_wandb
+        --gpu "$GPU"
+    )
+
+    if [[ "$use_ogm" == "true" ]]; then
+        cmd+=(
+            --use_ogm_ge
+            --ogm_alpha "$ogm_alpha"
+            --ogm_starts 0
+            --ogm_ends 50
+        )
+    fi
+
+    "${cmd[@]}" 2>&1 | tail -n 5
+    echo "[DONE] ${label}"
+}
+
+# =====================================================================
+# 执行：4 datasets × 4 groups = 16 experiments
+# =====================================================================
+for ds in Movies Grocery Toys "Reddit-M"; do
+    # G1: aux=0, no OGM-GE
+    run_group "$ds" g1 0.0 false
+
+    # G2: aux, no OGM-GE
+    run_group "$ds" g2 "${AUX[$ds]}" false
+
+    # G3: no aux, OGM-GE
+    run_group "$ds" g3 0.0 true 0.5
+
+    # G4: aux + OGM-GE
+    run_group "$ds" g4 "${AUX[$ds]}" true 0.5
+done
+
+echo ""
+echo "All done. Results in $OUTDIR/"
+ls -la "$OUTDIR/"
 ```
 
 ---
@@ -251,15 +265,41 @@ coeff = 1 - tanh(alpha * (ratio - 1))   if ratio > 1
 
 ```
 Results/ogm_ge/
-├── grocery_g1_baseline.csv         # G1 汇总
-├── grocery_g1_baseline_all.csv     # G1 每轮 raw 结果
-├── grocery_g2_aux.csv              # G2 汇总
-├── grocery_g2_aux_all.csv          # G2 每轮 raw 结果
-├── grocery_g3_ogm.csv              # G3 汇总
-├── grocery_g3_ogm_all.csv          # G3 每轮 raw 结果
-└── grocery_g4_ogm_aux.csv         # G4 汇总
-└── grocery_g4_ogm_aux_all.csv     # G4 每轮 raw 结果
+├── movies_g1.csv            # G1 汇总
+├── movies_g1_all.csv        # G1 每轮 raw 结果
+├── movies_g2.csv           # G2 汇总
+├── movies_g2_all.csv
+├── movies_g3_ogm.csv      # G3 汇总
+├── movies_g3_ogm_all.csv
+├── movies_g4_ogm.csv      # G4 汇总
+├── movies_g4_ogm_all.csv
+├── grocery_g1.csv
+├── grocery_g2.csv
+├── grocery_g3_ogm.csv
+├── grocery_g4_ogm.csv
+├── toys_g1.csv
+├── toys_g2.csv
+├── toys_g3_ogm.csv
+├── toys_g4_ogm.csv
+├── reddit-m_g1.csv
+├── reddit-m_g2.csv
+├── reddit-m_g3_ogm.csv
+└── reddit-m_g4_ogm.csv
 ```
+
+---
+
+## 汇总命令
+
+```bash
+# 汇总所有数据集的 Accuracy 结果
+python tools/summarize_ogm_ge.py
+
+# 汇总 F1-macro 结果（需单独跑 --metric f1_macro 实验）
+python tools/summarize_ogm_ge.py --f1
+```
+
+`--dir` 默认 `Results/ogm_ge`，如目录不同请指定 `--dir`。
 
 ---
 
@@ -327,7 +367,6 @@ optimizer.step()  # ← 调节在 step 之前生效
 
 ## 后续扩展
 
-1. **Grid Search alpha**：在 Grocery 上对 `ogm_alpha ∈ {0.1, 0.3, 0.5, 0.8}` 做 grid，找出最优压制强度
+1. **Grid Search alpha**：对 `ogm_alpha ∈ {0.1, 0.3, 0.5, 0.8}` 做 grid，找出最优压制强度
 2. **GE 开关对比**：开启 `--ogm_ge` vs 关闭，对比高斯噪声对泛化的影响
-3. **多数据集验证**：在 Movies / Toys / Reddit-M 上运行相同 2×2 实验，验证结论泛化性
-4. **梯度追踪叠加**：开启 `--analyze_gradients` 追踪 enc_t/enc_v 的梯度 L2 范数，验证 OGM 确实在压制 Ut/Uv encoder 梯度
+3. **梯度追踪叠加**：开启 `--analyze_gradients` 追踪 enc_t/enc_v 的梯度 L2 范数，验证 OGM 确实在压制 Ut/Uv encoder 梯度

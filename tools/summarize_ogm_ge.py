@@ -3,7 +3,8 @@
 Summarize OGM-GE Experiment Results
 ===================================
 
-Reads Results/ogm_ge/*.csv files and prints comparison tables for:
+Reads Results/ogm_ge/*.csv files and prints comparison tables for all 
+datasets (Movies, Grocery, Toys, Reddit-M):
   1. Main performance (Accuracy / F1-macro)
   2. Modality contamination resilience (degrade_text / degrade_visual)
 
@@ -22,33 +23,37 @@ from collections import defaultdict
 
 
 # ---------------------------------------------------------------------------
-# Filename patterns
+# Filename parsing
 # ---------------------------------------------------------------------------
-# grocery_g1_baseline.csv         → group g1, Baseline(C)
-# grocery_g2_aux.csv              → group g2, SUPRA(aux)
-# grocery_g3_ogm.csv             → group g3, OGM-GE
-# grocery_g4_ogm_aux.csv         → group g4, OGM+aux
-# *_f1macro.csv                  → F1-macro metric
-# *_all.csv                       → per-run raw results (for mean±std)
-
-FILE_PATTERNS = {
-    "grocery_g1_baseline":  ("g1", "Baseline(C)"),
-    "grocery_g2_aux":       ("g2", "SUPRA(aux)"),
-    "grocery_g3_ogm":       ("g3", "OGM-GE"),
-    "grocery_g4_ogm_aux":   ("g4", "OGM+aux"),
-}
-
 
 def parse_filename(fname):
-    """Parse OGM-GE result filename. Returns (group_key, group_label, metric) or None."""
+    """Parse OGM-GE result filename. Returns (dataset, group_key, group_label, metric) or None."""
     base = fname.replace("_all.csv", "").replace(".csv", "")
 
     is_f1 = "_f1macro" in base
     base = base.replace("_f1macro", "")
 
-    for pattern, (gkey, glabel) in FILE_PATTERNS.items():
-        if base == pattern:
-            return (gkey, glabel, "F1-macro" if is_f1 else "Accuracy")
+    # Expected formats: {dataset}_{group}
+    # e.g., movies_g1, grocery_g3_ogm, reddit-m_g4_ogm
+    parts = base.split("_", 1)
+    if len(parts) < 2:
+        return None
+
+    dataset = parts[0].lower()  # 'movies', 'grocery', 'toys', 'reddit-m'
+    gkey_raw = parts[1]         # 'g1', 'g2', 'g3_ogm', 'g4_ogm'
+
+    # Map bash script suffixes to our standard keys
+    group_mapping = {
+        "g1": ("g1", "Baseline(C)"),
+        "g2": ("g2", "SUPRA(aux)"),
+        "g3_ogm": ("g3", "OGM-GE"),
+        "g4_ogm": ("g4", "OGM+aux"),
+    }
+
+    if gkey_raw in group_mapping:
+        gkey, glabel = group_mapping[gkey_raw]
+        return dataset, gkey, glabel, "F1-macro" if is_f1 else "Accuracy"
+    
     return None
 
 
@@ -80,11 +85,7 @@ def _parse_val(s):
 # ---------------------------------------------------------------------------
 
 def read_best_csv(path):
-    """Read best result from aggregated *_best.csv or plain result CSV.
-
-    Returns dict with keys: mean, std, degrade_text, degrade_visual, degrade_text_std, degrade_visual_std.
-    Values are already in percentage form (e.g. 75.50, not 0.7550).
-    """
+    """Read best result from plain result CSV."""
     if not os.path.exists(path):
         return None
     try:
@@ -94,12 +95,7 @@ def read_best_csv(path):
             return None
 
         first_row = rows[0]
-        # Determine metric column
-        metric_col = None
-        if "full" in first_row:
-            metric_col = "full"
-        elif "val_metric" in first_row:
-            metric_col = "val_metric"
+        metric_col = "full" if "full" in first_row else ("val_metric" if "val_metric" in first_row else None)
 
         if not metric_col:
             return None
@@ -128,10 +124,7 @@ def read_best_csv(path):
 
 
 def read_all_runs(path):
-    """Read all runs from *_all.csv and compute mean±std.
-
-    Returns dict with: mean, std, degrade_text, degrade_visual (mean of all runs).
-    """
+    """Read all runs from *_all.csv and compute mean±std."""
     if not os.path.exists(path):
         return None
     try:
@@ -140,15 +133,12 @@ def read_all_runs(path):
         if not rows:
             return None
 
-        metric_col = None
-        if "full" in rows[0]:
-            metric_col = "full"
-
+        metric_col = "full" if "full" in rows[0] else None
         if not metric_col:
             return None
 
-        run_values = []
-        dt_runs, dv_runs = [], []
+        run_values =[]
+        dt_runs, dv_runs = [],[]
         for row in rows:
             val = _parse_val(row.get(metric_col))
             if val is not None:
@@ -189,7 +179,8 @@ def read_all_runs(path):
 # ---------------------------------------------------------------------------
 
 def load_results(ogm_dir, metric_type="Accuracy"):
-    """Returns dict[group_key] -> result dict."""
+    """Returns dict[dataset][group_key] -> result dict."""
+    # Nest dictionary structure: dataset -> group -> data
     results = defaultdict(dict)
 
     if not os.path.isdir(ogm_dir):
@@ -204,7 +195,7 @@ def load_results(ogm_dir, metric_type="Accuracy"):
         if parsed is None:
             continue
 
-        gkey, glabel, fname_metric = parsed
+        dataset, gkey, glabel, fname_metric = parsed
         if fname_metric != metric_type:
             continue
 
@@ -223,9 +214,9 @@ def load_results(ogm_dir, metric_type="Accuracy"):
                 data = read_best_csv(os.path.join(ogm_dir, fname))
 
         if data is not None:
-            results[gkey] = data
+            results[dataset][gkey] = data
 
-    return results
+    return dict(results)
 
 
 # ---------------------------------------------------------------------------
@@ -233,20 +224,12 @@ def load_results(ogm_dir, metric_type="Accuracy"):
 # ---------------------------------------------------------------------------
 
 def _col(entry):
-    """Format mean±std for display. Values are already percentages."""
+    """Format mean±std for display."""
     if entry is None:
         return "    —    "
     v = entry.get("mean", 0)
     s = entry.get("std", 0)
     return f"{v:.2f}±{s:.2f}"
-
-
-def _d(entry):
-    """Format single value."""
-    if entry is None:
-        return "    —    "
-    return f"{entry:.2f}"
-
 
 def _delta(a_entry, b_entry):
     """Delta of b - a, formatted with sign."""
@@ -257,9 +240,8 @@ def _delta(a_entry, b_entry):
     d = bv - av
     return f"{'+' if d >= 0 else ''}{d:.2f}"
 
-
 def _drop(entry, deg_entry):
-    """Performance drop when modality is degraded. Formatted as negative (worse is more negative)."""
+    """Performance drop when modality is degraded."""
     if entry is None or deg_entry is None:
         return "    —    "
     full = entry.get("mean", 0)
@@ -273,7 +255,7 @@ def _drop(entry, deg_entry):
 # ---------------------------------------------------------------------------
 
 def print_results_table(results, metric):
-    groups = [
+    groups =[
         ("g1", "Baseline(C)"),
         ("g2", "SUPRA(aux)"),
         ("g3", "OGM-GE"),
@@ -281,45 +263,81 @@ def print_results_table(results, metric):
     ]
     sep = "=" * 90
 
-    print(f"\n{sep}")
-    print(f"  OGM-GE Comparison — {metric}  |  Dataset: Grocery")
-    print(sep)
+    dataset_display_names = {
+        "movies": "Movies",
+        "grocery": "Grocery",
+        "toys": "Toys",
+        "reddit-m": "Reddit-M"
+    }
 
-    # Header
-    hdr = f"  {'Config':<16}" + f" {'Full':>12}" + f" {'Txt Degraded':>14}" + f" {'Vis Degraded':>14}" + f" {'Drop(Text)':>12}" + f" {'Drop(Vis)':>12}"
-    print(hdr)
-    print(f"  {'─'*16}" + "─"*13*4 + "─"*13*2)
+    # Sort datasets based on theoretical order:
+    ordered_datasets = ["movies", "grocery", "toys", "reddit-m"]
+    available_datasets = [d for d in ordered_datasets if d in results]
+    # In case there are other unexpected datasets generated
+    for d in sorted(results.keys()):
+        if d not in available_datasets:
+            available_datasets.append(d)
 
-    for gkey, glabel in groups:
-        entry = results.get(gkey)
-        dt = {"mean": entry.get("degrade_text"), "std": entry.get("degrade_text_std")} if entry and entry.get("degrade_text") is not None else None
-        dv = {"mean": entry.get("degrade_visual"), "std": entry.get("degrade_visual_std")} if entry and entry.get("degrade_visual") is not None else None
+    if not available_datasets:
+        print("No matched datasets found to display.")
+        return
 
-        row = f"  {glabel:<16}"
-        row += f" {_col(entry):>12}"
-        row += f" {_col(dt):>14}"
-        row += f" {_col(dv):>14}"
-        row += f" {_drop(entry, dt):>12}"
-        row += f" {_drop(entry, dv):>12}"
-        print(row)
+    # Loop through each dataset
+    for ds in available_datasets:
+        ds_results = results[ds]
+        display_name = dataset_display_names.get(ds, ds.capitalize())
 
-    # Delta vs Baseline(C)
-    print(f"\n  ## Delta vs Baseline(C) — Full Accuracy")
-    print(f"  {'─'*16}" + "─"*13*4)
-    baseline = results.get("g1")
-    for gkey, glabel in groups[1:]:
-        entry = results.get(gkey)
-        row = f"  {glabel:<16}"
-        row += f" {_delta(baseline, entry):>12}"
-        dt_b = {"mean": baseline.get("degrade_text")} if baseline and baseline.get("degrade_text") else None
-        dt_e = {"mean": entry.get("degrade_text")} if entry and entry.get("degrade_text") else None
-        dv_b = {"mean": baseline.get("degrade_visual")} if baseline and baseline.get("degrade_visual") else None
-        dv_e = {"mean": entry.get("degrade_visual")} if entry and entry.get("degrade_visual") else None
-        row += f" {_delta(dt_b, dt_e):>14}"
-        row += f" {_delta(dv_b, dv_e):>14}"
-        row += f" {'    —    ':>12}"  # no delta for drop columns
-        row += f" {'    —    ':>12}"
-        print(row)
+        print(f"\n{sep}")
+        print(f"  OGM-GE Comparison — {metric}  |  Dataset: {display_name}")
+        print(sep)
+
+        # Header
+        hdr = f"  {'Config':<16}" + f" {'Full':>12}" + f" {'Txt Degraded':>14}" + f" {'Vis Degraded':>14}" + f" {'Drop(Text)':>12}" + f" {'Drop(Vis)':>12}"
+        print(hdr)
+        print(f"  {'─'*16}" + "─"*13*4 + "─"*13*2)
+
+        for gkey, glabel in groups:
+            entry = ds_results.get(gkey)
+            if not entry:
+                # Print empty placeholders if group runs are missing
+                row = f"  {glabel:<16}" + f" {'    —    ':>12}" + f" {'    —    ':>14}" + f" {'    —    ':>14}" + f" {'    —    ':>12}" + f" {'    —    ':>12}"
+                print(row)
+                continue
+
+            dt = {"mean": entry.get("degrade_text"), "std": entry.get("degrade_text_std")} if entry.get("degrade_text") is not None else None
+            dv = {"mean": entry.get("degrade_visual"), "std": entry.get("degrade_visual_std")} if entry.get("degrade_visual") is not None else None
+
+            row = f"  {glabel:<16}"
+            row += f" {_col(entry):>12}"
+            row += f" {_col(dt):>14}"
+            row += f" {_col(dv):>14}"
+            row += f" {_drop(entry, dt):>12}"
+            row += f" {_drop(entry, dv):>12}"
+            print(row)
+
+        # Delta vs Baseline(C) section
+        print(f"\n  ## Delta vs Baseline(C) — Full {metric}")
+        print(f"  {'─'*16}" + "─"*13*4)
+        baseline = ds_results.get("g1")
+        for gkey, glabel in groups[1:]:
+            entry = ds_results.get(gkey)
+            row = f"  {glabel:<16}"
+            
+            if not entry or not baseline:
+                row += f" {'    —    ':>12}" + f" {'    —    ':>14}" + f" {'    —    ':>14}" + f" {'    —    ':>12}" + f" {'    —    ':>12}"
+                print(row)
+                continue
+
+            row += f" {_delta(baseline, entry):>12}"
+            dt_b = {"mean": baseline.get("degrade_text")} if baseline.get("degrade_text") else None
+            dt_e = {"mean": entry.get("degrade_text")} if entry.get("degrade_text") else None
+            dv_b = {"mean": baseline.get("degrade_visual")} if baseline.get("degrade_visual") else None
+            dv_e = {"mean": entry.get("degrade_visual")} if entry.get("degrade_visual") else None
+            row += f" {_delta(dt_b, dt_e):>14}"
+            row += f" {_delta(dv_b, dv_e):>14}"
+            row += f" {'    —    ':>12}"  # drop cols intentionally left blank here
+            row += f" {'    —    ':>12}"
+            print(row)
 
 
 # ---------------------------------------------------------------------------
@@ -338,7 +356,7 @@ def main():
     results = load_results(ogm_dir, metric)
     if not results:
         print(f"[ERROR] No results found in {ogm_dir}", file=sys.stderr)
-        print(f"  Expected files: grocery_g1_baseline.csv, grocery_g2_aux.csv, grocery_g3_ogm.csv, grocery_g4_ogm_aux.csv", file=sys.stderr)
+        print(f"  Expected files like: movies_g1.csv, grocery_g3_ogm.csv, etc.", file=sys.stderr)
         print(f"  (and their _all.csv variants for per-run aggregation)", file=sys.stderr)
         sys.exit(1)
 

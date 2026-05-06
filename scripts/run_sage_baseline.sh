@@ -206,8 +206,9 @@ collect_best() {
     [[ "$metric" == "f1_macro" ]] && mtag="_f1macro"
 
     # Find all CSV files matching this combination
-    local best_score=-1
+    local best_score=-999
     local best_all_csv=""
+    local best_tag=""
 
     for csv in "${OUTDIR}"/${prefix}_L*_lr*${mtag}.csv; do
         [[ -f "$csv" ]] || continue
@@ -219,16 +220,20 @@ collect_best() {
             cmp=$(python3 -c "print(1 if float('$score') > float('$best_score') else 0)" 2>/dev/null || echo 0)
             if [[ "$cmp" -eq 1 ]]; then
                 best_score=$score
-                cfg=$(basename "$csv" | sed "s/${mtag}//" | sed "s/${prefix}_//" | sed 's/\.csv//')
+                # Extract hyperparam tag from filename, e.g. "L2_lr0.0005" from "early_sage_Movies_default_L2_lr0.0005_all.csv"
+                cfg=$(basename "$csv" .csv | sed "s/${mtag}//" | sed "s/${prefix}_//")
                 best_all_csv="${OUTDIR}/${prefix}_${cfg}${mtag}_all.csv"
+                best_tag="$cfg"
             fi
         fi
     done
 
     if [[ -n "$best_all_csv" && -f "$best_all_csv" ]]; then
         cp "$best_all_csv" "${OUTDIR}/${prefix}${mtag}_best_all.csv"
+        echo "[BEST] ${prefix}${mtag}: cfg=${best_tag} score=${best_score}"
+    else
+        echo "[WARN] No CSV found for ${prefix}${mtag}"
     fi
-    echo "[BEST] ${prefix}${mtag}: score=${best_score}"
 }
 
 # -----------------------------------------------------------------------

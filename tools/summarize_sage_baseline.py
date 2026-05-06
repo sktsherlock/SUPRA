@@ -21,10 +21,8 @@ from collections import defaultdict
 
 def parse_best_filename(fname):
     """Parse filename like 'early_sage_Movies_default_L2_lr0.0005_best_all.csv'."""
-    import sys
-    # Strip _best_all.csv or _all.csv
     base = fname.replace("_best_all.csv", "").replace("_all.csv", "")
-    print(f"    fname={fname!r} base={base!r}", file=sys.stderr)
+    base = base.replace("_f1macro", "")  # strip metric suffix too
 
     if base.startswith("early_sage_"):
         model = "Early_GNN"
@@ -33,29 +31,29 @@ def parse_best_filename(fname):
         model = "Late_GNN"
         rest = base[len("late_sage_"):]
     else:
-        print(f"    FAIL: no model prefix", file=sys.stderr)
         return None
 
-    parts = rest.rsplit("_", 1)
-    if len(parts) != 2:
-        print(f"    FAIL: rsplit gave {parts!r}", file=sys.stderr)
+    # Split off hyperparam suffix: *_L#_lr#.#  (e.g. _L2_lr0.0005)
+    # Use rsplit('_L', 1) to split at the _ before layer number
+    if "_L" not in rest:
         return None
+    prefix, hyp = rest.rsplit("_L", 1)
+    hyp = "L" + hyp  # restore: "L2_lr0.0005"
 
-    dataset_fg = parts[0]
-    if dataset_fg.endswith("_clip_roberta"):
-        dataset_raw = dataset_fg[:-len("_clip_roberta")]
+    # prefix = "Grocery_default" or "Reddit-M_clip_roberta"
+    if prefix.endswith("_clip_roberta"):
+        dataset_raw = prefix[:-len("_clip_roberta")]
         fg = "clip_roberta"
-    elif dataset_fg.endswith("_default"):
-        dataset_raw = dataset_fg[:-len("_default")]
+    elif prefix.endswith("_default"):
+        dataset_raw = prefix[:-len("_default")]
         fg = "default"
     else:
-        print(f"    FAIL: dataset_fg={dataset_fg!r} matches neither suffix", file=sys.stderr)
         return None
 
+    # Normalize dataset name
     DS_MAP = {"Reddit-M": "RedditM", "Movies": "Movies", "Grocery": "Grocery", "Toys": "Toys"}
     dataset = DS_MAP.get(dataset_raw, dataset_raw.replace("-", "").replace("_", ""))
 
-    print(f"    OK: model={model} dataset={dataset} fg={fg}", file=sys.stderr)
     return {"model": model, "dataset": dataset, "fg": fg}
 
 
@@ -186,7 +184,7 @@ def print_results(results, metric):
             print(row)
 
     # Delta row
-    print(f"\n  ## Delta: Late_GNN − Early_GNN")
+    print(f"\n  ## Delta: Late_GNN - Early_GNN")
     print(f"  {'─'*12}" + "─"*15*4)
     for fg in fgs:
         fg_label = "Llama" if fg == "default" else "RoBERTa+CLIP"

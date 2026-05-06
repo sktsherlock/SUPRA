@@ -45,6 +45,7 @@ from GNN.Utils.NodeClassification import (
     _compute_degrade_metrics_mag,
     _as_scalar_float,
 )
+from GNN.Utils.ogm_ge import compute_ogm_coefficients, apply_ogm_ge
 
 
 class ModalityEncoder(nn.Module):
@@ -474,6 +475,20 @@ def args_init():
     supra.add_argument("--ablate_bypass", action="store_true",
                         help="[Group 2] Ablate bypass branches: force logits_final=logits_C only, "
                              "removing Ut/Uv channels to isolate shared GNN gradient dynamics")
+    supra.add_argument("--use_ogm_ge", action="store_true",
+                        help="[OGM-GE] Enable On-the-fly Gradient Modulation with Gaussian Enhancement. "
+                             "Uses C channel as anchor; modulates Ut/Uv encoder/head gradients "
+                             "when they dominate over C (indicating GNN bypass).")
+    supra.add_argument("--ogm_alpha", type=float, default=0.5,
+                        help="[OGM-GE] Alpha parameter controlling suppression strength. "
+                             "Higher = more aggressive suppression. Recommended: 0.1~0.8.")
+    supra.add_argument("--ogm_ge", action="store_true",
+                        help="[OGM-GE] Enable Gaussian Enhancement (GE) component. "
+                             "Adds gradient noise after modulation to restore generalization.")
+    supra.add_argument("--ogm_starts", type=int, default=0,
+                        help="[OGM-GE] First epoch to apply gradient modulation (inclusive).")
+    supra.add_argument("--ogm_ends", type=int, default=100,
+                        help="[OGM-GE] Last epoch to apply gradient modulation (inclusive).")
     parser.add_argument("--save_checkpoint", type=str, default=None,
                         help="Path to save best model checkpoint after training")
     parser.add_argument("--export_predictions", type=str, default=None,
@@ -706,6 +721,25 @@ def main():
                 grad_history['enc_v'].append(_grad_norm_sq(model.enc_v) ** 0.5)
                 gnn_norm_sq = sum(_grad_norm_sq(layer) for layer in model.mp_C)
                 grad_history['gnn'].append(gnn_norm_sq ** 0.5)
+
+            # OGM-GE: gradient modulation after backward, before optimizer step
+            use_ogm = getattr(args, 'use_ogm_ge', False)
+            if use_ogm and (args.ogm_starts <= epoch <= args.ogm_ends):
+                coeff_t, coeff_v = compute_ogm_coefficients(
+                    logits_Ut=out.logits_Ut_0[train_idx],
+                    logits_Uv=out.logits_Uv_0[train_idx],
+                    logits_C=out.logits_C_0[train_idx],
+                    labels=labels[train_idx],
+                    alpha=float(getattr(args, 'ogm_alpha', 0.5)),
+                )
+                ogm_info = apply_ogm_ge(
+                    model,
+                    coeff_t=coeff_t,
+                    coeff_v=coeff_v,
+                    use_ge=getattr(args, 'ogm_ge', False),
+                )
+                loss_logs["ogm/coeff_t"] = coeff_t
+                loss_logs["ogm/coeff_v"] = coeff_v
 
             optimizer.step()
             if device.type == "cuda":

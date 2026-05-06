@@ -21,8 +21,10 @@ from collections import defaultdict
 
 def parse_best_filename(fname):
     """Parse filename like 'early_sage_Movies_default_L2_lr0.0005_best_all.csv'."""
+    import sys
     # Strip _best_all.csv or _all.csv
     base = fname.replace("_best_all.csv", "").replace("_all.csv", "")
+    print(f"    PARSE fname={fname!r} base={base!r}", file=sys.stderr)
 
     # early_sage_Movies_default_L2_lr0.0005  or late_sage_Movies_default_L2_lr0.0005
     if base.startswith("early_sage_"):

@@ -24,9 +24,8 @@ def parse_best_filename(fname):
     import sys
     # Strip _best_all.csv or _all.csv
     base = fname.replace("_best_all.csv", "").replace("_all.csv", "")
-    print(f"    PARSE fname={fname!r} base={base!r}", file=sys.stderr)
+    print(f"    fname={fname!r} base={base!r}", file=sys.stderr)
 
-    # early_sage_Movies_default_L2_lr0.0005  or late_sage_Movies_default_L2_lr0.0005
     if base.startswith("early_sage_"):
         model = "Early_GNN"
         rest = base[len("early_sage_"):]
@@ -34,18 +33,15 @@ def parse_best_filename(fname):
         model = "Late_GNN"
         rest = base[len("late_sage_"):]
     else:
+        print(f"    FAIL: no model prefix", file=sys.stderr)
         return None
 
-    # rest = "Movies_default_L2_lr0.0005" or "Reddit-M_clip_roberta_L2_lr0.0005"
-    # Last token is hyperparam tag (L2_lr0.0005), second-to-last is fg
     parts = rest.rsplit("_", 1)
-    if len(parts) == 2:
-        dataset_fg = parts[0]   # "Movies_default" or "Reddit-M_clip_roberta"
-    else:
+    if len(parts) != 2:
+        print(f"    FAIL: rsplit gave {parts!r}", file=sys.stderr)
         return None
 
-    # Split dataset and fg: "Movies_default" → Movies + default
-    # "Reddit-M_clip_roberta" → Reddit-M + clip_roberta
+    dataset_fg = parts[0]
     if dataset_fg.endswith("_clip_roberta"):
         dataset_raw = dataset_fg[:-len("_clip_roberta")]
         fg = "clip_roberta"
@@ -53,13 +49,13 @@ def parse_best_filename(fname):
         dataset_raw = dataset_fg[:-len("_default")]
         fg = "default"
     else:
+        print(f"    FAIL: dataset_fg={dataset_fg!r} matches neither suffix", file=sys.stderr)
         return None
 
-    # Normalize dataset names for consistent lookup
-    DS_MAP = {"Reddit-M": "RedditM", "Movies": "Movies",
-               "Grocery": "Grocery", "Toys": "Toys"}
+    DS_MAP = {"Reddit-M": "RedditM", "Movies": "Movies", "Grocery": "Grocery", "Toys": "Toys"}
     dataset = DS_MAP.get(dataset_raw, dataset_raw.replace("-", "").replace("_", ""))
 
+    print(f"    OK: model={model} dataset={dataset} fg={fg}", file=sys.stderr)
     return {"model": model, "dataset": dataset, "fg": fg}
 
 
@@ -134,13 +130,11 @@ def load_results(results_dir):
 
         p = parse_best_filename(fname)
         if p is None:
-            print(f"  [DEBUG PARSE FAIL] {fname}", file=sys.stderr)
             continue
 
         is_f1 = "_f1macro" in fname
         metric = "F1-macro" if is_f1 else "Accuracy"
         key = (p["model"], p["dataset"], p["fg"], metric)
-        print(f"  [DEBUG OK] {fname} → model={p['model']} ds={p['dataset']} fg={p['fg']} metric={metric}", file=sys.stderr)
 
         all_path = os.path.join(results_dir, fname)
         data = read_all_runs(all_path)

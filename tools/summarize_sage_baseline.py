@@ -39,20 +39,24 @@ def parse_best_filename(fname):
     parts = rest.rsplit("_", 1)
     if len(parts) == 2:
         dataset_fg = parts[0]   # "Movies_default" or "Reddit-M_clip_roberta"
-        # hyperparam = parts[1]  # "L2_lr0.0005" - not needed
     else:
         return None
 
     # Split dataset and fg: "Movies_default" → Movies + default
     # "Reddit-M_clip_roberta" → Reddit-M + clip_roberta
     if dataset_fg.endswith("_clip_roberta"):
-        dataset = dataset_fg[:-len("_clip_roberta")].replace("-", "")
+        dataset_raw = dataset_fg[:-len("_clip_roberta")]
         fg = "clip_roberta"
     elif dataset_fg.endswith("_default"):
-        dataset = dataset_fg[:-len("_default")].replace("-", "")
+        dataset_raw = dataset_fg[:-len("_default")]
         fg = "default"
     else:
         return None
+
+    # Normalize dataset names for consistent lookup
+    DS_MAP = {"Reddit-M": "RedditM", "Movies": "Movies",
+               "Grocery": "Grocery", "Toys": "Toys"}
+    dataset = DS_MAP.get(dataset_raw, dataset_raw.replace("-", "").replace("_", ""))
 
     return {"model": model, "dataset": dataset, "fg": fg}
 
@@ -113,52 +117,44 @@ def read_all_runs(path):
 
 
 def load_results(results_dir):
-    """Returns results[model][dataset][fg][metric] = (mean, std)."""
-    results = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+    """Returns results[model][dataset][fg][metric] = (mean, std).
+    Reads all *_all.csv files and selects the best across hyperparameter configs."""
+    # by_key[(model, dataset, fg, metric)] = list of (mean, std, fname)
+    by_key = defaultdict(list)
 
     if not os.path.isdir(results_dir):
         print(f"[ERROR] {results_dir} not found", file=sys.stderr)
-        return results
-
-    # Debug: list all CSV files found
-    all_csvs = sorted(f for f in os.listdir(results_dir) if f.endswith("_all.csv"))
-    print(f"  [DEBUG] Found {len(all_csvs)} _all.csv files in {results_dir}/", file=sys.stderr)
-    for f in all_csvs[:10]:
-        print(f"    {f}", file=sys.stderr)
-    if len(all_csvs) > 10:
-        print(f"    ... and {len(all_csvs) - 10} more", file=sys.stderr)
+        return defaultdict(lambda: defaultdict(dict))
 
     for fname in sorted(os.listdir(results_dir)):
         if not fname.endswith("_all.csv"):
-            continue
-        if "_best_all" not in fname:
             continue
 
         p = parse_best_filename(fname)
         if p is None:
             continue
 
-        # Determine metric from filename
         is_f1 = "_f1macro" in fname
         metric = "F1-macro" if is_f1 else "Accuracy"
+        key = (p["model"], p["dataset"], p["fg"], metric)
 
-        # Try f1macro tag first
         all_path = os.path.join(results_dir, fname)
         data = read_all_runs(all_path)
-
-        # If not found, try without f1macro suffix in path
-        if data is None:
-            base = fname.replace("_f1macro", "")
-            all_path = os.path.join(results_dir, base)
-            data = read_all_runs(all_path)
-
         if data is not None:
-            results[p["model"]][p["dataset"]][p["fg"]][metric] = data
+            by_key[key].append((data[0], data[1], fname))
+
+    # Select best for each (model, dataset, fg, metric)
+    results = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+    for key, entries in by_key.items():
+        model, dataset, fg, metric = key
+        best = max(entries, key=lambda e: e[0])
+        results[model][dataset][fg][metric] = (best[0], best[1])
 
     return results
 
 
 def _col(entry):
+    # Values are stored as percentage (e.g. 75.67), no division needed
     return f"{entry[0]:.2f}±{entry[1]:.2f}" if entry else "   —   "
 
 

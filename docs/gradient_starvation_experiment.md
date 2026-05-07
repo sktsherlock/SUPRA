@@ -311,7 +311,7 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
     --model_name GCN \
-    --n_layers 3 \
+    --n-layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
     --wd 0.0001 \
@@ -337,7 +337,7 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
     --model_name GCN \
-    --n_layers 3 \
+    --n-layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
     --wd 0.0001 \
@@ -362,7 +362,7 @@ python -m GNN.SUPRA \
     --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
     --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
     --model_name GCN \
-    --n_layers 3 \
+    --n-layers 3 \
     --embed_dim 256 \
     --lr 0.001 \
     --wd 0.0001 \
@@ -544,6 +544,38 @@ python -m GNN.Utils.plot_gradient_norm --mode 4 \
     --label_4 "SUPRA (aux=0.5)" \
     --max_epoch 50 \
     --save_plot Results/gradient_starvation/toys_4group.pdf
+```
+
+### 4 组对比图（Movies）
+
+```bash
+python -m GNN.Utils.plot_gradient_norm --mode 4 \
+    --csv_1 Results/gradient_starvation/movies_g1_mmgen_l2_norm_run1.csv \
+    --csv_2 Results/gradient_starvation/movies_g2_no_bypass_l2_norm_run1.csv \
+    --csv_3 Results/gradient_starvation/movies_g3_base_l2_norm_run1.csv \
+    --csv_4 Results/gradient_starvation/movies_g4_full_l2_norm_run1.csv \
+    --label_1 "MMGCN" \
+    --label_2 "SUPRA (Synergy-Only)" \
+    --label_3 "SUPRA (aux=0)" \
+    --label_4 "SUPRA (aux=0.7)" \
+    --max_epoch 50 \
+    --save_plot Results/gradient_starvation/movies_4group.pdf
+```
+
+### 4 组对比图（Reddit-M）
+
+```bash
+python -m GNN.Utils.plot_gradient_norm --mode 4 \
+    --csv_1 Results/gradient_starvation/redditm_g1_mmgen_l2_norm_run1.csv \
+    --csv_2 Results/gradient_starvation/redditm_g2_no_bypass_l2_norm_run1.csv \
+    --csv_3 Results/gradient_starvation/redditm_g3_base_l2_norm_run1.csv \
+    --csv_4 Results/gradient_starvation/redditm_g4_full_l2_norm_run1.csv \
+    --label_1 "MMGCN" \
+    --label_2 "SUPRA (Synergy-Only)" \
+    --label_3 "SUPRA (aux=0)" \
+    --label_4 "SUPRA (aux=0.7)" \
+    --max_epoch 50 \
+    --save_plot Results/gradient_starvation/redditm_4group.pdf
 ```
 
 **预期逻辑链现象**:

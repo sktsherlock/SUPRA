@@ -264,6 +264,254 @@ Results/gradient_starvation/toys_g4_full_l2_norm_run1.csv
 
 ---
 
+## Movies 数据集参数
+
+> 来源: `Results/supra_gpu0_default_accuracy_best.csv`
+
+| 参数 | 值 |
+|------|-----|
+| Backbone | GCN |
+| n-layers | 3 |
+| embed_dim | 256 |
+| lr | 0.001 |
+| wd | 0.0001 |
+| dropout | 0.3 |
+| mlp_variant | ablate |
+| aux_weight (Full) | 0.7 |
+
+### Group 1 — MMGCN
+
+```bash
+python -m GNN.Baselines.Late_GNN \
+    --data_name Movies \
+    --text_feature /mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
+    --model_name GCN \
+    --n-layers 3 \
+    --n-hidden 256 \
+    --dropout 0.3 \
+    --lr 0.001 \
+    --wd 0.0001 \
+    --n-epochs 300 \
+    --n-runs 1 \
+    --eval_steps 1 \
+    --early_stop_patience 50 \
+    --analyze_gradients \
+    --gradient_csv Results/gradient_starvation/movies_g1_mmgen.csv \
+    --disable_wandb
+```
+
+### Group 2 — SUPRA (Synergy-Only)
+
+```bash
+python -m GNN.SUPRA \
+    --data_name Movies \
+    --text_feature /mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
+    --model_name GCN \
+    --n_layers 3 \
+    --embed_dim 256 \
+    --lr 0.001 \
+    --wd 0.0001 \
+    --dropout 0.3 \
+    --aux_weight 0.0 \
+    --mlp_variant ablate \
+    --ablate_bypass \
+    --n-epochs 300 \
+    --n-runs 1 \
+    --eval_steps 1 \
+    --early_stop_patience 50 \
+    --analyze_gradients \
+    --gradient_csv Results/gradient_starvation/movies_g2_no_bypass.csv \
+    --disable_wandb
+```
+
+### Group 3 — SUPRA Base
+
+```bash
+python -m GNN.SUPRA \
+    --data_name Movies \
+    --text_feature /mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
+    --model_name GCN \
+    --n_layers 3 \
+    --embed_dim 256 \
+    --lr 0.001 \
+    --wd 0.0001 \
+    --dropout 0.3 \
+    --aux_weight 0.0 \
+    --mlp_variant ablate \
+    --n-epochs 300 \
+    --n-runs 1 \
+    --eval_steps 1 \
+    --early_stop_patience 50 \
+    --analyze_gradients \
+    --gradient_csv Results/gradient_starvation/movies_g3_base.csv \
+    --disable_wandb
+```
+
+### Group 4 — SUPRA Full（aux_weight = 0.7）
+
+```bash
+python -m GNN.SUPRA \
+    --data_name Movies \
+    --text_feature /mnt/input/MAGB_Dataset/Movies/TextFeature/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Movies/ImageFeature/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Movies/MoviesGraph.pt \
+    --model_name GCN \
+    --n_layers 3 \
+    --embed_dim 256 \
+    --lr 0.001 \
+    --wd 0.0001 \
+    --dropout 0.3 \
+    --aux_weight 0.7 \
+    --mlp_variant ablate \
+    --n-epochs 300 \
+    --n-runs 1 \
+    --eval_steps 1 \
+    --early_stop_patience 50 \
+    --analyze_gradients \
+    --gradient_csv Results/gradient_starvation/movies_g4_full.csv \
+    --disable_wandb
+```
+
+**输出文件**:
+```
+Results/gradient_starvation/movies_g1_mmgen_l2_norm_run1.csv
+Results/gradient_starvation/movies_g2_no_bypass_l2_norm_run1.csv
+Results/gradient_starvation/movies_g3_base_l2_norm_run1.csv
+Results/gradient_starvation/movies_g4_full_l2_norm_run1.csv
+```
+
+---
+
+## Reddit-M 数据集参数
+
+> 来源: `Results/supra_gpu0_default_accuracy_best.csv`
+
+| 参数 | 值 |
+|------|-----|
+| Backbone | GCN |
+| n-layers | 3 |
+| embed_dim | 256 |
+| lr | 0.0005 |
+| wd | 0.0001 |
+| dropout | 0.3 |
+| mlp_variant | ablate |
+| aux_weight (Full) | 0.7 |
+
+### Group 1 — MMGCN
+
+```bash
+python -m GNN.Baselines.Late_GNN \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --model_name GCN \
+    --n-layers 3 \
+    --n-hidden 256 \
+    --dropout 0.3 \
+    --lr 0.0005 \
+    --wd 0.0001 \
+    --n-epochs 300 \
+    --n-runs 1 \
+    --eval_steps 1 \
+    --early_stop_patience 50 \
+    --analyze_gradients \
+    --gradient_csv Results/gradient_starvation/redditm_g1_mmgen.csv \
+    --disable_wandb
+```
+
+### Group 2 — SUPRA (Synergy-Only)
+
+```bash
+python -m GNN.SUPRA \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --model_name GCN \
+    --n_layers 3 \
+    --embed_dim 256 \
+    --lr 0.0005 \
+    --wd 0.0001 \
+    --dropout 0.3 \
+    --aux_weight 0.0 \
+    --mlp_variant ablate \
+    --ablate_bypass \
+    --n-epochs 300 \
+    --n-runs 1 \
+    --eval_steps 1 \
+    --early_stop_patience 50 \
+    --analyze_gradients \
+    --gradient_csv Results/gradient_starvation/redditm_g2_no_bypass.csv \
+    --disable_wandb
+```
+
+### Group 3 — SUPRA Base
+
+```bash
+python -m GNN.SUPRA \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --model_name GCN \
+    --n_layers 3 \
+    --embed_dim 256 \
+    --lr 0.0005 \
+    --wd 0.0001 \
+    --dropout 0.3 \
+    --aux_weight 0.0 \
+    --mlp_variant ablate \
+    --n-epochs 300 \
+    --n-runs 1 \
+    --eval_steps 1 \
+    --early_stop_patience 50 \
+    --analyze_gradients \
+    --gradient_csv Results/gradient_starvation/redditm_g3_base.csv \
+    --disable_wandb
+```
+
+### Group 4 — SUPRA Full（aux_weight = 0.7）
+
+```bash
+python -m GNN.SUPRA \
+    --data_name Reddit-M \
+    --text_feature /mnt/input/MAGB_Dataset/Reddit-M/TextFeature/RedditM_Llama_3.2_11B_Vision_Instruct_100_mean.npy \
+    --visual_feature /mnt/input/MAGB_Dataset/Reddit-M/ImageFeature/RedditM_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /mnt/input/MAGB_Dataset/Reddit-M/RedditMGraph.pt \
+    --model_name GCN \
+    --n_layers 3 \
+    --embed_dim 256 \
+    --lr 0.0005 \
+    --wd 0.0001 \
+    --dropout 0.3 \
+    --aux_weight 0.7 \
+    --mlp_variant ablate \
+    --n-epochs 300 \
+    --n-runs 1 \
+    --eval_steps 1 \
+    --early_stop_patience 50 \
+    --analyze_gradients \
+    --gradient_csv Results/gradient_starvation/redditm_g4_full.csv \
+    --disable_wandb
+```
+
+**输出文件**:
+```
+Results/gradient_starvation/redditm_g1_mmgen_l2_norm_run1.csv
+Results/gradient_starvation/redditm_g2_no_bypass_l2_norm_run1.csv
+Results/gradient_starvation/redditm_g3_base_l2_norm_run1.csv
+Results/gradient_starvation/redditm_g4_full_l2_norm_run1.csv
+```
+
+---
+
 ## 生成对比图
 
 ### 4 组对比图（Grocery）

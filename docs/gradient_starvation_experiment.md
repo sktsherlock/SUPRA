@@ -9,7 +9,7 @@
 | 组别 | 模型 | 配置 | 追踪目标 |
 |------|------|------|---------|
 | **Group 1** | MMGCN (Late_GNN) | 传统多模态 GNN，各模态独立 GNN 聚合后融合 | text_gnn, vis_gnn, mmgnn（两模态 GNN 梯度 L2 范数） |
-| **Group 2** | SUPRA (No Bypass) | `ablate_bypass`：强制 `logits_final = logits_C`，去除 Ut/Uv 分支 | enc_t, enc_v, gnn |
+| **Group 2** | SUPRA (Synergy-Only) | `ablate_bypass`：强制 `logits_final = logits_C`，去除 Ut/Uv 分支 | enc_t, enc_v, gnn |
 | **Group 3** | SUPRA Base | `aux_weight = 0`：三通道融合但无辅助损失 | enc_t, enc_v, gnn |
 | **Group 4** | SUPRA Full | `aux_weight > 0`：三通道 + 辅助损失 | enc_t, enc_v, gnn |
 
@@ -54,7 +54,7 @@ python -m GNN.Baselines.Late_GNN \
     --disable_wandb
 ```
 
-### Group 2 — SUPRA (No Bypass)
+### Group 2 — SUPRA (Synergy-Only)
 
 ```bash
 python -m GNN.SUPRA \
@@ -178,7 +178,7 @@ python -m GNN.Baselines.Late_GNN \
     --disable_wandb
 ```
 
-### Group 2 — SUPRA (No Bypass)
+### Group 2 — SUPRA (Synergy-Only)
 
 ```bash
 python -m GNN.SUPRA \
@@ -275,7 +275,7 @@ python -m GNN.Utils.plot_gradient_norm --mode 4 \
     --csv_3 Results/gradient_starvation/grocery_g3_base_l2_norm_run1.csv \
     --csv_4 Results/gradient_starvation/grocery_g4_full_l2_norm_run1.csv \
     --label_1 "MMGCN" \
-    --label_2 "SUPRA (No Bypass)" \
+    --label_2 "SUPRA (Synergy-Only)" \
     --label_3 "SUPRA (aux=0)" \
     --label_4 "SUPRA (aux=0.7)" \
     --max_epoch 50 \
@@ -291,7 +291,7 @@ python -m GNN.Utils.plot_gradient_norm --mode 4 \
     --csv_3 Results/gradient_starvation/toys_g3_base_l2_norm_run1.csv \
     --csv_4 Results/gradient_starvation/toys_g4_full_l2_norm_run1.csv \
     --label_1 "MMGCN" \
-    --label_2 "SUPRA (No Bypass)" \
+    --label_2 "SUPRA (Synergy-Only)" \
     --label_3 "SUPRA (aux=0)" \
     --label_4 "SUPRA (aux=0.5)" \
     --max_epoch 50 \
@@ -300,7 +300,7 @@ python -m GNN.Utils.plot_gradient_norm --mode 4 \
 
 **预期逻辑链现象**:
 - Group 1（MMGCN）：各模态 GNN 梯度分离，无统一协调
-- Group 2（SUPRA No Bypass）：共享 GNN 存在，但无 bypass 保护，整体梯度极低（拓扑瓶颈）
+- Group 2（SUPRA Synergy-Only）：共享 GNN 存在，但无 bypass 保护，整体梯度极低（拓扑瓶颈）
 - Group 3（SUPRA Base）：有 bypass，但无辅助损失，三通道整体梯度衰减
 - Group 4（SUPRA Full）：辅助损失激活投影器，所有模块梯度被"复活"
 
@@ -329,4 +329,4 @@ Late_GNN 训练循环中新增梯度 L2 范数追踪（`text_enc`, `vis_enc`, `m
 
 `GNN/Utils/plot_gradient_norm.py` 支持两种模式：
 - `--mode 2`：2 组对比（左 Base，右 Full）
-- `--mode 4`：4 组 2×2 子图（MMGCN → No Bypass → Base → Full）
+- `--mode 4`：4 组 2×2 子图（MMGCN → Synergy-Only → Base → Full）

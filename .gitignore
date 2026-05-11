@@ -41,4 +41,7 @@ build/
 # Backup files
 *.bak
 *.backup
+
+# Local development
+CLAUDE.md
 .claude/

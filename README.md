@@ -3,75 +3,109 @@
 
 ---
 
-# SUPRA: Unified Multimodal Learning with Spectral Orthogonalization
+# SUPRA: Shared-Unique Decomposition for Multimodal Graph Learning
 
-A multimodal graph neural network framework that leverages spectral orthogonalization to mitigate gradient competition and low-rank bias in shared graph representation learning.
+A multimodal graph neural network framework that addresses **modality contamination** — the phenomenon where shared GNN aggregation causes one modality's signal to overwhelm another's — through a **Shared-Unique Decomposition** architecture.
 
 ## Method Overview
 
-SUPRA introduces a **Shared-Unique Decomposition** architecture with **Newton-Schulz Orthogonalization** to promote diversity between shared and modality-specific parameters:
+SUPRA decomposes multimodal node representation into three functionally distinct channels:
 
-- **Shared Channel (C)**: GNN backbone that learns common graph structure via concat(text, visual) → message passing
-- **Unique Text Channel (Uₜ)**: Projects raw text features to embedding space (no graph message passing)
-- **Unique Visual Channel (Uᵥ)**: Projects raw visual features to embedding space (no graph message passing)
-- **Late Fusion**: Average of logits from all three channels: `(logits_C + logits_Ut + logits_Uv) / 3`
-- **Spectral Orthogonalization Hook**: Gradient post-processing on shared channel to enforce orthogonal update directions
-- **Auxiliary Loss (optional)**: Per-branch cross-entropy losses to strengthen gradients to unique channels
+| Channel | Description | Gradient Source |
+|---------|-------------|----------------|
+| **C (Shared)** | `concat(text_enc, visual_enc)` → GNN → shared semantic representation | `logits_C` loss |
+| **Uₜ (Unique Text)** | `text_enc` → head_Ut → logits_Ut (no graph propagation) | `logits_Ut` loss |
+| **Uᵥ (Unique Visual)** | `visual_enc` → head_Uv → logits_Uv (no graph propagation) | `logits_Uv` loss |
 
-### 4-way Ablation Study
+**Fusion**: Equal-weight average of all three channels:
+```
+logits_final = (logits_C + logits_Ut + logits_Uv) / 3
+```
 
-| Variant | Architecture | Orthogonalization | Auxiliary Loss |
-|---------|-------------|-------------------|----------------|
-| Ablate-None | C+Uₜ+Uᵥ three-channel | ❌ (α=0) | ❌ |
-| Ablate-Ortho | C+Uₜ+Uᵥ three-channel | ✅ (α=1) | ❌ |
-| Ablate-Aux | C+Uₜ+Uᵥ three-channel | ❌ (α=0) | ✅ |
-| SUPRA-Full | C+Uₜ+Uᵥ three-channel | ✅ (α=1) | ✅ |
+The key insight is that Uₜ/Uᵥ channels are **bypassed from GNN message passing**, protecting modality-specific semantics from being diluted by the shared aggregator. An optional **auxiliary loss** (`aux_weight`) provides additional gradient reinforcement to the encoders.
+
+### Key Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `--mlp_variant` | MLP projection before GNN: `ablate`=none (recommended), `full`=Linear→ReLU→LN→Linear | `ablate` |
+| `--aux_weight` | Extra gradient strength for Uₜ/Uᵥ channels (0=disable, 0.5~0.7 recommended) | `0.0` |
+| `--ablate_bypass` | Ablation flag: force `logits_final = logits_C` to verify bypass value | disabled |
+
+### OGM-GE: Optional Gradient Modulation
+
+OGM-GE (CVPR 2022) can be stacked on top of SUPRA as a complementary gradient-level regularizer. It uses the C channel as an anchor to detect when Uₜ/Uᵥ are becoming over-confident relative to the shared representation, and applies gradient dampening accordingly:
+
+```bash
+python -m GNN.SUPRA ... \
+    --use_ogm_ge \
+    --ogm_alpha 0.5 \
+    --ogm_starts 0 \
+    --ogm_ends 50
+```
+
+See [`docs/ogm_ge_experiment.md`](docs/ogm_ge_experiment.md) for full experimental details.
 
 ## Supported Methods
 
-### Baseline Models (`run_baseline.sh`)
-| Model | Description | Layers |
-|-------|-------------|--------|
-| MLP | Multi-layer perceptron (no graph) | 2, 3 |
-| GCN | Graph Convolutional Network (via Early_GNN) | 1, 2 |
-| SAGE | GraphSAGE (mean aggregator, via Early_GNN) | 2, 3, 4 |
-| GAT | Graph Attention Network (via Early_GNN) | 1, 2 |
-| GCNII | GCN with Initial residual + Identity mapping | 2, 3, 4 |
-| JKNet | Jumping Knowledge Network | 2, 3, 4 |
+### Baseline Suite (`run_mag_baseline_suite.sh`)
 
-### SUPRA (`run_supra.sh` / `run_ablation_study.sh`)
-| Component | Description | Options |
-|-----------|-------------|---------|
-| GNN Backbone | GCN, SAGE, GAT, RevGAT | - |
-| Embed Dim | Shared embedding dimension | 128, 256 |
-| Shared Depth | Shared channel depth | 1, 2, 3, 4 |
-| Ortho Alpha | Spectral orthogonalization strength | 0.0 (off), 1.0 (full) |
-| Aux Loss | Enable per-branch auxiliary loss | true/false |
+| Experiment | Description | Entry |
+|-----------|-------------|-------|
+| **plain** | Unimodal MLP/GNN (text-only or visual-only) | `Early_GNN --backend mlp/gnn` |
+| **baseline** | Early fusion: `concat(text, visual)` → GNN | `Early_GNN` |
+| **late** | Late fusion: separate encoders → separate GNNs → fuse | `Late_GNN` |
+| **nts** | NTSFormer multimodal graph transformer | `NTSFormer` |
+| **mig** | MIG_GT multi-hop GDCF + transformer | `MIG_GT` |
+
+### SUPRA Suite (`run_supra_suite.sh`)
+
+| Component | Options |
+|-----------|---------|
+| GNN Backbone | GCN, SAGE, GAT, GCNII, JKNet |
+| Embed Dim | 128, 256 |
+| aux_weight | 0.0, 0.5, 0.7 |
+| mlp_variant | `full`, `ablate` |
+
+### Ablation Study (`run_ablation_study.sh`)
+
+| Group | Model | Configuration | Purpose |
+|-------|-------|----------------|---------|
+| **G1** | MMGCN (Late_GNN) | Traditional multimodal GNN | Baseline |
+| **G2** | SUPRA (Synergy-Only) | `ablate_bypass`: `logits_final = logits_C` | Verify bypass contribution |
+| **G3** | SUPRA Base | `aux_weight = 0`: three channels, no aux loss | Architecture baseline |
+| **G4** | SUPRA Full | `aux_weight > 0`: three channels + aux loss | Full model |
+
+See [`docs/gradient_starvation_experiment.md`](docs/gradient_starvation_experiment.md) for gradient tracking experiments.
 
 ## Project Structure
 
 ```
 SUPRA_2.0/
 ├── GNN/
-│   ├── SUPRA.py              # SUPRA model implementation with spectral orthogonalization
-│   ├── Library/              # Simple single-modality baselines
-│   │   ├── MLP.py, GCN.py, GAT.py, GraphSAGE.py
-│   │   ├── GCNII.py, JKNet.py, SGC.py, APPNP.py
-│   ├── Baselines/            # Multimodal baselines (Early/Late fusion)
-│   │   ├── Early_GNN.py      # Early fusion: concat text+visual -> GNN
-│   │   ├── Late_GNN.py       # Late fusion: separate encoders -> GNN -> fuse
-│   │   ├── MIG_GT.py, NTSFormer.py
-│   │   └── OGM-GE/, NTSFormer/ (submodules)
-│   └── GraphData.py          # Data loading utilities
-├── plot/                     # Visualization scripts
-│   └── plot_*.sh             # Various plotting scripts
-├── scripts/                  # Additional experiment scripts
-├── path_config.sh            # Data path configuration (shared by scripts)
-├── run_baseline.sh           # Baseline experiment runner
-├── run_supra.sh              # SUPRA experiment runner
-├── run_ablation_study.sh     # 4-way ablation study runner
-├── run_batch_baseline.sh     # Batch runner for all baselines
-└── requirements.yaml         # Conda environment spec
+│   ├── SUPRA.py              # SUPRA model (C/Ut/Uv three-channel architecture)
+│   ├── Utils/
+│   │   ├── ogm_ge.py         # OGM-GE gradient modulation
+│   │   ├── plot_gradient_norm.py  # Gradient norm visualization
+│   │   └── graph_degradation.py   # Feature noise / edge rewiring
+│   ├── Baselines/
+│   │   ├── Early_GNN.py      # Early fusion (concat → GNN)
+│   │   ├── Late_GNN.py       # Late fusion (separate encoders → GNN → fuse)
+│   │   ├── NTSFormer.py      # Multimodal graph transformer
+│   │   └── MIG_GT.py         # Multi-hop GDCF + transformer
+│   └── Library/              # Single-modality GNN primitives (GCN, SAGE, GAT, etc.)
+├── docs/
+│   ├── ogm_ge_experiment.md       # OGM-GE gradient modulation experiments
+│   ├── gradient_starvation_experiment.md  # Gradient starvation verification
+│   └── degradation_experiment.md  # Feature/edge degradation experiments
+├── tools/
+│   ├── summarize_ogm_ge.py        # OGM-GE results summarizer
+│   ├── run_degradation_experiments.py  # Degradation experiments runner
+│   └── plot_gradient_norm         # (invoked as python -m GNN.Utils.plot_gradient_norm)
+├── run_mag_baseline_suite.sh  # Comprehensive baseline suite
+├── run_supra_suite.sh         # SUPRA main experiments
+├── run_ablation_study.sh      # 4-group ablation study
+└── requirements.yaml           # Conda environment
 ```
 
 ## Setup
@@ -79,27 +113,28 @@ SUPRA_2.0/
 ### 1. Environment
 
 ```bash
-# Clone the repository
 git clone https://github.com/sktsherlock/SUPRA.git
 cd SUPRA
-
-# Create conda environment
 conda env create -f requirements.yaml
-
-# Activate
 conda activate MAG
 ```
 
-### 2. Data Path Configuration
+### 2. Data Path
 
-Edit `path_config.sh` to set your data root:
+**IMPORTANT**: `run_mag_baseline_suite.sh` reads `DATA_ROOT` directly (not `path_config.sh`):
+
+```bash
+export DATA_ROOT=/path/to/MAGB_Dataset
+```
+
+For other scripts, edit `path_config.sh`:
 
 ```bash
 DATA_ROOT="${DATA_ROOT:-/path/to/your/MAGB_Dataset}"
 export DATA_ROOT
 ```
 
-Required data structure:
+Required structure:
 ```
 ${DATA_ROOT}/
 ├── Movies/
@@ -111,209 +146,113 @@ ${DATA_ROOT}/
 └── Reddit-M/
 ```
 
-Feature groups supported:
+Feature groups:
 - `clip_roberta` (default): CLIP visual + RoBERTa text
 - `default`: Llama 3.2 Vision features
 
 ## Running Experiments
 
-### Quick Start
+### Baseline Suite (Recommended Entry Point)
 
 ```bash
-# Run ablation study (4 variants including SUPRA-Full)
-./run_ablation_study.sh
+# Run all baselines (Plain/Early/Late/NTS/MIG) on all datasets
+DATA_ROOT=/path/to/MAGB_Dataset ./run_mag_baseline_suite.sh
 
-# Run baseline experiments
-./run_batch_baseline.sh
+# Dry run (preview commands only)
+./run_mag_baseline_suite.sh --dry_run
 
-# Run a specific model
-./run_baseline.sh --model GCN --data_name Movies
+# Custom selection
+EXPERIMENTS="plain baseline late" DATASETS="Movies Grocery" ./run_mag_baseline_suite.sh
 
-# Run SUPRA with custom settings
-./run_supra.sh --data_name Movies
+# With Llama features instead of CLIP
+FEATURE_GROUPS="default" ./run_mag_baseline_suite.sh
+```
+
+### SUPRA Suite
+
+```bash
+# Run SUPRA on all datasets
+DATA_ROOT=/path/to/MAGB_Dataset ./run_supra_suite.sh
+
+# Single dataset
+DATASETS="Movies" ./run_supra_suite.sh
+
+# Custom result CSV
+RESULT_CSV="Results/my_results.csv" ./run_supra_suite.sh
 ```
 
 ### Ablation Study
 
 ```bash
-# Run all 4-way ablation on all datasets (Movies, Grocery, Toys, Reddit-M)
+# 4-group ablation on all datasets
 ./run_ablation_study.sh
 
-# Run ablation on specific datasets
-DATASETS="Movies Grocery" ./run_ablation_study.sh
-
-# Run ablation with specific backbone
-MODEL_NAME=GAT ./run_ablation_study.sh
-
-# Run ablation variants individually
-ORTHO_ALPHA=0.0 USE_AUX_LOSS=false ./run_supra.sh --data_name Movies   # Ablate-None
-ORTHO_ALPHA=1.0 USE_AUX_LOSS=false ./run_supra.sh --data_name Movies   # Ablate-Ortho
-ORTHO_ALPHA=0.0 USE_AUX_LOSS=true  ./run_supra.sh --data_name Movies   # Ablate-Aux
-ORTHO_ALPHA=1.0 USE_AUX_LOSS=true  ./run_supra.sh --data_name Movies   # SUPRA-Full
+# Individual groups (Grocery example)
+python -m GNN.Baselines.Late_GNN ...    # G1: MMGCN
+python -m GNN.SUPRA --ablate_bypass ... # G2: Synergy-Only
+python -m GNN.SUPRA --aux_weight 0.0 ... # G3: SUPRA Base
+python -m GNN.SUPRA --aux_weight 0.7 ... # G4: SUPRA Full
 ```
 
-### Baseline Experiments
+See [`docs/gradient_starvation_experiment.md`](docs/gradient_starvation_experiment.md) for the full set of commands with gradient tracking.
+
+### OGM-GE Experiments
 
 ```bash
-# Run all baseline models on Movies dataset
-./run_baseline.sh --model GCN --data_name Movies
+# 2×2 factorial: aux_weight × use_ogm_ge across all 4 datasets
+# See docs/ogm_ge_experiment.md for the full batch runner script
 
-# Run specific model with custom params
-./run_baseline.sh --data_name Movies --model SAGE --n_layers 2
-
-# Run with specific feature group
-FEATURE_GROUPS="default" ./run_baseline.sh --data_name Grocery --model GAT
-
-# Run with F1-macro metric
-./run_baseline.sh --data_name Movies --model GCN --metric f1_macro --average macro
+# Summarize results
+python tools/summarize_ogm_ge.py
+python tools/summarize_ogm_ge.py --f1
 ```
 
-**Key parameters:**
+### Degradation Experiments
+
+```bash
+# Feature noise degradation + edge rewiring degradation
+# See docs/degradation_experiment.md for full commands
+
+python tools/run_degradation_experiments.py \
+    --data_name Movies \
+    --text_feature /path/to/Movies_Llama_3.2_11B_Vision_Instruct_512_mean.npy \
+    --visual_feature /path/to/Movies_Llama-3.2-11B-Vision-Instruct_visual.npy \
+    --graph_path /path/to/MoviesGraph.pt \
+    --embed_dim 256 --n_layers 3 --lr 0.001 \
+    --save_dir Results/degradation --gpu 0
+```
+
+## Key Parameters
+
+### SUPRA
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--data_name` | Dataset (Movies, Grocery, Toys, Reddit-M) | Required |
-| `--model` | Model (MLP, GCN, SAGE, GAT, GCNII, JKNet) | Required |
-| `--feature_group` | Feature set (clip_roberta, default) | clip_roberta |
-| `--metric` | Metric (accuracy, f1_macro) | accuracy |
-| `--average` | Average mode (macro, micro) | macro |
-| `--gpu` | GPU device ID | 0 |
-| `--n_runs` | Number of runs | 3 |
-
-### SUPRA Experiments
-
-```bash
-# Run SUPRA with GCN backbone
-./run_supra.sh --data_name Movies
-
-# Run with GAT backbone and custom embedding
-./run_supra.sh --data_name Grocery --model_name GAT --embed_dim 128
-
-# Run specific shared_depth range
-SUPRA_LAYERS="2 3 4" ./run_supra.sh --data_name Toys
-```
-
-**Key parameters:**
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--data_name` | Dataset (Movies, Grocery, Toys, Reddit-M) | Required |
-| `--model_name` | GNN backbone (GCN, SAGE, GAT, RevGAT) | GCN |
-| `--feature_group` | Feature set (clip_roberta, default) | clip_roberta |
+| `--model_name` | GNN backbone (GCN, SAGE, GAT, GCNII, JKNet) | GCN |
 | `--embed_dim` | Embedding dimension | 256 |
-| `--shared_depth` | Shared channel depth | 2 |
-| `--ortho_alpha` | Spectral orthogonalization strength (0=disable, 1=full) | 1.0 |
-| `--use_aux_loss` | Enable auxiliary loss on each branch | off |
+| `--n_layers` | GNN layer count | 2 |
+| `--mlp_variant` | `full` or `ablate` (recommended) | `ablate` |
+| `--aux_weight` | Auxiliary loss weight for Uₜ/Uᵥ (0=disable) | 0.0 |
+| `--ablate_bypass` | Force logits_final = logits_C | disabled |
+| `--use_ogm_ge` | Enable OGM-GE gradient modulation | disabled |
 | `--gpu` | GPU device ID | 0 |
+
+### Baseline Suite
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--experiment` | Experiment type | Required |
+| `--datasets` | Dataset list | All 4 |
+| `--feature_groups` | Feature set (`clip_roberta`, `default`) | `clip_roberta` |
+| `--metric` | Metric (`accuracy`, `f1`) | `accuracy` |
 | `--n_runs` | Number of runs | 3 |
-
-### Saving Model Checkpoints
-
-```bash
-# Train and save a model checkpoint
-python -m GNN.SUPRA \
-    --data_name Movies \
-    --text_feature /path/to/text.npy \
-    --visual_feature /path/to/vis.npy \
-    --graph_path /path/to/MoviesGraph.pt \
-    --save_checkpoint ./checkpoints/movies_supra_best.pt \
-    --n_runs 3
-```
-
-### Case Study Analysis
-
-After training, use `GNN/Utils/case_study.py` to analyze channel-level behaviors:
-
-```bash
-python -m GNN.Utils.case_study \
-    --checkpoint ./checkpoints/movies_supra_best.pt \
-    --data_name Movies \
-    --graph_path /path/to/MoviesGraph.pt \
-    --text_feature /path/to/text.npy \
-    --visual_feature /path/to/vis.npy \
-    --n_cases 10
-```
-
-**Three analysis modes** (all run by default, use flags to disable individual ones):
-
-| Flag | Description |
-|------|-------------|
-| `--analyze_dirichlet` | Dirichlet Energy analysis — measures semantic sharpness preservation per channel |
-| `--analyze_nodes` | Node case study — shows top Ut/Uv disagreement nodes and per-channel predictions |
-| `--analyze_per_class` | Per-class accuracy breakdown — reveals which classes favor which modality |
-
-**Example output — Dirichlet Energy:**
-```
-Dirichlet Energy Analysis — Movies
-  Raw concat features:        0.023451  (baseline)
-  C channel (GNN):            0.008234  (drop -61.7%)
-  Ut channel (unique text):   0.021023  (drop -10.4%)
-  Uv channel (unique visual): 0.019847  (drop -15.4%)
-```
-Interpretation: Ut/Uv channels retain ~85-90% of original semantic energy vs only ~40% for the C channel, confirming that unique channels protect modality-specific semantics from GNN smoothing.
-
-**Example output — Node Case Study:**
-```
-Node Prediction Case Study (top 10 Ut/Uv divergent nodes)
-  All correct: 7/10  |  Ut-only: 1  |  Uv-only: 0  |  C-only: 0  |  Fusion helps: 1
-  [Rank 1] Node 342 | Label: Comedy | Disagreement: 0.4321
-    C channel:      Comedy ✓  (conf: 0.912)
-    Ut channel:     Drama ✗   (conf: 0.823)
-    Uv channel:     Comedy ✓  (conf: 0.756)
-    Fusion:         Comedy ✓  (conf: 0.831)
-```
-
-### Batch Experiments
-
-```bash
-# Run all baselines on all datasets with all metrics (dry run)
-./run_batch_baseline.sh --dry_run
-
-# Run only GCN and SAGE
-./run_batch_baseline.sh --models "GCN SAGE"
-
-# Run only F1-macro metric
-./run_batch_baseline.sh --metrics "f1_macro"
-```
-
-## Hyperparameters
-
-### Fixed Parameters (All Methods)
-- Dropout: 0.3 (fixed)
-- Weight decay: 1e-4
-- Train ratio: 0.6
-- Val ratio: 0.2
-
-### Baseline Search Space
-| Model | Learning Rate | Layers |
-|-------|--------------|--------|
-| MLP | 0.0005, 0.001 | 2, 3 |
-| GCN | 0.0005, 0.001 | 1, 2 |
-| SAGE | 0.0005, 0.001 | 2, 3, 4 |
-| GAT | 0.0005, 0.001 | 1, 2 |
-| GCNII | 0.0005, 0.001 | 2, 3, 4 |
-| JKNet | 0.0005, 0.001 | 2, 3, 4 |
-
-### SUPRA / Ablation Search Space
-- Learning rate: 0.0005, 0.001
-- Layers (n_layers): 2, 3, 4
-- Embed dim: 128, 256
-- Shared depth: 1, 2, 3, 4
-
-## Output
-
-Results are saved to:
-- `logs_baseline/` - Training logs for baseline experiments
-- `logs_supra/` - Training logs for SUPRA experiments
-- `logs_ablation/` - Training logs for ablation experiments
-- `results_csv/baseline_best.csv` - Best results per method/dataset/metric
-- `results_csv/baseline_all.csv` - All experimental results
 
 ## Citation
 
-If you find this work useful, please cite:
-
 ```bibtex
 @misc{supra2026,
-  title={SUPRA: Unified Multimodal Learning with Spectral Orthogonalization},
+  title={SUPRA: Shared-Unique Decomposition for Multimodal Graph Learning},
   author={},
   year={2026}
 }
